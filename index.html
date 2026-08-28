@@ -197,6 +197,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
         <span class="nav-label">Colaboradores Ativos</span>
       </div>
+      <div class="nav-item" data-view="experiencia">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
+        <span class="nav-label">Experiência</span>
+      </div>
       <div class="nav-item" data-view="inativos">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6.5 7-6.5M17 8l5 5M22 8l-5 5"/></svg>
         <span class="nav-label">Colaboradores Inativos</span>
@@ -307,6 +311,107 @@
         <div class="empty-state" id="ativos-empty" style="display:none;">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
           <div>Nenhum colaborador encontrado com esse filtro.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-experiencia">
+      <div class="topbar"><div class="page-title">Experiência</div><div class="page-date"></div></div>
+
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button class="btn" id="exp-tab-painel" style="background:var(--teal);color:#052622;border:none;">Painel</button>
+        <button class="btn btn-ghost" id="exp-tab-analitico">Analítico</button>
+      </div>
+
+      <!-- ===== SUBVIEW: PAINEL ===== -->
+      <div id="ativos-subview-experiencia">
+        <div class="panel" style="margin-bottom:20px;">
+          <div class="panel-head" style="flex-wrap:wrap;gap:12px;">
+            <span class="panel-title">Filtros</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="exp-filtro-empresa" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todas as Empresas</option></select>
+              <select id="exp-filtro-status" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
+                <option value="">Todos os Status</option>
+                <option value="1">1ª Experiência</option>
+                <option value="2">2ª Experiência</option>
+                <option value="VENCENDO">Vencendo em 15 dias</option>
+              </select>
+              <select id="exp-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os Postos</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats" style="grid-template-columns:1fr 1fr;max-width:520px;margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-label">Em Experiência</div>
+            <div class="stat-value teal" id="exp-total-experiencia">0</div>
+          </div>
+          <div class="stat-card" style="border-color:var(--red-soft);">
+            <div class="stat-label">Vencendo (≤ 15 dias)</div>
+            <div class="stat-value red" id="exp-total-vencendo">0</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Vencendo por Posto</span></div>
+            <div style="padding:20px 20px 8px;" id="chart-exp-postos"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Vencimentos Próximos</span></div>
+            <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
+              <table>
+                <thead><tr><th>Colaborador</th><th>Etapa</th><th>Vencimento</th><th>Dias Restantes</th></tr></thead>
+                <tbody id="exp-vencimentos-tbody"></tbody>
+              </table>
+              <div class="empty-state" id="exp-vencimentos-empty" style="display:none;padding:30px;">Nenhum colaborador em experiência.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:20px;">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Status Experiência</span></div>
+            <div style="padding:20px;" id="chart-exp-status"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Colaboradores em Experiência</span></div>
+            <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
+              <table>
+                <thead><tr><th>Colaborador</th><th>Cargo</th><th>Posto</th><th>Etapa</th><th>Vencimento</th></tr></thead>
+                <tbody id="exp-colaboradores-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUBVIEW: ANALÍTICO ===== -->
+      <div id="exp-subview-analitico" style="display:none;">
+        <div class="panel" style="margin-bottom:20px;">
+          <div class="panel-head" style="flex-wrap:wrap;gap:12px;">
+            <span class="panel-title">Filtros</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="exp-an-filtro-empresa" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todas as Empresas</option></select>
+              <select id="exp-an-filtro-status" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
+                <option value="">Todos os Status</option>
+                <option value="1">1ª Experiência</option>
+                <option value="2">2ª Experiência</option>
+                <option value="VENCENDO">Vencendo em 15 dias</option>
+              </select>
+              <select id="exp-an-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os Postos</option></select>
+              <input type="text" id="exp-an-search" placeholder="Buscar por nome..." style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;min-width:180px;">
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Duração</th><th>Etapa</th><th>Vencimento</th><th>Dias Restantes</th></tr></thead>
+              <tbody id="exp-analitico-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="exp-analitico-empty" style="display:none;">Nenhum colaborador em experiência encontrado com esse filtro.</div>
         </div>
       </div>
     </div>
@@ -669,7 +774,7 @@
         <div class="panel">
           <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>Posto</th><th>Status Férias</th><th>Admissão</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Vencimento 1º Período</th><th>Vencimento 2º Período</th></tr></thead>
               <tbody id="ferias-analitico-tbody"></tbody>
             </table>
           </div>
@@ -774,16 +879,28 @@
           <div class="modal-field"><label>Custo de Admissão (R$)</label><input type="number" step="0.01" id="nat-custoadmissao" value="0"></div>
           <div class="modal-field"><label>Tipo de Contrato</label>
             <select id="nat-contrato-tipo">
-              <option value="EFETIVO">Efetivo (Indeterminado)</option>
-              <option value="EXPERIENCIA">Contrato de Experiência</option>
+              <option value="INDETERMINADO">Indeterminado (Efetivo)</option>
+              <option value="DETERMINADO">Determinado</option>
+              <option value="EXPERIENCIA">Experiência</option>
+              <option value="INTERMITENTE">Intermitente</option>
             </select>
           </div>
-          <div class="modal-field" id="nat-experiencia-duracao-wrap" style="display:none;">
-            <label>Duração da Experiência (dias)</label>
-            <input type="number" id="nat-experiencia-duracao" min="1" value="45" placeholder="Ex: 45 ou 90">
+          <div></div>
+          <div class="modal-field" id="nat-experiencia-duracao-wrap">
+            <label>Contrato de Experiência (dias)</label>
+            <input type="number" id="nat-experiencia-duracao" min="1" value="45" placeholder="Ex: 45">
+          </div>
+          <div class="modal-field" id="nat-experiencia-prorrogacao-wrap">
+            <label>Dias de Prorrogação <span style="color:var(--text-faint);font-weight:400;">- opcional</span></label>
+            <input type="number" id="nat-experiencia-prorrogacao" min="0" value="" placeholder="Ex: 45">
           </div>
           <div class="modal-field full" id="nat-experiencia-hint-wrap" style="display:none;">
-            <div style="font-size:11.5px;color:var(--amber);background:var(--amber-soft);padding:8px 12px;border-radius:8px;" id="nat-experiencia-hint"></div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:11.5px;background:#0D1526;border:1px solid var(--line);padding:12px 16px;border-radius:8px;">
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Data de Admissão</div><div class="mono" id="nat-exp-data-admissao" style="font-size:13px;">—</div></div>
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Fim da Experiência</div><div class="mono" id="nat-exp-data-fim" style="font-size:13px;">—</div></div>
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Fim da Prorrogação</div><div class="mono" id="nat-exp-data-prorrogacao" style="font-size:13px;">—</div></div>
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Situação</div><div id="nat-exp-situacao" style="font-size:13px;">—</div></div>
+            </div>
           </div>
         </div>
         <div class="modal-check" id="nat-alerta" style="display:none;color:var(--amber);"></div>
@@ -821,16 +938,28 @@
           </div>
           <div class="modal-field"><label>Tipo de Contrato</label>
             <select id="edt-contrato-tipo">
-              <option value="EFETIVO">Efetivo (Indeterminado)</option>
-              <option value="EXPERIENCIA">Contrato de Experiência</option>
+              <option value="INDETERMINADO">Indeterminado (Efetivo)</option>
+              <option value="DETERMINADO">Determinado</option>
+              <option value="EXPERIENCIA">Experiência</option>
+              <option value="INTERMITENTE">Intermitente</option>
             </select>
           </div>
-          <div class="modal-field" id="edt-experiencia-duracao-wrap" style="display:none;">
-            <label>Duração da Experiência (dias)</label>
-            <input type="number" id="edt-experiencia-duracao" min="1" value="45" placeholder="Ex: 45 ou 90">
+          <div></div>
+          <div class="modal-field" id="edt-experiencia-duracao-wrap">
+            <label>Contrato de Experiência (dias)</label>
+            <input type="number" id="edt-experiencia-duracao" min="1" value="45" placeholder="Ex: 45">
+          </div>
+          <div class="modal-field" id="edt-experiencia-prorrogacao-wrap">
+            <label>Dias de Prorrogação <span style="color:var(--text-faint);font-weight:400;">- opcional</span></label>
+            <input type="number" id="edt-experiencia-prorrogacao" min="0" value="" placeholder="Ex: 45">
           </div>
           <div class="modal-field full" id="edt-experiencia-hint-wrap" style="display:none;">
-            <div style="font-size:11.5px;color:var(--amber);background:var(--amber-soft);padding:8px 12px;border-radius:8px;" id="edt-experiencia-hint"></div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:11.5px;background:#0D1526;border:1px solid var(--line);padding:12px 16px;border-radius:8px;">
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Data de Admissão</div><div class="mono" id="edt-exp-data-admissao" style="font-size:13px;">—</div></div>
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Fim da Experiência</div><div class="mono" id="edt-exp-data-fim" style="font-size:13px;">—</div></div>
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Fim da Prorrogação</div><div class="mono" id="edt-exp-data-prorrogacao" style="font-size:13px;">—</div></div>
+              <div><div style="color:var(--text-faint);margin-bottom:3px;">Situação</div><div id="edt-exp-situacao" style="font-size:13px;">—</div></div>
+            </div>
           </div>
         </div>
         <div class="modal-actions">
@@ -981,6 +1110,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
   // ============================================================
   // CONFIGURAÇÃO DO PROJETO FIREBASE (PAINEL DP — projeto novo, separado do RH)
@@ -999,9 +1129,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   var firebaseAuth = firebase.auth();
-
-  var CLOUD_DB_URL = firebaseConfig.databaseURL + '/painel-dp.json';
-  var CLOUD_SYNC_INTERVAL = 20000;
+  var dbRef = firebase.database().ref('painel-dp');
 
   // ============================================================
   // USUÁRIOS (mesmos usuários/senhas do Painel RH).
@@ -1136,6 +1264,14 @@
       document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
       var target = document.getElementById('view-' + view);
       if(target) target.classList.add('active');
+      if(view === 'ferias'){
+        var btnPainel = document.getElementById('ferias-tab-painel');
+        if(btnPainel) btnPainel.click();
+      }
+      if(view === 'experiencia'){
+        var btnExpPainel = document.getElementById('exp-tab-painel');
+        if(btnExpPainel) btnExpPainel.click();
+      }
     });
   });
 
@@ -1163,11 +1299,9 @@
   // DATA E SINCRONIZAÇÃO COM O FIREBASE (Realtime Database)
   // Estrutura pronta para as próximas etapas: cada aba (ativos, inativos,
   // absenteismo, turnover, ferias, ocorrencias, cat) vai gravar seus dados
-  // dentro do mesmo objeto de estado, sincronizado a cada 20s.
+  // dentro do mesmo objeto de estado, sincronizado em tempo real com o Firebase.
   // ============================================================
   var appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [] };
-  var cloudSyncTimer = null;
-  var cloudSyncBusy = false;
 
   // ============================================================
   // CARGA INICIAL — Colaboradores Ativos (planilha enviada)
@@ -1228,14 +1362,37 @@
     document.getElementById('ativos-experiencias-vencendo').textContent = vencendo;
   }
 
+  // Converte automaticamente para Indeterminado (Efetivo) quem passou do prazo de
+  // experiência (com ou sem prorrogação) sem ter sido desligado — regra da CLT:
+  // se ninguém agir até o fim do prazo, o contrato vira indeterminado.
+  function reconciliarExperienciasVencidas(){
+    var mudou = false;
+    appState.ativos.forEach(function(a){
+      if(a.contratoTipo === 'EXPERIENCIA'){
+        var info = computeExperienciaInfo(a);
+        if(info && info.vencida){
+          a.contratoTipo = 'INDETERMINADO';
+          mudou = true;
+        }
+      }
+    });
+    return mudou;
+  }
+
   function renderContratoCell(pessoa){
-    if(pessoa.contratoTipo !== 'EXPERIENCIA') return '<span class="pill teal">Efetivo</span>';
-    var info = computeExperienciaInfo(pessoa);
-    if(!info) return '<span class="pill teal">Efetivo</span>';
-    var etapaLabel = info.etapa === 1 ? '1ª Exp.' : '2ª Exp.';
-    var pillClass = info.vencida ? 'red' : (info.diasRestantes <= 15 ? 'amber' : 'teal');
-    var textoVenc = info.vencida ? 'venceu ' + formatDateBR(info.vencimento) : 'vence ' + formatDateBR(info.vencimento);
-    return '<span class="pill '+pillClass+'">'+etapaLabel+' — '+textoVenc+'</span>';
+    var tipo = pessoa.contratoTipo || 'INDETERMINADO';
+
+    if(tipo === 'EXPERIENCIA'){
+      var info = computeExperienciaInfo(pessoa);
+      if(!info) return '<span class="pill amber">Experiência</span>';
+      var etapaLabel = info.etapa === 1 ? '1ª Exp.' : '2ª Exp.';
+      var pillClass = info.diasRestantes <= 15 ? 'amber' : 'teal';
+      var textoVenc = 'vence ' + formatDateBR(info.vencimento);
+      return '<span class="pill '+pillClass+'">'+etapaLabel+' — '+textoVenc+'</span>';
+    }
+    if(tipo === 'DETERMINADO') return '<span class="pill amber">Determinado</span>';
+    if(tipo === 'INTERMITENTE') return '<span class="pill amber">Intermitente</span>';
+    return '<span class="pill teal">Indeterminado</span>';
   }
 
   function renderAtivosTable(list){
@@ -1288,9 +1445,156 @@
   }
 
   function refreshAtivosView(){
+    if(reconciliarExperienciasVencidas()){
+      cloudPut(appState).catch(function(err){ console.error('Erro ao converter experiência vencida:', err); });
+    }
     populateAtivosFilters();
     applyAtivosFilters();
+    refreshExperienciaPainel();
+    renderExperienciaAnalitico();
   }
+
+  // ============================================================
+  // PAINEL DE EXPERIÊNCIA
+  // ============================================================
+  function getAtivosComExperiencia(){
+    return appState.ativos
+      .filter(function(a){ return a.contratoTipo === 'EXPERIENCIA'; })
+      .map(function(a){ return Object.assign({}, a, { expInfo: computeExperienciaInfo(a) }); })
+      .filter(function(a){ return a.expInfo; });
+  }
+
+  function populateExperienciaFiltros(){
+    ['exp-filtro-empresa','exp-an-filtro-empresa'].forEach(function(id){
+      var sel = document.getElementById(id);
+      if(!sel.options.length || sel.getAttribute('data-populated') !== 'true'){
+        var empresas = Array.from(new Set(appState.ativos.map(function(a){ return a.empresa; }).filter(Boolean))).sort();
+        sel.innerHTML = '<option value="">Todas as Empresas</option>' + empresas.map(function(e){ return '<option value="'+e+'">'+e+'</option>'; }).join('');
+        sel.setAttribute('data-populated', 'true');
+      }
+    });
+    ['exp-filtro-posto','exp-an-filtro-posto'].forEach(function(id){
+      var sel = document.getElementById(id);
+      var postos = Array.from(new Set(getAtivosComExperiencia().map(function(a){ return a.posto; }).filter(Boolean))).sort();
+      sel.innerHTML = '<option value="">Todos os Postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+    });
+  }
+
+  function aplicarFiltrosExperiencia(lista, prefixo){
+    prefixo = prefixo || 'exp';
+    var empresa = document.getElementById(prefixo+'-filtro-empresa').value;
+    var status = document.getElementById(prefixo+'-filtro-status').value;
+    var posto = document.getElementById(prefixo+'-filtro-posto').value;
+    return lista.filter(function(a){
+      var matchEmpresa = !empresa || a.empresa === empresa;
+      var matchPosto = !posto || a.posto === posto;
+      var matchStatus = true;
+      if(status === '1') matchStatus = a.expInfo.etapa === 1;
+      else if(status === '2') matchStatus = a.expInfo.etapa === 2;
+      else if(status === 'VENCENDO') matchStatus = a.expInfo.diasRestantes <= 15;
+      return matchEmpresa && matchPosto && matchStatus;
+    });
+  }
+
+  function renderExperienciaAnalitico(){
+    var todos = getAtivosComExperiencia();
+    var filtrados = aplicarFiltrosExperiencia(todos, 'exp-an');
+    var search = document.getElementById('exp-an-search').value.trim().toLowerCase();
+    if(search) filtrados = filtrados.filter(function(a){ return a.nome.toLowerCase().indexOf(search) !== -1; });
+    filtrados.sort(function(a,b){ return a.expInfo.diasRestantes - b.expInfo.diasRestantes; });
+
+    var tbody = document.getElementById('exp-analitico-tbody');
+    var emptyEl = document.getElementById('exp-analitico-empty');
+    if(filtrados.length === 0){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = filtrados.map(function(a){
+      var etapaLabel = a.expInfo.etapa === 1 ? '1ª Experiência' : '2ª Experiência';
+      var duracaoLabel = a.experienciaDuracaoDias + (a.experienciaProrrogacaoDias ? ' + ' + a.experienciaProrrogacaoDias + ' dias' : ' dias');
+      var corDias = a.expInfo.diasRestantes <= 15 ? 'red' : 'teal';
+      return '<tr>' +
+        '<td>'+a.nome+'</td>' +
+        '<td><span class="pill amber">'+(a.posto||'—')+'</span></td>' +
+        '<td>'+(a.cargo||'—')+'</td>' +
+        '<td class="mono">'+formatDateBR(a.admissao)+'</td>' +
+        '<td class="mono">'+duracaoLabel+'</td>' +
+        '<td>'+etapaLabel+'</td>' +
+        '<td class="mono">'+formatDateBR(a.expInfo.vencimento)+'</td>' +
+        '<td class="mono"><span class="pill '+corDias+'">'+a.expInfo.diasRestantes+' dias</span></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function refreshExperienciaPainel(){
+    populateExperienciaFiltros();
+    var todos = getAtivosComExperiencia();
+    var filtrados = aplicarFiltrosExperiencia(todos, 'exp');
+
+    document.getElementById('exp-total-experiencia').textContent = filtrados.length;
+    var vencendo = filtrados.filter(function(a){ return a.expInfo.diasRestantes <= 15; });
+    document.getElementById('exp-total-vencendo').textContent = vencendo.length;
+
+    // Vencendo por posto (quem está a <=15 dias)
+    var porPosto = {};
+    vencendo.forEach(function(a){ porPosto[a.posto] = (porPosto[a.posto]||0) + 1; });
+    var arrPostos = Object.keys(porPosto).map(function(p){ return {label:p, value:porPosto[p], displayValue:String(porPosto[p])}; });
+    arrPostos.sort(function(a,b){ return b.value - a.value; });
+    renderHBarChart('chart-exp-postos', arrPostos.slice(0, 10), {color:'var(--red)'});
+
+    // Pizza 1ª vs 2ª experiência
+    var etapa1 = filtrados.filter(function(a){ return a.expInfo.etapa === 1; }).length;
+    var etapa2 = filtrados.filter(function(a){ return a.expInfo.etapa === 2; }).length;
+    var totalPizza = filtrados.length || 1;
+    renderPieChart2('chart-exp-status',
+      (etapa1/totalPizza*100), '1ª Experiência ('+etapa1+')', 'var(--teal)',
+      (etapa2/totalPizza*100), '2ª Experiência ('+etapa2+')', 'var(--amber)');
+
+    // Tabela de vencimentos próximos (ordenado por menor prazo)
+    var ordenados = filtrados.slice().sort(function(a,b){ return a.expInfo.diasRestantes - b.expInfo.diasRestantes; });
+    var tbodyVenc = document.getElementById('exp-vencimentos-tbody');
+    var emptyVenc = document.getElementById('exp-vencimentos-empty');
+    if(ordenados.length === 0){
+      tbodyVenc.innerHTML = ''; emptyVenc.style.display = 'block';
+    } else {
+      emptyVenc.style.display = 'none';
+      tbodyVenc.innerHTML = ordenados.map(function(a){
+        var etapaLabel = a.expInfo.etapa === 1 ? '1ª Exp.' : '2ª Exp.';
+        var corDias = a.expInfo.diasRestantes <= 15 ? 'red' : 'teal';
+        return '<tr><td>'+a.nome+'</td><td><span class="pill amber">'+etapaLabel+'</span></td><td class="mono">'+formatDateBR(a.expInfo.vencimento)+'</td><td class="mono"><span class="pill '+corDias+'">'+a.expInfo.diasRestantes+' dias</span></td></tr>';
+      }).join('');
+    }
+
+    // Tabela completa de colaboradores em experiência
+    var tbodyColab = document.getElementById('exp-colaboradores-tbody');
+    tbodyColab.innerHTML = filtrados.slice().sort(function(a,b){ return a.nome.localeCompare(b.nome); }).map(function(a){
+      var etapaLabel = a.expInfo.etapa === 1 ? '1ª Exp.' : '2ª Exp.';
+      return '<tr><td>'+a.nome+'</td><td>'+(a.cargo||'—')+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td>'+etapaLabel+'</td><td class="mono">'+formatDateBR(a.expInfo.vencimento)+'</td></tr>';
+    }).join('');
+  }
+
+  ['exp-filtro-empresa','exp-filtro-status','exp-filtro-posto'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', refreshExperienciaPainel);
+  });
+  ['exp-an-filtro-empresa','exp-an-filtro-status','exp-an-filtro-posto'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', renderExperienciaAnalitico);
+  });
+  document.getElementById('exp-an-search').addEventListener('input', renderExperienciaAnalitico);
+
+  document.getElementById('exp-tab-painel').addEventListener('click', function(){
+    document.getElementById('ativos-subview-experiencia').style.display = 'block';
+    document.getElementById('exp-subview-analitico').style.display = 'none';
+    this.className = 'btn'; this.style.background = 'var(--teal)'; this.style.color = '#052622'; this.style.border = 'none';
+    var outro = document.getElementById('exp-tab-analitico');
+    outro.className = 'btn btn-ghost'; outro.style.background=''; outro.style.color=''; outro.style.border='';
+  });
+  document.getElementById('exp-tab-analitico').addEventListener('click', function(){
+    document.getElementById('ativos-subview-experiencia').style.display = 'none';
+    document.getElementById('exp-subview-analitico').style.display = 'block';
+    this.className = 'btn'; this.style.background = 'var(--teal)'; this.style.color = '#052622'; this.style.border = 'none';
+    var outro = document.getElementById('exp-tab-painel');
+    outro.className = 'btn btn-ghost'; outro.style.background=''; outro.style.color=''; outro.style.border='';
+    renderExperienciaAnalitico();
+  });
+
 
   // ============================================================
   // NORMALIZAÇÃO / DEDUP — impede que a mesma pessoa apareça
@@ -1314,32 +1618,59 @@
   function computeExperienciaInfo(pessoa){
     if(pessoa.contratoTipo !== 'EXPERIENCIA' || !pessoa.admissao || !pessoa.experienciaDuracaoDias) return null;
     var hoje = new Date().toISOString().slice(0,10);
-    var diasCorridos = diffDias(pessoa.admissao, hoje);
-    var duracao = Number(pessoa.experienciaDuracaoDias);
-    var etapa = duracao > 45 ? (diasCorridos <= 45 ? 1 : 2) : 1;
-    var vencimento = addDias(pessoa.admissao, duracao);
+    var fimExperiencia = addDias(pessoa.admissao, Number(pessoa.experienciaDuracaoDias) - 1);
+    var prorrogacaoDias = Number(pessoa.experienciaProrrogacaoDias) || 0;
+    var fimProrrogacao = prorrogacaoDias > 0 ? addDias(fimExperiencia, prorrogacaoDias) : null;
+    var vencimento = fimProrrogacao || fimExperiencia;
+
+    var etapa;
+    if(hoje <= fimExperiencia) etapa = 1;
+    else etapa = fimProrrogacao ? 2 : 1;
+
     var diasRestantes = diffDias(hoje, vencimento);
-    return { etapa:etapa, vencimento:vencimento, diasRestantes:diasRestantes, vencida: diasRestantes < 0 };
+    return {
+      etapa: etapa,
+      fimExperiencia: fimExperiencia,
+      fimProrrogacao: fimProrrogacao,
+      vencimento: vencimento,
+      diasRestantes: diasRestantes,
+      vencida: diasRestantes < 0
+    };
   }
 
   function atualizarHintExperiencia(prefixo){
     var tipo = document.getElementById(prefixo+'-contrato-tipo').value;
-    var wrapDuracao = document.getElementById(prefixo+'-experiencia-duracao-wrap');
     var wrapHint = document.getElementById(prefixo+'-experiencia-hint-wrap');
-    wrapDuracao.style.display = tipo === 'EXPERIENCIA' ? 'block' : 'none';
     wrapHint.style.display = tipo === 'EXPERIENCIA' ? 'block' : 'none';
     if(tipo !== 'EXPERIENCIA') return;
 
     var admissaoInput = document.getElementById(prefixo === 'nat' ? 'nat-admissao' : 'edt-admissao');
     var admissao = admissaoInput.value;
     var duracao = Number(document.getElementById(prefixo+'-experiencia-duracao').value);
-    var hint = document.getElementById(prefixo+'-experiencia-hint');
-    if(!admissao){ hint.textContent = 'Informe a data de admissão para calcular o vencimento.'; return; }
+    var prorrogacao = Number(document.getElementById(prefixo+'-experiencia-prorrogacao').value) || 0;
 
-    var info = computeExperienciaInfo({ contratoTipo:'EXPERIENCIA', admissao:admissao, experienciaDuracaoDias:duracao });
-    var etapaLabel = info.etapa === 1 ? '1ª experiência' : '2ª experiência';
-    hint.textContent = etapaLabel + ' — vence em ' + formatDateBR(info.vencimento) +
-      (info.vencida ? ' (já venceu)' : ' (faltam ' + info.diasRestantes + ' dias)');
+    var elAdmissao = document.getElementById(prefixo+'-exp-data-admissao');
+    var elFim = document.getElementById(prefixo+'-exp-data-fim');
+    var elProrrogacao = document.getElementById(prefixo+'-exp-data-prorrogacao');
+    var elSituacao = document.getElementById(prefixo+'-exp-situacao');
+
+    if(!admissao){
+      elAdmissao.textContent = '—'; elFim.textContent = '—'; elProrrogacao.textContent = '—';
+      elSituacao.innerHTML = '<span style="color:var(--amber);">Informe a admissão</span>';
+      return;
+    }
+
+    var info = computeExperienciaInfo({ contratoTipo:'EXPERIENCIA', admissao:admissao, experienciaDuracaoDias:duracao, experienciaProrrogacaoDias:prorrogacao });
+    elAdmissao.textContent = formatDateBR(admissao);
+    elFim.textContent = formatDateBR(info.fimExperiencia);
+    elProrrogacao.textContent = info.fimProrrogacao ? formatDateBR(info.fimProrrogacao) : '—';
+
+    var etapaLabel = info.etapa === 1 ? '1ª experiência' : '2ª experiência (prorrogação)';
+    if(info.vencida){
+      elSituacao.innerHTML = '<span style="color:var(--red);">Vencida — ' + formatDateBR(info.vencimento) + '</span>';
+    } else {
+      elSituacao.innerHTML = '<span style="color:var(--teal);">' + etapaLabel + ' — faltam ' + info.diasRestantes + ' dias</span>';
+    }
   }
 
 
@@ -1551,8 +1882,11 @@
     var mesesDesdeBase = diffMeses(dataBase, hoje);
     var vencida = mesesDesdeBase >= FERIAS_CICLO_MESES;
     var proximoVencimento = addMeses(dataBase, FERIAS_CICLO_MESES);
+    var vencimento1 = addMeses(dataBase, FERIAS_CICLO_MESES);
+    var vencimento2 = addMeses(dataBase, FERIAS_CICLO_MESES * 2);
 
-    return { aplicavel:true, vencida:vencida, dataBase:dataBase, proximoVencimento:proximoVencimento, mesesDesdeBase:mesesDesdeBase };
+    return { aplicavel:true, vencida:vencida, dataBase:dataBase, proximoVencimento:proximoVencimento,
+             vencimento1:vencimento1, vencimento2:vencimento2, mesesDesdeBase:mesesDesdeBase };
   }
 
   function getAtivosComStatusFerias(){
@@ -1641,12 +1975,18 @@
     if(filtrados.length === 0){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
     emptyEl.style.display = 'none';
     tbody.innerHTML = filtrados.map(function(a){
-      var pill = a.feriasStatus.vencida ? '<span class="pill red">Férias Vencidas</span>' : '<span class="pill teal">À Vencer</span>';
+      var hoje = new Date().toISOString().slice(0,10);
+      var venceu1 = a.feriasStatus.vencimento1 <= hoje;
+      var venceu2 = a.feriasStatus.vencimento2 <= hoje;
+      var cor1 = venceu1 ? 'red' : 'teal';
+      var cor2 = venceu2 ? 'red' : 'teal';
       return '<tr>' +
         '<td>'+a.nome+'</td>' +
         '<td><span class="pill amber">'+(a.posto||'—')+'</span></td>' +
-        '<td>'+pill+'</td>' +
+        '<td>'+(a.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(a.admissao)+'</td>' +
+        '<td class="mono"><span class="pill '+cor1+'">'+formatDateBR(a.feriasStatus.vencimento1)+'</span></td>' +
+        '<td class="mono"><span class="pill '+cor2+'">'+formatDateBR(a.feriasStatus.vencimento2)+'</span></td>' +
       '</tr>';
     }).join('');
   }
@@ -1755,13 +2095,13 @@
     document.getElementById('form-novo-ativo').reset();
     document.getElementById('nat-custoadmissao').value = 0;
     document.getElementById('nat-alerta').style.display = 'none';
-    document.getElementById('nat-experiencia-duracao-wrap').style.display = 'none';
     document.getElementById('nat-experiencia-hint-wrap').style.display = 'none';
     openModal('modal-novo-ativo');
   });
 
   document.getElementById('nat-contrato-tipo').addEventListener('change', function(){ atualizarHintExperiencia('nat'); });
   document.getElementById('nat-experiencia-duracao').addEventListener('input', function(){ atualizarHintExperiencia('nat'); });
+  document.getElementById('nat-experiencia-prorrogacao').addEventListener('input', function(){ atualizarHintExperiencia('nat'); });
   document.getElementById('nat-admissao').addEventListener('change', function(){ atualizarHintExperiencia('nat'); });
 
   document.getElementById('nat-nome').addEventListener('blur', function(){
@@ -1806,6 +2146,7 @@
       pessoa.sexo = document.getElementById('nat-sexo').value || null;
       pessoa.contratoTipo = document.getElementById('nat-contrato-tipo').value;
       pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('nat-experiencia-duracao').value) : null;
+      pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
     }
 
     var mesIdx = new Date(admissao + 'T00:00:00').getMonth();
@@ -1829,7 +2170,6 @@
     if(typeof refreshFeriasView === 'function') refreshFeriasView();
     closeModal('modal-novo-ativo');
     this.reset();
-    document.getElementById('nat-experiencia-duracao-wrap').style.display = 'none';
     document.getElementById('nat-experiencia-hint-wrap').style.display = 'none';
   });
 
@@ -1870,8 +2210,9 @@
     document.getElementById('edt-nascimento').value = pessoa.dataNascimento || '';
     document.getElementById('edt-filhos').value = pessoa.temFilhos || '';
     document.getElementById('edt-sexo').value = pessoa.sexo || '';
-    document.getElementById('edt-contrato-tipo').value = pessoa.contratoTipo || 'EFETIVO';
+    document.getElementById('edt-contrato-tipo').value = pessoa.contratoTipo || 'INDETERMINADO';
     document.getElementById('edt-experiencia-duracao').value = pessoa.experienciaDuracaoDias || 45;
+    document.getElementById('edt-experiencia-prorrogacao').value = pessoa.experienciaProrrogacaoDias || '';
     atualizarHintExperiencia('edt');
     resetSecaoDesligamento();
     openModal('modal-editar-ativo');
@@ -1879,6 +2220,7 @@
 
   document.getElementById('edt-contrato-tipo').addEventListener('change', function(){ atualizarHintExperiencia('edt'); });
   document.getElementById('edt-experiencia-duracao').addEventListener('input', function(){ atualizarHintExperiencia('edt'); });
+  document.getElementById('edt-experiencia-prorrogacao').addEventListener('input', function(){ atualizarHintExperiencia('edt'); });
   document.getElementById('edt-admissao').addEventListener('change', function(){ atualizarHintExperiencia('edt'); });
 
   document.getElementById('form-editar-ativo').addEventListener('submit', function(e){
@@ -1899,6 +2241,7 @@
     pessoa.sexo = document.getElementById('edt-sexo').value || null;
     pessoa.contratoTipo = document.getElementById('edt-contrato-tipo').value;
     pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('edt-experiencia-duracao').value) : null;
+    pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
 
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar colaborador:', err); });
     refreshAtivosView();
@@ -2805,121 +3148,121 @@
     document.getElementById('sync-label').textContent = label;
   }
 
-  function cloudGet(){
-    return fetch(CLOUD_DB_URL + '?_ts=' + Date.now(), {cache: 'no-store'}).then(function(r){
-      return r.json();
-    });
-  }
   function cloudPut(state){
-    return fetch(CLOUD_DB_URL, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(state)
-    });
+    return dbRef.set(state);
   }
 
-  function syncFromCloud(){
-    if(cloudSyncBusy) return Promise.resolve();
-    cloudSyncBusy = true;
-    setSyncIndicator('syncing', 'Sincronizando...');
-    return cloudGet().then(function(cloud){
-      if(cloud) appState = cloud;
+  function processarSnapshot(cloud){
+    if(cloud) appState = cloud;
+    else appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [] };
 
-      var needsSeed = !appState.ativos || appState.ativos.length === 0;
-      if(needsSeed && SEED_ATIVOS.length){
-        appState.ativos = SEED_ATIVOS;
-        cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed inicial:', err); });
-      }
-      if((!appState.absenteismo || appState.absenteismo.length === 0) && SEED_ABSENTEISMO.length){
-        appState.absenteismo = SEED_ABSENTEISMO;
-        cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed absenteísmo:', err); });
-      } else if(appState.absenteismo && appState.absenteismo.length && SEED_ABSENTEISMO.length){
-        // PATCH: registros já salvos no Firebase de versões anteriores não tinham
-        // os campos "salario", "admissaoColaborador" e "inss". Completa esses campos
-        // cruzando pelo id, sem sobrescrever registros lançados manualmente.
-        var seedById = {};
-        SEED_ABSENTEISMO.forEach(function(s){ seedById[s.id] = s; });
-        var precisouPatch = false;
-        appState.absenteismo.forEach(function(e){
-          var s = seedById[e.id];
-          if(!s) return;
-          if(e.salario === undefined || e.salario === null){ e.salario = s.salario; precisouPatch = true; }
-          if(e.admissaoColaborador === undefined){ e.admissaoColaborador = s.admissaoColaborador; precisouPatch = true; }
-          if(e.inss === undefined){ e.inss = s.inss; precisouPatch = true; }
-          if(e.idade === undefined){ e.idade = s.idade; precisouPatch = true; }
-          if(e.faixaIdadeCod === undefined){ e.faixaIdadeCod = s.faixaIdadeCod; precisouPatch = true; }
-        });
-        if(precisouPatch) cloudPut(appState).catch(function(err){ console.error('Erro ao aplicar patch de absenteísmo:', err); });
-      }
-      if((!appState.turnover || appState.turnover.length === 0) && SEED_TURNOVER.length){
-        appState.turnover = SEED_TURNOVER;
-        cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed turnover:', err); });
-      } else if(appState.turnover && appState.turnover.length && SEED_TURNOVER.length){
-        // PATCH: uma versão anterior tinha um bug que classificava TODOS os
-        // eventos como "Demissão" (as Admissões sumiam dos indicadores).
-        // Corrige o campo "tipo" cruzando pelo id, sem tocar em lançamentos manuais.
-        var seedByIdTo = {};
-        SEED_TURNOVER.forEach(function(s){ seedByIdTo[s.id] = s; });
-        var precisouPatchTo = false;
-        appState.turnover.forEach(function(e){
-          var s = seedByIdTo[e.id];
-          if(s && e.tipo !== s.tipo){
-            e.tipo = s.tipo;
-            precisouPatchTo = true;
-          }
-        });
-        if(precisouPatchTo){
-          // Recalcula inativos, já que a correção pode revelar novos desligados
-          var inativosCorrigidos = dedupByName(buildInativosFromTurnoverSeed());
-          var ativosSetTmp = {};
-          appState.ativos.forEach(function(a){ ativosSetTmp[normNome(a.nome)] = true; });
-          inativosCorrigidos = inativosCorrigidos.filter(function(i){ return !ativosSetTmp[normNome(i.nome)]; });
-          if(inativosCorrigidos.length) appState.inativos = dedupByName((appState.inativos || []).concat(inativosCorrigidos));
-          cloudPut(appState).catch(function(err){ console.error('Erro ao aplicar patch de tipo (admissão/demissão):', err); });
+    var needsSeed = !appState.ativos || appState.ativos.length === 0;
+    if(needsSeed && SEED_ATIVOS.length){
+      appState.ativos = SEED_ATIVOS;
+      cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed inicial:', err); });
+    }
+    if((!appState.absenteismo || appState.absenteismo.length === 0) && SEED_ABSENTEISMO.length){
+      appState.absenteismo = SEED_ABSENTEISMO;
+      cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed absenteísmo:', err); });
+    } else if(appState.absenteismo && appState.absenteismo.length && SEED_ABSENTEISMO.length){
+      // PATCH: registros já salvos no Firebase de versões anteriores não tinham
+      // os campos "salario", "admissaoColaborador" e "inss". Completa esses campos
+      // cruzando pelo id, sem sobrescrever registros lançados manualmente.
+      var seedById = {};
+      SEED_ABSENTEISMO.forEach(function(s){ seedById[s.id] = s; });
+      var precisouPatch = false;
+      appState.absenteismo.forEach(function(e){
+        var s = seedById[e.id];
+        if(!s) return;
+        if(e.salario === undefined || e.salario === null){ e.salario = s.salario; precisouPatch = true; }
+        if(e.admissaoColaborador === undefined){ e.admissaoColaborador = s.admissaoColaborador; precisouPatch = true; }
+        if(e.inss === undefined){ e.inss = s.inss; precisouPatch = true; }
+        if(e.idade === undefined){ e.idade = s.idade; precisouPatch = true; }
+        if(e.faixaIdadeCod === undefined){ e.faixaIdadeCod = s.faixaIdadeCod; precisouPatch = true; }
+      });
+      if(precisouPatch) cloudPut(appState).catch(function(err){ console.error('Erro ao aplicar patch de absenteísmo:', err); });
+    }
+    if((!appState.turnover || appState.turnover.length === 0) && SEED_TURNOVER.length){
+      appState.turnover = SEED_TURNOVER;
+      cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed turnover:', err); });
+    } else if(appState.turnover && appState.turnover.length && SEED_TURNOVER.length){
+      // PATCH: uma versão anterior tinha um bug que classificava TODOS os
+      // eventos como "Demissão" (as Admissões sumiam dos indicadores).
+      // Corrige o campo "tipo" cruzando pelo id, sem tocar em lançamentos manuais.
+      var seedByIdTo = {};
+      SEED_TURNOVER.forEach(function(s){ seedByIdTo[s.id] = s; });
+      var precisouPatchTo = false;
+      appState.turnover.forEach(function(e){
+        var s = seedByIdTo[e.id];
+        if(s && e.tipo !== s.tipo){
+          e.tipo = s.tipo;
+          precisouPatchTo = true;
         }
+      });
+      if(precisouPatchTo){
+        // Recalcula inativos, já que a correção pode revelar novos desligados
+        var inativosCorrigidos = dedupByName(buildInativosFromTurnoverSeed());
+        var ativosSetTmp = {};
+        appState.ativos.forEach(function(a){ ativosSetTmp[normNome(a.nome)] = true; });
+        inativosCorrigidos = inativosCorrigidos.filter(function(i){ return !ativosSetTmp[normNome(i.nome)]; });
+        if(inativosCorrigidos.length) appState.inativos = dedupByName((appState.inativos || []).concat(inativosCorrigidos));
+        cloudPut(appState).catch(function(err){ console.error('Erro ao aplicar patch de tipo (admissão/demissão):', err); });
       }
-      if(!appState.inativos || appState.inativos.length === 0){
-        var inativosSeed = dedupByName(buildInativosFromTurnoverSeed());
-        if(inativosSeed.length){
-          appState.inativos = inativosSeed;
-          cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed inativos:', err); });
-        }
+    }
+    if(!appState.inativos || appState.inativos.length === 0){
+      var inativosSeed = dedupByName(buildInativosFromTurnoverSeed());
+      if(inativosSeed.length){
+        appState.inativos = inativosSeed;
+        cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed inativos:', err); });
       }
-      // Garantia extra: ninguém pode existir em Ativos E Inativos ao mesmo tempo.
-      (function(){
-        var ativosSet = {};
-        appState.ativos.forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
-        appState.inativos = dedupByName(appState.inativos.filter(function(i){ return !ativosSet[normNome(i.nome)]; }));
-        appState.ativos = dedupByName(appState.ativos);
-      })();
+    }
+    // Garantia extra: ninguém pode existir em Ativos E Inativos ao mesmo tempo.
+    (function(){
+      var ativosSet = {};
+      appState.ativos.forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
+      appState.inativos = dedupByName(appState.inativos.filter(function(i){ return !ativosSet[normNome(i.nome)]; }));
+      appState.ativos = dedupByName(appState.ativos);
+    })();
 
-      refreshAtivosView();
-      refreshInativosView();
-      refreshAbsenteismoView();
-      refreshTurnoverView();
-      refreshFeriasView();
-      setSyncIndicator('ok', 'Sincronizado');
-      cloudSyncBusy = false;
-    }).catch(function(err){
-      console.error('Erro ao sincronizar:', err);
-      setSyncIndicator('err', 'Sem conexão');
-      cloudSyncBusy = false;
-    });
+    refreshAtivosView();
+    refreshInativosView();
+    refreshAbsenteismoView();
+    refreshTurnoverView();
+    refreshFeriasView();
+    setSyncIndicator('ok', 'Sincronizado');
   }
 
-  function scheduleNextSync(){
-    if(cloudSyncTimer) clearTimeout(cloudSyncTimer);
-    cloudSyncTimer = setTimeout(function(){
-      syncFromCloud().then(scheduleNextSync).catch(scheduleNextSync);
-    }, CLOUD_SYNC_INTERVAL);
-  }
+  // ============================================================
+  // SINCRONIZAÇÃO EM TEMPO REAL (Firebase Realtime Database SDK)
+  // Em vez de baixar o JSON inteiro a cada X segundos (REST polling),
+  // mantemos uma conexão persistente: os dados chegam uma vez e depois
+  // só as diferenças são transmitidas — muito mais leve e mais estável.
+  // ============================================================
+  var valueListenerAtivo = null;
 
   function startCloudSync(){
-    syncFromCloud().then(scheduleNextSync).catch(scheduleNextSync);
+    setSyncIndicator('syncing', 'Conectando...');
+    valueListenerAtivo = function(snapshot){
+      try {
+        processarSnapshot(snapshot.val());
+      } catch(err){
+        console.error('Erro ao processar dados do Firebase:', err);
+      }
+    };
+    dbRef.on('value', valueListenerAtivo, function(err){
+      console.error('Erro de conexão com o Firebase:', err);
+      setSyncIndicator('err', 'Sem conexão');
+    });
+
+    // Monitora o estado real da conexão (fica "Sem conexão" se a internet cair)
+    firebase.database().ref('.info/connected').on('value', function(snap){
+      if(snap.val() === false) setSyncIndicator('err', 'Sem conexão');
+    });
   }
+
   function stopCloudSync(){
-    if(cloudSyncTimer) clearTimeout(cloudSyncTimer);
-    cloudSyncTimer = null;
+    if(valueListenerAtivo) dbRef.off('value', valueListenerAtivo);
+    valueListenerAtivo = null;
   }
 
   // ============================================================
