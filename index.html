@@ -1046,6 +1046,7 @@
               <select id="edt-contrato-desligamento"><option value="INDETERMINADO">Indeterminado</option><option value="DETERMINADO">Determinado</option></select>
             </div>
             <div class="modal-field"><label>Supervisor</label><input type="text" id="edt-supervisor-desligamento"></div>
+            <div class="modal-field"><label>Custo de Rescisão (R$)</label><input type="number" step="0.01" id="edt-custo-rescisao-desligamento" value="0"></div>
             <div class="modal-field full"><label>Observação</label><textarea id="edt-observacao-desligamento" rows="3" placeholder="Anote aqui o motivo detalhado, comportamento, contexto do desligamento etc. — útil para consultar o perfil da pessoa no futuro."></textarea></div>
           </div>
           <div class="modal-actions">
@@ -1128,6 +1129,37 @@
   </div>
 
   <!-- MODAL: Novo Registro de TurnOver -->
+  <!-- MODAL: Editar Registro de TurnOver -->
+  <div class="modal-overlay" id="modal-editar-to">
+    <div class="modal-box">
+      <div class="modal-title">Editar Registro de TurnOver</div>
+      <form id="form-editar-to">
+        <input type="hidden" id="eto-id">
+        <div class="modal-grid">
+          <div class="modal-field full"><label>Nome</label><input type="text" id="eto-nome" disabled style="opacity:0.7;"></div>
+          <div class="modal-field"><label>Posto</label><input type="text" id="eto-posto" required></div>
+          <div class="modal-field"><label>Cargo</label><input type="text" id="eto-cargo" required></div>
+          <div class="modal-field"><label>Tipo</label><input type="text" id="eto-tipo" disabled style="opacity:0.7;"></div>
+          <div class="modal-field"><label>Contrato</label>
+            <select id="eto-contrato"><option value="INDETERMINADO">Indeterminado</option><option value="DETERMINADO">Determinado</option></select>
+          </div>
+          <div class="modal-field" id="eto-admissao-wrap"><label>Data de Admissão</label><input type="date" id="eto-admissao"></div>
+          <div class="modal-field" id="eto-demissao-wrap"><label>Data de Demissão</label><input type="date" id="eto-demissao"></div>
+          <div class="modal-field" id="eto-motivo-wrap"><label>Motivo da Saída</label>
+            <select id="eto-motivosaida"><option value="COLABORADOR">Pedido do Colaborador</option><option value="EMPRESA">Pedido da Empresa</option><option value="ABANDONO">Abandono</option></select>
+          </div>
+          <div class="modal-field"><label>Supervisor</label><input type="text" id="eto-supervisor"></div>
+          <div class="modal-field" id="eto-custoadmissao-wrap"><label>Custo de Admissão (R$)</label><input type="number" step="0.01" id="eto-custoadmissao" value="0"></div>
+          <div class="modal-field" id="eto-custorescisao-wrap"><label>Custo de Rescisão (R$)</label><input type="number" step="0.01" id="eto-custorescisao" value="0"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-editar-to')">Cancelar</button>
+          <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-to">
     <div class="modal-box">
       <div class="modal-title">Novo Registro de TurnOver</div>
@@ -2370,6 +2402,7 @@
     document.getElementById('edt-motivo-saida').value = 'COLABORADOR';
     document.getElementById('edt-contrato-desligamento').value = 'INDETERMINADO';
     document.getElementById('edt-supervisor-desligamento').value = '';
+    document.getElementById('edt-custo-rescisao-desligamento').value = 0;
     document.getElementById('edt-observacao-desligamento').value = '';
   }
 
@@ -2449,6 +2482,7 @@
     var motivoSaida = document.getElementById('edt-motivo-saida').value;
     var contrato = document.getElementById('edt-contrato-desligamento').value;
     var supervisor = document.getElementById('edt-supervisor-desligamento').value.trim();
+    var custoRescisao = parseFloat(document.getElementById('edt-custo-rescisao-desligamento').value) || 0;
     var observacao = document.getElementById('edt-observacao-desligamento').value.trim();
 
     if(!confirm('Confirma o desligamento de ' + pessoa.nome + ' em ' + formatDateBR(dataDesligamento) + '?\nEle será movido para Colaboradores Inativos e um registro será criado no TurnOver.')) return;
@@ -2460,7 +2494,7 @@
       nome: pessoa.nome, posto: pessoa.posto, cargo: pessoa.cargo, tipo: 'Demissão',
       admissao: pessoa.admissao || null, demissao: dataDesligamento,
       motivoSaida: motivoSaida, contrato: contrato,
-      custoAdmissao: 0, custoRescisao: 0, custoTotal: 0,
+      custoAdmissao: 0, custoRescisao: custoRescisao, custoTotal: custoRescisao,
       mes: MESES_ORDEM[mesIdx], supervisor: supervisor, area: null, sexo: pessoa.sexo || null
     });
 
@@ -3133,7 +3167,7 @@
     tbody.innerHTML = list.map(function(e){
       var tipoPill = e.tipo === 'Admissão' ? 'teal' : 'red';
       var data = e.tipo === 'Admissão' ? e.admissao : e.demissao;
-      return '<tr>' +
+      return '<tr data-id="'+e.id+'" class="row-clickable" title="Clique para editar">' +
         '<td>'+e.nome+'</td>' +
         '<td><span class="pill teal">'+e.posto+'</span></td>' +
         '<td>'+e.cargo+'</td>' +
@@ -3145,6 +3179,10 @@
         '<td>'+(e.supervisor || '—')+'</td>' +
       '</tr>';
     }).join('');
+
+    tbody.querySelectorAll('tr[data-id]').forEach(function(tr){
+      tr.addEventListener('click', function(){ abrirEdicaoTurnover(tr.getAttribute('data-id')); });
+    });
   }
 
   function applyToFilters(){
@@ -3229,6 +3267,68 @@
 
   ['to-search'].forEach(function(id){ document.getElementById(id).addEventListener('input', applyToFilters); });
   ['to-filter-mes','to-filter-posto','to-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyToFilters); });
+
+  // ============================================================
+  // EDITAR REGISTRO DE TURNOVER
+  // ============================================================
+  function abrirEdicaoTurnover(id){
+    var registro = appState.turnover.find(function(t){ return t.id === id; });
+    if(!registro) return;
+    var isDemissao = registro.tipo === 'Demissão';
+
+    document.getElementById('eto-id').value = registro.id;
+    document.getElementById('eto-nome').value = registro.nome || '';
+    document.getElementById('eto-posto').value = registro.posto || '';
+    document.getElementById('eto-cargo').value = registro.cargo || '';
+    document.getElementById('eto-tipo').value = registro.tipo || '';
+    document.getElementById('eto-contrato').value = registro.contrato || 'INDETERMINADO';
+    document.getElementById('eto-admissao').value = registro.admissao || '';
+    document.getElementById('eto-demissao').value = registro.demissao || '';
+    document.getElementById('eto-motivosaida').value = registro.motivoSaida || 'COLABORADOR';
+    document.getElementById('eto-supervisor').value = registro.supervisor || '';
+    document.getElementById('eto-custoadmissao').value = registro.custoAdmissao || 0;
+    document.getElementById('eto-custorescisao').value = registro.custoRescisao || 0;
+
+    document.getElementById('eto-admissao-wrap').style.display = isDemissao ? 'none' : 'block';
+    document.getElementById('eto-demissao-wrap').style.display = isDemissao ? 'block' : 'none';
+    document.getElementById('eto-motivo-wrap').style.display = isDemissao ? 'block' : 'none';
+    document.getElementById('eto-custoadmissao-wrap').style.display = isDemissao ? 'none' : 'block';
+    document.getElementById('eto-custorescisao-wrap').style.display = isDemissao ? 'block' : 'none';
+
+    openModal('modal-editar-to');
+  }
+
+  document.getElementById('form-editar-to').addEventListener('submit', function(e){
+    e.preventDefault();
+    var id = document.getElementById('eto-id').value;
+    var registro = appState.turnover.find(function(t){ return t.id === id; });
+    if(!registro) return;
+    var isDemissao = registro.tipo === 'Demissão';
+
+    registro.posto = document.getElementById('eto-posto').value.trim();
+    registro.cargo = document.getElementById('eto-cargo').value.trim();
+    registro.contrato = document.getElementById('eto-contrato').value;
+    registro.supervisor = document.getElementById('eto-supervisor').value.trim();
+
+    if(isDemissao){
+      registro.demissao = document.getElementById('eto-demissao').value;
+      registro.motivoSaida = document.getElementById('eto-motivosaida').value;
+      registro.custoRescisao = parseFloat(document.getElementById('eto-custorescisao').value) || 0;
+      registro.custoTotal = (registro.custoAdmissao || 0) + registro.custoRescisao;
+      var mesIdx = new Date(registro.demissao + 'T00:00:00').getMonth();
+      registro.mes = MESES_ORDEM[mesIdx];
+    } else {
+      registro.admissao = document.getElementById('eto-admissao').value;
+      registro.custoAdmissao = parseFloat(document.getElementById('eto-custoadmissao').value) || 0;
+      registro.custoTotal = registro.custoAdmissao + (registro.custoRescisao || 0);
+      var mesIdxA = new Date(registro.admissao + 'T00:00:00').getMonth();
+      registro.mes = MESES_ORDEM[mesIdxA];
+    }
+
+    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar registro de turnover:', err); });
+    refreshTurnoverView();
+    closeModal('modal-editar-to');
+  });
 
   document.getElementById('to-add-btn').addEventListener('click', function(){ openModal('modal-to'); });
 
