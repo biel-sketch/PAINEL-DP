@@ -225,6 +225,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         <span class="nav-label">Cat</span>
       </div>
+      <div class="nav-item" data-view="exportacoes">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        <span class="nav-label">Exportações</span>
+      </div>
     </nav>
 
     <div class="sidebar-foot" id="sidebar-foot">
@@ -294,6 +298,7 @@
               <th>Nome</th>
               <th>Cargo</th>
               <th>Posto</th>
+              <th>Início no Posto</th>
               <th>Admissão</th>
               <th>CPF</th>
               <th>Salário</th>
@@ -804,6 +809,60 @@
         </div>
       </div>
     </div>
+
+    <div class="view" id="view-exportacoes">
+      <div class="topbar"><div class="page-title">Exportações</div><div class="page-date"></div></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="panel" style="padding:22px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            <span class="panel-title" style="font-size:15px;">Colaboradores Ativos (+ Experiência)</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;" id="export-ativos-count">0 colaboradores</div>
+          <button class="btn" id="btn-export-ativos" style="background:var(--teal);color:#052622;border:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar (.xlsx)
+          </button>
+        </div>
+
+        <div class="panel" style="padding:22px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            <span class="panel-title" style="font-size:15px;">Absenteísmo</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;" id="export-abs-count">0 registros</div>
+          <button class="btn" id="btn-export-abs" style="background:var(--teal);color:#052622;border:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar (.xlsx)
+          </button>
+        </div>
+
+        <div class="panel" style="padding:22px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            <span class="panel-title" style="font-size:15px;">TurnOver</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;" id="export-to-count">0 registros</div>
+          <button class="btn" id="btn-export-to" style="background:var(--teal);color:#052622;border:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar (.xlsx)
+          </button>
+        </div>
+
+        <div class="panel" style="padding:22px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1 .1-1.3.5l-.4.5c-.4.5-.2 1.2.3 1.5L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.4 5.6c.3.5 1 .7 1.5.3l.5-.4c.4-.3.6-.8.4-1.3z"/></svg>
+            <span class="panel-title" style="font-size:15px;">Férias</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;" id="export-ferias-count">0 colaboradores</div>
+          <button class="btn" id="btn-export-ferias" style="background:var(--teal);color:#052622;border:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar (.xlsx)
+          </button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- MODAL: Novo Registro de Absenteísmo -->
@@ -868,6 +927,7 @@
             <select id="nat-empresa"><option value="LOGIN SERV">LOGIN SERV</option><option value="SOLUTIONS">SOLUTIONS</option></select>
           </div>
           <div class="modal-field"><label>Data de Admissão</label><input type="date" id="nat-admissao" required></div>
+          <div class="modal-field"><label>Início no Posto Atual</label><input type="date" id="nat-inicio-posto" placeholder="Se diferente da admissão"></div>
           <div class="modal-field"><label>Data de Nascimento</label><input type="date" id="nat-nascimento"></div>
           <div class="modal-field"><label>Tem Filhos?</label>
             <select id="nat-filhos"><option value="">Não informado</option><option value="Sim">Sim</option><option value="Não">Não</option></select>
@@ -929,6 +989,7 @@
             <select id="edt-empresa"><option value="LOGIN SERV">LOGIN SERV</option><option value="SOLUTIONS">SOLUTIONS</option></select>
           </div>
           <div class="modal-field"><label>Data de Admissão</label><input type="date" id="edt-admissao"></div>
+          <div class="modal-field"><label>Início no Posto Atual</label><input type="date" id="edt-inicio-posto" placeholder="Se diferente da admissão"></div>
           <div class="modal-field"><label>Data de Nascimento</label><input type="date" id="edt-nascimento"></div>
           <div class="modal-field"><label>Tem Filhos?</label>
             <select id="edt-filhos"><option value="">Não informado</option><option value="Sim">Sim</option><option value="Não">Não</option></select>
@@ -1111,6 +1172,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   // ============================================================
   // CONFIGURAÇÃO DO PROJETO FIREBASE (PAINEL DP — projeto novo, separado do RH)
@@ -1411,6 +1473,7 @@
         '<td>'+c.nome+'</td>' +
         '<td>'+c.cargo+'</td>' +
         '<td><span class="pill teal">'+c.posto+'</span></td>' +
+        '<td class="mono">'+(c.dataInicioPosto ? formatDateBR(c.dataInicioPosto) : '—')+'</td>' +
         '<td class="mono">'+formatDateBR(c.admissao)+'</td>' +
         '<td class="mono">'+formatCPF(c.cpf)+'</td>' +
         '<td class="mono">'+formatMoney(c.salario)+'</td>' +
@@ -1995,7 +2058,122 @@
     populateFeriasFilters();
     renderFeriasPainel();
     renderFeriasAnalitico();
+    refreshExportacoesView();
   }
+
+  // ============================================================
+  // EXPORTAÇÕES (.xlsx)
+  // ============================================================
+  function exportarExcel(nomeArquivo, nomeAba, linhas){
+    if(!linhas.length){
+      alert('Não há dados para exportar nesta base.');
+      return;
+    }
+    var ws = XLSX.utils.json_to_sheet(linhas);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, nomeAba);
+    var dataHoje = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, nomeArquivo + '_' + dataHoje + '.xlsx');
+  }
+
+  function prepararExportAtivos(){
+    return appState.ativos.map(function(a){
+      var info = computeExperienciaInfo(a);
+      var tipoLabel = {INDETERMINADO:'Indeterminado (Efetivo)', DETERMINADO:'Determinado', EXPERIENCIA:'Experiência', INTERMITENTE:'Intermitente'};
+      return {
+        'Nome': a.nome,
+        'Cargo': a.cargo,
+        'Posto': a.posto,
+        'Início no Posto': a.dataInicioPosto ? formatDateBR(a.dataInicioPosto) : '',
+        'Admissão': formatDateBR(a.admissao),
+        'CPF': formatCPF(a.cpf),
+        'Salário': a.salario,
+        'Jornada': a.jornada,
+        'Empresa': a.empresa,
+        'Data de Nascimento': a.dataNascimento ? formatDateBR(a.dataNascimento) : '',
+        'Tem Filhos': a.temFilhos || '',
+        'Sexo': a.sexo || '',
+        'Tipo de Contrato': tipoLabel[a.contratoTipo] || 'Indeterminado (Efetivo)',
+        'Etapa da Experiência': info ? (info.etapa === 1 ? '1ª Experiência' : '2ª Experiência (Prorrogação)') : '',
+        'Vencimento da Experiência': info ? formatDateBR(info.vencimento) : ''
+      };
+    });
+  }
+
+  function prepararExportAbsenteismo(){
+    return appState.absenteismo.map(function(e){
+      return {
+        'Nome': e.nome,
+        'Posto': e.posto,
+        'Cargo': e.cargo,
+        'Início do Afastamento': formatDateBR(e.inicio),
+        'Fim do Afastamento': formatDateBR(e.fim),
+        'Dias Perdidos': e.diasPerdidos,
+        'Horas Perdidas': e.horasPerdidas,
+        'Custo': calcCustoEvento(e, e.mes),
+        'Tipo': e.tipo,
+        'Motivo / CID': e.motivo,
+        'Advertência': e.advertencia ? 'Sim' : 'Não',
+        'INSS': e.inss ? 'Sim' : 'Não',
+        'Supervisor': e.supervisor,
+        'Mês': e.mes
+      };
+    });
+  }
+
+  function prepararExportTurnover(){
+    return appState.turnover.map(function(e){
+      return {
+        'Nome': e.nome,
+        'Posto': e.posto,
+        'Cargo': e.cargo,
+        'Tipo': e.tipo,
+        'Data de Admissão': e.admissao ? formatDateBR(e.admissao) : '',
+        'Data de Demissão': e.demissao ? formatDateBR(e.demissao) : '',
+        'Motivo da Saída': e.motivoSaida || '',
+        'Contrato': e.contrato || '',
+        'Custo de Admissão': e.custoAdmissao || 0,
+        'Custo de Rescisão': e.custoRescisao || 0,
+        'Custo Total': e.custoTotal || 0,
+        'Supervisor': e.supervisor,
+        'Mês': e.mes
+      };
+    });
+  }
+
+  function prepararExportFerias(){
+    return getAtivosComStatusFerias().map(function(a){
+      return {
+        'Nome': a.nome,
+        'Posto': a.posto,
+        'Cargo': a.cargo,
+        'Admissão': formatDateBR(a.admissao),
+        'Vencimento 1º Período': formatDateBR(a.feriasStatus.vencimento1),
+        'Vencimento 2º Período': formatDateBR(a.feriasStatus.vencimento2),
+        'Status': a.feriasStatus.vencida ? 'Férias Vencidas' : 'À Vencer'
+      };
+    });
+  }
+
+  function refreshExportacoesView(){
+    document.getElementById('export-ativos-count').textContent = appState.ativos.length + ' colaboradores';
+    document.getElementById('export-abs-count').textContent = appState.absenteismo.length + ' registros';
+    document.getElementById('export-to-count').textContent = appState.turnover.length + ' registros';
+    document.getElementById('export-ferias-count').textContent = getAtivosComStatusFerias().length + ' colaboradores';
+  }
+
+  document.getElementById('btn-export-ativos').addEventListener('click', function(){
+    exportarExcel('colaboradores_ativos', 'Ativos', prepararExportAtivos());
+  });
+  document.getElementById('btn-export-abs').addEventListener('click', function(){
+    exportarExcel('absenteismo', 'Absenteísmo', prepararExportAbsenteismo());
+  });
+  document.getElementById('btn-export-to').addEventListener('click', function(){
+    exportarExcel('turnover', 'TurnOver', prepararExportTurnover());
+  });
+  document.getElementById('btn-export-ferias').addEventListener('click', function(){
+    exportarExcel('ferias', 'Férias', prepararExportFerias());
+  });
 
   ['ferias-filtro-empresa','ferias-filtro-status','ferias-filtro-posto'].forEach(function(id){
     document.getElementById(id).addEventListener('change', renderFeriasPainel);
@@ -2141,6 +2319,7 @@
 
     var pessoa = appState.ativos.find(function(a){ return normNome(a.nome) === normNome(nome); });
     if(pessoa){
+      pessoa.dataInicioPosto = document.getElementById('nat-inicio-posto').value || null;
       pessoa.dataNascimento = document.getElementById('nat-nascimento').value || null;
       pessoa.temFilhos = document.getElementById('nat-filhos').value || null;
       pessoa.sexo = document.getElementById('nat-sexo').value || null;
@@ -2207,6 +2386,7 @@
     document.getElementById('edt-jornada').value = pessoa.jornada || '';
     document.getElementById('edt-empresa').value = pessoa.empresa || 'LOGIN SERV';
     document.getElementById('edt-admissao').value = pessoa.admissao || '';
+    document.getElementById('edt-inicio-posto').value = pessoa.dataInicioPosto || '';
     document.getElementById('edt-nascimento').value = pessoa.dataNascimento || '';
     document.getElementById('edt-filhos').value = pessoa.temFilhos || '';
     document.getElementById('edt-sexo').value = pessoa.sexo || '';
@@ -2236,6 +2416,7 @@
     pessoa.jornada = document.getElementById('edt-jornada').value.trim();
     pessoa.empresa = document.getElementById('edt-empresa').value;
     pessoa.admissao = document.getElementById('edt-admissao').value || pessoa.admissao;
+    pessoa.dataInicioPosto = document.getElementById('edt-inicio-posto').value || null;
     pessoa.dataNascimento = document.getElementById('edt-nascimento').value || null;
     pessoa.temFilhos = document.getElementById('edt-filhos').value || null;
     pessoa.sexo = document.getElementById('edt-sexo').value || null;
