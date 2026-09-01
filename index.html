@@ -4046,6 +4046,7 @@
   // só as diferenças são transmitidas — muito mais leve e mais estável.
   // ============================================================
   var valueListenerAtivo = null;
+  var connectedListenerAtivo = null;
 
   function startCloudSync(){
     setSyncIndicator('syncing', 'Conectando...');
@@ -4061,15 +4062,23 @@
       setSyncIndicator('err', 'Sem conexão');
     });
 
-    // Monitora o estado real da conexão (fica "Sem conexão" se a internet cair)
-    firebase.database().ref('.info/connected').on('value', function(snap){
-      if(snap.val() === false) setSyncIndicator('err', 'Sem conexão');
-    });
+    // Monitora o estado real da conexão (fica "Sem conexão" se a internet cair,
+    // e volta a "Sincronizado" assim que a conexão for restabelecida).
+    connectedListenerAtivo = function(snap){
+      if(snap.val() === false){
+        setSyncIndicator('err', 'Sem conexão');
+      } else {
+        setSyncIndicator('ok', 'Sincronizado');
+      }
+    };
+    firebase.database().ref('.info/connected').on('value', connectedListenerAtivo);
   }
 
   function stopCloudSync(){
     if(valueListenerAtivo) dbRef.off('value', valueListenerAtivo);
     valueListenerAtivo = null;
+    if(connectedListenerAtivo) firebase.database().ref('.info/connected').off('value', connectedListenerAtivo);
+    connectedListenerAtivo = null;
   }
 
   // ============================================================
