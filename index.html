@@ -146,6 +146,19 @@
   .modal-check{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);margin-top:8px;}
   .modal-divider{border:none;border-top:1px solid var(--line);margin:22px 0 16px;}
   .danger-zone{border:1px solid var(--red-soft);background:rgba(242,89,107,0.06);border-radius:10px;padding:14px 16px;}
+
+  .desl-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:14px;}
+  .desl-card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .desl-card-nome{font-family:var(--font-display);font-weight:600;font-size:15px;}
+  .desl-prazo-badge{padding:6px 12px;border-radius:8px;font-size:11.5px;font-weight:600;text-align:center;white-space:nowrap;}
+  .desl-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;font-size:12.5px;}
+  .desl-info-grid .lbl{color:var(--text-faint);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;}
+  .desl-checklist{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px;}
+  .desl-check-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;}
+  .desl-check-row label{font-size:10.5px;color:var(--text-dim);display:block;margin-bottom:4px;}
+  .desl-check-row input, .desl-check-row select{width:100%;padding:7px 9px;background:#0D1526;border:1px solid var(--line);border-radius:7px;color:var(--text);font-size:12px;font-family:var(--font-body);}
+  .desl-total-row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px;margin-top:2px;}
+  .desl-total-value{font-family:var(--font-mono);font-weight:600;font-size:15px;color:var(--amber);}
   .danger-title{color:var(--red);font-weight:600;font-size:13px;margin-bottom:4px;}
   .danger-desc{color:var(--text-dim);font-size:11.5px;margin-bottom:12px;}
   tbody tr.row-clickable{cursor:pointer;}
@@ -200,6 +213,10 @@
       <div class="nav-item" data-view="experiencia">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></svg>
         <span class="nav-label">Experiência</span>
+      </div>
+      <div class="nav-item" data-view="desligamentos">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h14M5 21h14M6 3v5l6 4-6 4v5M18 3v5l-6 4 6 4v5"/></svg>
+        <span class="nav-label">Desligamentos em Andamento</span>
       </div>
       <div class="nav-item" data-view="inativos">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6.5 7-6.5M17 8l5 5M22 8l-5 5"/></svg>
@@ -418,6 +435,23 @@
           </div>
           <div class="empty-state" id="exp-analitico-empty" style="display:none;">Nenhum colaborador em experiência encontrado com esse filtro.</div>
         </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-desligamentos">
+      <div class="topbar"><div class="page-title">Desligamentos em Andamento</div><div class="page-date"></div></div>
+
+      <div class="stats" style="grid-template-columns:1fr;max-width:280px;margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-label">Em Andamento</div>
+          <div class="stat-value amber" id="desl-total">0</div>
+        </div>
+      </div>
+
+      <div id="desl-cards-container" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;"></div>
+      <div class="empty-state" id="desl-empty" style="display:none;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        <div>Nenhum desligamento em andamento no momento.</div>
       </div>
     </div>
 
@@ -1099,7 +1133,6 @@
               <select id="edt-contrato-desligamento"><option value="INDETERMINADO">Indeterminado</option><option value="DETERMINADO">Determinado</option></select>
             </div>
             <div class="modal-field"><label>Supervisor</label><input type="text" id="edt-supervisor-desligamento"></div>
-            <div class="modal-field"><label>Custo de Rescisão (R$)</label><input type="number" step="0.01" id="edt-custo-rescisao-desligamento" value="0"></div>
             <div class="modal-field full"><label>Observação</label><textarea id="edt-observacao-desligamento" rows="3" placeholder="Anote aqui o motivo detalhado, comportamento, contexto do desligamento etc. — útil para consultar o perfil da pessoa no futuro."></textarea></div>
           </div>
           <div class="modal-actions">
@@ -1448,7 +1481,7 @@
   // absenteismo, turnover, ferias, ocorrencias, cat) vai gravar seus dados
   // dentro do mesmo objeto de estado, sincronizado em tempo real com o Firebase.
   // ============================================================
-  var appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [] };
+  var appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [] };
 
   // ============================================================
   // CARGA INICIAL — Colaboradores Ativos (planilha enviada)
@@ -1761,6 +1794,14 @@
     d.setDate(d.getDate() + dias);
     return d.toISOString().slice(0,10);
   }
+  // Se a data cair em sábado ou domingo, antecipa para a sexta-feira anterior.
+  function ajustarParaDiaUtil(dataISO){
+    var d = new Date(dataISO + 'T00:00:00');
+    var diaSemana = d.getDay(); // 0=domingo, 6=sábado
+    if(diaSemana === 6) d.setDate(d.getDate() - 1);
+    else if(diaSemana === 0) d.setDate(d.getDate() - 2);
+    return d.toISOString().slice(0,10);
+  }
 
   // Retorna {etapa, vencimento, diasRestantes, vencida} para quem está em contrato de experiência
   function computeExperienciaInfo(pessoa){
@@ -1886,6 +1927,63 @@
     var idxInativoExistente = findIndexByName(appState.inativos, nome);
     if(idxInativoExistente >= 0) appState.inativos.splice(idxInativoExistente, 1);
     appState.inativos.unshift(registroInativo);
+  }
+
+  // Move uma pessoa de Ativos -> Desligamentos em Andamento (chamado quando se
+  // registra uma Demissão). A pessoa só vai para Inativos de fato depois que o
+  // checklist de homologação for concluído (ver concluirDesligamento).
+  function moverParaDesligamentoAndamento(nome, dados){
+    var idxAtivo = findIndexByName(appState.ativos, nome);
+    var base = idxAtivo >= 0 ? appState.ativos[idxAtivo] : {};
+    var desligamento = dados.desligamento;
+    var registro = {
+      id: 'da' + Date.now(),
+      nome: nome,
+      cpf: base.cpf || '',
+      cargo: dados.cargo || base.cargo || '',
+      posto: dados.posto || base.posto || '',
+      admissao: base.admissao || dados.admissao || null,
+      desligamento: desligamento,
+      prazoHomologacao: ajustarParaDiaUtil(addDias(desligamento, 8)),
+      motivoSaida: dados.motivoSaida || null,
+      contrato: dados.contrato || null,
+      supervisor: dados.supervisor || null,
+      empresa: base.empresa || null,
+      observacao: dados.observacao || null,
+      sexo: base.sexo || null,
+      // Checklist de homologação
+      uniformeDevolvido: null,
+      valorUniforme: 0,
+      exameStatus: '',
+      pontoData: null,
+      pontoStatus: '',
+      magnumData: null,
+      magnumStatus: '',
+      financeiroData: null,
+      valorTRCT: 0,
+      valorFGTS: 0,
+      homologacaoData: null,
+      homologacaoStatus: ''
+    };
+    if(idxAtivo >= 0) appState.ativos.splice(idxAtivo, 1);
+    var idxExistente = findIndexByName(appState.desligamentosAndamento, nome);
+    if(idxExistente >= 0) appState.desligamentosAndamento.splice(idxExistente, 1);
+    var idxInativoExistente = findIndexByName(appState.inativos, nome);
+    if(idxInativoExistente >= 0) appState.inativos.splice(idxInativoExistente, 1);
+    appState.desligamentosAndamento.unshift(registro);
+  }
+
+  // Finaliza o checklist: move de Desligamentos em Andamento -> Inativos
+  function concluirDesligamento(id){
+    var idx = appState.desligamentosAndamento.findIndex(function(d){ return d.id === id; });
+    if(idx < 0) return;
+    var registro = appState.desligamentosAndamento[idx];
+    moverParaInativos(registro.nome, {
+      cargo: registro.cargo, posto: registro.posto, desligamento: registro.desligamento,
+      motivoSaida: registro.motivoSaida, contrato: registro.contrato,
+      supervisor: registro.supervisor, observacao: registro.observacao
+    });
+    appState.desligamentosAndamento.splice(idx, 1);
   }
 
   // Move uma pessoa de Inativos -> Ativos (chamado quando se registra uma Admissão)
@@ -2147,6 +2245,263 @@
   }
 
   // ============================================================
+  // DESLIGAMENTOS EM ANDAMENTO
+  // ============================================================
+  function computeValorTotalDesligamento(registro){
+    // O Valor do Uniforme é só para registro/controle — não entra na soma do Valor Total.
+    return (Number(registro.valorTRCT) || 0) + (Number(registro.valorFGTS) || 0);
+  }
+
+  function computePrazoHomologacaoInfo(registro){
+    var hoje = new Date().toISOString().slice(0,10);
+    var diasRestantes = diffDias(hoje, registro.prazoHomologacao);
+    return { vencido: diasRestantes < 0, diasRestantes: diasRestantes };
+  }
+
+  // Regra: SOLUTIONS exige exame demissional acima de 90 dias trabalhados;
+  // LOGIN SERV exige acima de 135 dias. Sem essas empresas, não há regra definida.
+  function computeNecessidadeExame(registro){
+    if(!registro.admissao || !registro.desligamento) return null;
+    var diasTrabalhados = diffDias(registro.admissao, registro.desligamento);
+    var limiar = registro.empresa === 'SOLUTIONS' ? 90 : (registro.empresa === 'LOGIN SERV' ? 135 : null);
+    if(limiar === null) return null;
+    return { necessario: diasTrabalhados > limiar, diasTrabalhados: diasTrabalhados, limiar: limiar };
+  }
+
+  // Confere se todos os campos do checklist foram preenchidos.
+  // Retorna um array com o nome de cada campo pendente (vazio = tudo preenchido).
+  function validarChecklistCompleto(registro){
+    var pendencias = [];
+
+    if(registro.uniformeDevolvido !== 'Sim' && registro.uniformeDevolvido !== 'Não'){
+      pendencias.push('Uniforme Devolvido?');
+    } else if(registro.uniformeDevolvido === 'Não' && !(Number(registro.valorUniforme) > 0)){
+      pendencias.push('Valor do Uniforme');
+    }
+
+    var exameInfo = computeNecessidadeExame(registro);
+    if(exameInfo && exameInfo.necessario && registro.exameStatus !== 'OK' && registro.exameStatus !== 'NOK'){
+      pendencias.push('Exame');
+    }
+
+    if(!registro.pontoData) pendencias.push('Envio do Ponto');
+    if(registro.pontoStatus !== 'OK' && registro.pontoStatus !== 'NOK') pendencias.push('Status do Ponto');
+
+    if(!registro.magnumData) pendencias.push('Envio Magnum');
+    if(registro.magnumStatus !== 'OK' && registro.magnumStatus !== 'NOK') pendencias.push('Status Magnum');
+
+    if(!registro.financeiroData) pendencias.push('Data Financeiro');
+    if(!(Number(registro.valorTRCT) > 0)) pendencias.push('Valor TRCT');
+    if(!(Number(registro.valorFGTS) > 0)) pendencias.push('Valor FGTS');
+
+    if(!registro.homologacaoData) pendencias.push('Data Homologação');
+    if(registro.homologacaoStatus !== 'OK' && registro.homologacaoStatus !== 'NOK') pendencias.push('Status Homologação');
+
+    return pendencias;
+  }
+
+  function renderDesligamentoCard(registro){
+    var prazoInfo = computePrazoHomologacaoInfo(registro);
+    var prazoCor = prazoInfo.vencido ? 'var(--red)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber)' : 'var(--teal)');
+    var prazoCorBg = prazoInfo.vencido ? 'var(--red-soft)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber-soft)' : 'var(--teal-soft)');
+    var prazoTexto = prazoInfo.vencido
+      ? 'Prazo vencido — ' + formatDateBR(registro.prazoHomologacao)
+      : 'Homologar até ' + formatDateBR(registro.prazoHomologacao) + ' (' + prazoInfo.diasRestantes + (prazoInfo.diasRestantes === 1 ? ' dia' : ' dias') + ')';
+
+    var exameInfo = computeNecessidadeExame(registro);
+    var exameBadgeHtml = '';
+    if(exameInfo){
+      if(exameInfo.necessario){
+        exameBadgeHtml = '<div class="desl-prazo-badge" style="background:var(--amber-soft);color:var(--amber);margin-top:6px;">Exame Necessário — ' + exameInfo.diasTrabalhados + ' dias trabalhados</div>';
+      } else {
+        exameBadgeHtml = '<div class="desl-prazo-badge" style="background:var(--line);color:var(--text-dim);margin-top:6px;">Exame Dispensado — ' + exameInfo.diasTrabalhados + ' dias trabalhados</div>';
+      }
+      // se não precisa de exame, garante que o status fique sempre vazio
+      if(!exameInfo.necessario && registro.exameStatus) registro.exameStatus = '';
+    }
+
+    var valorTotal = computeValorTotalDesligamento(registro);
+
+    return '' +
+    '<div class="desl-card" data-id="'+registro.id+'">' +
+      '<div class="desl-card-header">' +
+        '<div>' +
+          '<div class="desl-card-nome">'+registro.nome+'</div>' +
+          '<div style="font-size:11.5px;color:var(--text-dim);margin-top:2px;">'+(registro.cargo||'—')+' • '+(registro.posto||'—')+'</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;">' +
+          '<div class="desl-prazo-badge" style="background:'+prazoCorBg+';color:'+prazoCor+';">'+prazoTexto+'</div>' +
+          exameBadgeHtml +
+        '</div>' +
+      '</div>' +
+
+      '<div class="desl-info-grid">' +
+        '<div><div class="lbl">Empresa</div>'+(registro.empresa||'—')+'</div>' +
+        '<div><div class="lbl">CPF</div>'+formatCPF(registro.cpf)+'</div>' +
+        '<div><div class="lbl">Admissão</div>'+formatDateBR(registro.admissao)+'</div>' +
+        '<div><div class="lbl">Desligamento</div>'+formatDateBR(registro.desligamento)+'</div>' +
+      '</div>' +
+
+      '<div class="desl-checklist">' +
+        '<div class="desl-check-row">' +
+          '<div><label>Uniforme Devolvido?</label>' +
+            '<select data-field="uniformeDevolvido" data-id="'+registro.id+'" class="desl-input">' +
+              '<option value="">—</option>' +
+              '<option value="Sim"'+(registro.uniformeDevolvido==='Sim'?' selected':'')+'>Sim</option>' +
+              '<option value="Não"'+(registro.uniformeDevolvido==='Não'?' selected':'')+'>Não</option>' +
+            '</select>' +
+          '</div>' +
+          '<div><label>Valor do Uniforme (R$)</label><input type="number" step="0.01" data-field="valorUniforme" data-id="'+registro.id+'" class="desl-input" value="'+(registro.valorUniforme||0)+'" '+(registro.uniformeDevolvido!=='Não'?'disabled style="opacity:0.5;"':'')+'></div>' +
+          '<div><label>Exame'+(exameInfo && !exameInfo.necessario ? ' (dispensado)' : '')+'</label>' +
+            '<select data-field="exameStatus" data-id="'+registro.id+'" class="desl-input" '+(exameInfo && !exameInfo.necessario ? 'disabled style="opacity:0.5;"' : '')+'>' +
+              '<option value="">—</option>' +
+              '<option value="OK"'+(registro.exameStatus==='OK'?' selected':'')+'>OK</option>' +
+              '<option value="NOK"'+(registro.exameStatus==='NOK'?' selected':'')+'>NOK</option>' +
+            '</select>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="desl-check-row">' +
+          '<div><label>Envio do Ponto</label><input type="date" data-field="pontoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.pontoData||'')+'"></div>' +
+          '<div><label>Status do Ponto</label>' +
+            '<select data-field="pontoStatus" data-id="'+registro.id+'" class="desl-input">' +
+              '<option value="">—</option>' +
+              '<option value="OK"'+(registro.pontoStatus==='OK'?' selected':'')+'>OK</option>' +
+              '<option value="NOK"'+(registro.pontoStatus==='NOK'?' selected':'')+'>NOK</option>' +
+            '</select>' +
+          '</div>' +
+          '<div></div>' +
+        '</div>' +
+
+        '<div class="desl-check-row">' +
+          '<div><label>Envio Magnum</label><input type="date" data-field="magnumData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.magnumData||'')+'"></div>' +
+          '<div><label>Status Magnum</label>' +
+            '<select data-field="magnumStatus" data-id="'+registro.id+'" class="desl-input">' +
+              '<option value="">—</option>' +
+              '<option value="OK"'+(registro.magnumStatus==='OK'?' selected':'')+'>OK</option>' +
+              '<option value="NOK"'+(registro.magnumStatus==='NOK'?' selected':'')+'>NOK</option>' +
+            '</select>' +
+          '</div>' +
+          '<div></div>' +
+        '</div>' +
+
+        '<div class="desl-check-row">' +
+          '<div><label>Data Financeiro</label><input type="date" data-field="financeiroData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.financeiroData||'')+'"></div>' +
+          '<div><label>Valor TRCT (R$)</label><input type="number" step="0.01" data-field="valorTRCT" data-id="'+registro.id+'" class="desl-input" value="'+(registro.valorTRCT||0)+'"></div>' +
+          '<div><label>Valor FGTS (R$)</label><input type="number" step="0.01" data-field="valorFGTS" data-id="'+registro.id+'" class="desl-input" value="'+(registro.valorFGTS||0)+'"></div>' +
+        '</div>' +
+
+        '<div class="desl-check-row">' +
+          '<div><label>Data Homologação</label><input type="date" data-field="homologacaoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.homologacaoData||'')+'"></div>' +
+          '<div><label>Status Homologação</label>' +
+            '<select data-field="homologacaoStatus" data-id="'+registro.id+'" class="desl-input">' +
+              '<option value="">—</option>' +
+              '<option value="OK"'+(registro.homologacaoStatus==='OK'?' selected':'')+'>OK</option>' +
+              '<option value="NOK"'+(registro.homologacaoStatus==='NOK'?' selected':'')+'>NOK</option>' +
+            '</select>' +
+          '</div>' +
+          '<div></div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="desl-total-row">' +
+        '<div>' +
+          '<div class="lbl">Valor Total</div>' +
+          '<div class="desl-total-value" data-total-id="'+registro.id+'">'+formatMoney(valorTotal)+'</div>' +
+        '</div>' +
+        '<button type="button" class="btn" data-concluir-id="'+registro.id+'" style="background:var(--teal);color:#052622;border:none;">Concluir</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function refreshDesligamentosView(){
+    var lista = appState.desligamentosAndamento || [];
+    document.getElementById('desl-total').textContent = lista.length;
+    var container = document.getElementById('desl-cards-container');
+    var emptyEl = document.getElementById('desl-empty');
+
+    // Evita recriar os cards (e perder o que está sendo digitado) se o usuário
+    // estiver com o foco em algum campo do checklist neste exato momento —
+    // o eco de sincronização do Firebase chegava no meio da digitação e
+    // "resetava" o campo antes do valor ser salvo.
+    if(document.activeElement && container.contains(document.activeElement)){
+      return;
+    }
+
+    if(lista.length === 0){
+      container.innerHTML = '';
+      emptyEl.style.display = 'block';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    var ordenados = lista.slice().sort(function(a,b){ return a.prazoHomologacao.localeCompare(b.prazoHomologacao); });
+    container.innerHTML = ordenados.map(renderDesligamentoCard).join('');
+
+    container.querySelectorAll('.desl-input').forEach(function(input){
+      input.addEventListener('change', function(){
+        var id = this.getAttribute('data-id');
+        var field = this.getAttribute('data-field');
+        var registro = appState.desligamentosAndamento.find(function(d){ return d.id === id; });
+        if(!registro) return;
+
+        var isNumero = (field === 'valorUniforme' || field === 'valorTRCT' || field === 'valorFGTS');
+        registro[field] = isNumero ? (parseFloat(this.value) || 0) : this.value;
+
+        // habilita/desabilita o campo de valor do uniforme conforme a resposta
+        if(field === 'uniformeDevolvido'){
+          var campoValor = container.querySelector('[data-field="valorUniforme"][data-id="'+id+'"]');
+          if(campoValor){
+            campoValor.disabled = (this.value !== 'Não');
+            campoValor.style.opacity = (this.value !== 'Não') ? '0.5' : '1';
+            if(this.value !== 'Não') { campoValor.value = 0; registro.valorUniforme = 0; }
+          }
+        }
+
+        var totalEl = container.querySelector('[data-total-id="'+id+'"]');
+        if(totalEl) totalEl.textContent = formatMoney(computeValorTotalDesligamento(registro));
+
+        cloudPut(appState).catch(function(err){ console.error('Erro ao salvar checklist de desligamento:', err); });
+      });
+
+      // Atualiza o total em tempo real enquanto o usuário digita (sem esperar
+      // sair do campo), para os campos de valor em R$.
+      var campoNome = input.getAttribute('data-field');
+      if(campoNome === 'valorUniforme' || campoNome === 'valorTRCT' || campoNome === 'valorFGTS'){
+        input.addEventListener('input', function(){
+          var id = this.getAttribute('data-id');
+          var registro = appState.desligamentosAndamento.find(function(d){ return d.id === id; });
+          if(!registro) return;
+          var valorDigitado = parseFloat(this.value) || 0;
+          var registroTemp = Object.assign({}, registro);
+          registroTemp[campoNome] = valorDigitado;
+          var totalEl = container.querySelector('[data-total-id="'+id+'"]');
+          if(totalEl) totalEl.textContent = formatMoney(computeValorTotalDesligamento(registroTemp));
+        });
+      }
+    });
+
+  container.querySelectorAll('[data-concluir-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = this.getAttribute('data-concluir-id');
+        var registro = appState.desligamentosAndamento.find(function(d){ return d.id === id; });
+        if(!registro) return;
+
+        var pendencias = validarChecklistCompleto(registro);
+        if(pendencias.length){
+          alert('Preencha todo o checklist antes de concluir. Faltam:\n\n• ' + pendencias.join('\n• '));
+          return;
+        }
+
+        if(!confirm('Concluir o desligamento de ' + registro.nome + '?\nEle será movido para Colaboradores Inativos.')) return;
+        concluirDesligamento(id);
+        cloudPut(appState).catch(function(err){ console.error('Erro ao concluir desligamento:', err); });
+        refreshDesligamentosView();
+        refreshInativosView();
+      });
+    });
+  }
+
   // EXPORTAÇÕES (.xlsx)
   // ============================================================
   function exportarExcel(nomeArquivo, nomeAba, linhas){
@@ -2455,7 +2810,6 @@
     document.getElementById('edt-motivo-saida').value = 'COLABORADOR';
     document.getElementById('edt-contrato-desligamento').value = 'INDETERMINADO';
     document.getElementById('edt-supervisor-desligamento').value = '';
-    document.getElementById('edt-custo-rescisao-desligamento').value = 0;
     document.getElementById('edt-observacao-desligamento').value = '';
   }
 
@@ -2535,23 +2889,23 @@
     var motivoSaida = document.getElementById('edt-motivo-saida').value;
     var contrato = document.getElementById('edt-contrato-desligamento').value;
     var supervisor = document.getElementById('edt-supervisor-desligamento').value.trim();
-    var custoRescisao = parseFloat(document.getElementById('edt-custo-rescisao-desligamento').value) || 0;
     var observacao = document.getElementById('edt-observacao-desligamento').value.trim();
 
-    if(!confirm('Confirma o desligamento de ' + pessoa.nome + ' em ' + formatDateBR(dataDesligamento) + '?\nEle será movido para Colaboradores Inativos e um registro será criado no TurnOver.')) return;
+    if(!confirm('Confirma o desligamento de ' + pessoa.nome + ' em ' + formatDateBR(dataDesligamento) + '?\nEle será movido para Desligamentos em Andamento e um registro será criado no TurnOver.')) return;
 
     // gera o registro no TurnOver (mesma lógica do formulário de TurnOver)
+    // custos ficam a cargo do checklist de Desligamentos em Andamento (TRCT/FGTS)
     var mesIdx = new Date(dataDesligamento + 'T00:00:00').getMonth();
     appState.turnover.unshift({
       id: 'to' + Date.now(),
       nome: pessoa.nome, posto: pessoa.posto, cargo: pessoa.cargo, tipo: 'Demissão',
       admissao: pessoa.admissao || null, demissao: dataDesligamento,
       motivoSaida: motivoSaida, contrato: contrato,
-      custoAdmissao: 0, custoRescisao: custoRescisao, custoTotal: custoRescisao,
+      custoAdmissao: 0, custoRescisao: 0, custoTotal: 0,
       mes: MESES_ORDEM[mesIdx], supervisor: supervisor, area: null, sexo: pessoa.sexo || null
     });
 
-    moverParaInativos(pessoa.nome, {
+    moverParaDesligamentoAndamento(pessoa.nome, {
       posto: pessoa.posto, cargo: pessoa.cargo, desligamento: dataDesligamento,
       motivoSaida: motivoSaida, contrato: contrato, supervisor: supervisor, observacao: observacao
     });
@@ -2559,6 +2913,7 @@
     cloudPut(appState).catch(function(err){ console.error('Erro ao desligar colaborador:', err); });
     refreshAtivosView();
     refreshInativosView();
+    refreshDesligamentosView();
     refreshTurnoverView();
     closeModal('modal-editar-ativo');
   });
@@ -3560,7 +3915,7 @@
         empresa: document.getElementById('to-f-empresa').value
       });
     } else {
-      moverParaInativos(nome, {
+      moverParaDesligamentoAndamento(nome, {
         posto: posto, cargo: cargo, desligamento: dataRef,
         motivoSaida: motivoSaida, contrato: contrato, supervisor: supervisor,
         observacao: document.getElementById('to-f-observacao').value.trim()
@@ -3571,6 +3926,7 @@
     refreshTurnoverView();
     refreshAtivosView();
     refreshInativosView();
+    refreshDesligamentosView();
     closeModal('modal-to');
     this.reset();
     document.getElementById('to-f-admissao-wrap').style.display = 'block';
@@ -3598,7 +3954,8 @@
 
   function processarSnapshot(cloud){
     if(cloud) appState = cloud;
-    else appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [] };
+    else appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [] };
+    if(!appState.desligamentosAndamento) appState.desligamentosAndamento = [];
 
     var needsSeed = !appState.ativos || appState.ativos.length === 0;
     if(needsSeed && SEED_ATIVOS.length){
@@ -3666,6 +4023,11 @@
       appState.ativos.forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
       appState.inativos = dedupByName(appState.inativos.filter(function(i){ return !ativosSet[normNome(i.nome)]; }));
       appState.ativos = dedupByName(appState.ativos);
+      var desligSet = {};
+      (appState.desligamentosAndamento || []).forEach(function(d){ desligSet[normNome(d.nome)] = true; });
+      appState.inativos = appState.inativos.filter(function(i){ return !desligSet[normNome(i.nome)]; });
+      appState.ativos = appState.ativos.filter(function(a){ return !desligSet[normNome(a.nome)]; });
+      appState.desligamentosAndamento = dedupByName(appState.desligamentosAndamento || []);
     })();
 
     refreshAtivosView();
@@ -3673,6 +4035,7 @@
     refreshAbsenteismoView();
     refreshTurnoverView();
     refreshFeriasView();
+    refreshDesligamentosView();
     setSyncIndicator('ok', 'Sincronizado');
   }
 
