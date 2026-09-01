@@ -578,6 +578,20 @@
         </div>
       </div>
 
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-head" style="flex-wrap:wrap;gap:10px;">
+          <span class="panel-title">Colaboradores com Maiores Ausências <span style="color:var(--text-faint);font-weight:400;font-size:11px;">(top 30)</span></span>
+          <select id="abs-ranking-periodo" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"></select>
+        </div>
+        <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+          <table>
+            <thead><tr><th>#</th><th>Colaborador</th><th>Posto</th><th>Ocorrências</th></tr></thead>
+            <tbody id="abs-ranking-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="abs-ranking-empty" style="display:none;padding:30px;">Sem ocorrências nesse período.</div>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="panel-head" style="flex-wrap:wrap;gap:10px;">
           <span class="panel-title">Ocorrências de Absenteísmo</span>
@@ -867,6 +881,44 @@
 
   <!-- MODAL: Novo Registro de Absenteísmo -->
   <!-- MODAL: Perfil do Colaborador Inativo -->
+  <!-- MODAL: Perfil de Ausências do Colaborador -->
+  <div class="modal-overlay" id="modal-perfil-abs">
+    <div class="modal-box" style="max-width:600px;">
+      <div class="modal-title" id="perfil-abs-nome">Colaborador</div>
+      <div class="modal-grid" style="margin-bottom:18px;">
+        <div><div style="font-size:11px;color:var(--text-dim);">Cargo</div><div id="perfil-abs-cargo" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Posto</div><div id="perfil-abs-posto" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Admissão</div><div id="perfil-abs-admissao" class="mono" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Tempo de Casa</div><div id="perfil-abs-tempocasa" style="font-size:13.5px;"></div></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Maiores CIDs</div>
+        <div id="perfil-abs-cids"></div>
+        <div id="perfil-abs-cids-total" style="font-size:11px;color:var(--text-faint);margin-top:8px;"></div>
+      </div>
+
+      <div class="stats" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="stat-card">
+          <div class="stat-label">Faltas Registradas</div>
+          <div class="stat-value red" id="perfil-abs-faltas">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Atestados</div>
+          <div class="stat-value teal" id="perfil-abs-atestados">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Advertências</div>
+          <div class="stat-value amber" id="perfil-abs-advertencias">0</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modal-perfil-abs')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-perfil-inativo">
     <div class="modal-box" style="max-width:600px;">
       <div class="modal-title" id="perfil-nome-titulo">Perfil do Colaborador</div>
@@ -2902,6 +2954,106 @@
     return { aplicada: pct, naoAplicada: 100 - pct };
   }
 
+  // ---- Ranking: Colaboradores com maiores ausências (top 30) ----
+  function computeTopColaboradoresAusencias(periodo){
+    var eventos = eventosDoPeriodo(periodo);
+    var porPessoa = {};
+    eventos.forEach(function(e){
+      var key = normNome(e.nome);
+      if(!porPessoa[key]) porPessoa[key] = { nome:e.nome, posto:e.posto, cargo:e.cargo, count:0 };
+      porPessoa[key].count++;
+      porPessoa[key].posto = e.posto;
+      porPessoa[key].cargo = e.cargo;
+    });
+    var arr = Object.keys(porPessoa).map(function(k){ return porPessoa[k]; });
+    arr.sort(function(a,b){ return b.count - a.count; });
+    return arr.slice(0, 30);
+  }
+
+  function populateAbsRankingPeriodo(){
+    var sel = document.getElementById('abs-ranking-periodo');
+    if(sel.options.length) return;
+    var meses = getMesesDisponiveis();
+    var opts = meses.map(function(m){ return '<option value="'+m+'">'+m+(m===MES_ATUAL?' (atual)':'')+'</option>'; }).join('');
+    sel.innerHTML = opts + '<option value="ANO">Ano Todo (2026)</option>';
+    sel.value = 'ANO';
+    sel.addEventListener('change', renderAbsRankingColaboradores);
+  }
+
+  function renderAbsRankingColaboradores(){
+    populateAbsRankingPeriodo();
+    var periodo = document.getElementById('abs-ranking-periodo').value;
+    var top = computeTopColaboradoresAusencias(periodo);
+    var tbody = document.getElementById('abs-ranking-tbody');
+    var emptyEl = document.getElementById('abs-ranking-empty');
+
+    if(top.length === 0){ tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+    emptyEl.style.display = 'none';
+
+    tbody.innerHTML = top.map(function(p, idx){
+      return '<tr data-nome="'+p.nome+'" data-periodo="'+periodo+'" class="row-clickable" title="Clique para ver o perfil">' +
+        '<td class="mono">'+(idx+1)+'</td>' +
+        '<td>'+p.nome+'</td>' +
+        '<td><span class="pill amber">'+(p.posto||'—')+'</span></td>' +
+        '<td class="mono"><span class="pill red">'+p.count+'</span></td>' +
+      '</tr>';
+    }).join('');
+
+    tbody.querySelectorAll('tr[data-nome]').forEach(function(tr){
+      tr.addEventListener('click', function(){
+        abrirPerfilAbsColaborador(tr.getAttribute('data-nome'), tr.getAttribute('data-periodo'));
+      });
+    });
+  }
+
+  function abrirPerfilAbsColaborador(nome, periodo){
+    var eventos = eventosDoPeriodo(periodo).filter(function(e){ return normNome(e.nome) === normNome(nome); });
+    if(!eventos.length) return;
+
+    document.getElementById('perfil-abs-nome').textContent = nome;
+    document.getElementById('perfil-abs-cargo').textContent = eventos[eventos.length-1].cargo || '—';
+    document.getElementById('perfil-abs-posto').textContent = eventos[eventos.length-1].posto || '—';
+
+    // Admissão: prioriza o cadastro atual (Ativos ou Inativos); usa o dado do
+    // próprio evento de absenteísmo como alternativa se a pessoa não for encontrada.
+    var pessoaAtiva = appState.ativos.find(function(a){ return normNome(a.nome) === normNome(nome); });
+    var pessoaInativa = !pessoaAtiva && appState.inativos.find(function(i){ return normNome(i.nome) === normNome(nome); });
+    var admissao = (pessoaAtiva && pessoaAtiva.admissao) || (pessoaInativa && pessoaInativa.admissao) ||
+                    eventos[eventos.length-1].admissaoColaborador || null;
+
+    if(admissao){
+      var hoje = new Date().toISOString().slice(0,10);
+      var dias = diffDias(admissao, hoje);
+      document.getElementById('perfil-abs-admissao').textContent = formatDateBR(admissao);
+      document.getElementById('perfil-abs-tempocasa').textContent = dias + ' dias';
+    } else {
+      document.getElementById('perfil-abs-admissao').textContent = '—';
+      document.getElementById('perfil-abs-tempocasa').textContent = '—';
+    }
+
+    var counts = {};
+    var totalAtestados = 0;
+    eventos.filter(function(e){ return e.tipo === 'Atestado'; }).forEach(function(e){
+      totalAtestados++;
+      var m = (e.motivo || '').trim().toUpperCase();
+      if(!m) return;
+      counts[m] = (counts[m] || 0) + 1;
+    });
+    var arrCids = Object.keys(counts).map(function(k){ return {label:k, value:counts[k], displayValue:String(counts[k])}; });
+    arrCids.sort(function(a,b){ return b.value - a.value; });
+    renderHBarChart('perfil-abs-cids', arrCids, {color:'var(--red)'});
+    var somaCids = arrCids.reduce(function(s,c){ return s + c.value; }, 0);
+    document.getElementById('perfil-abs-cids-total').textContent =
+      'Total: ' + somaCids + ' de ' + totalAtestados + ' atestados' +
+      (somaCids < totalAtestados ? ' (' + (totalAtestados - somaCids) + ' sem motivo/CID informado)' : '');
+
+    document.getElementById('perfil-abs-faltas').textContent = eventos.filter(function(e){ return e.tipo === 'Falta'; }).length;
+    document.getElementById('perfil-abs-atestados').textContent = totalAtestados;
+    document.getElementById('perfil-abs-advertencias').textContent = eventos.filter(function(e){ return e.advertencia; }).length;
+
+    openModal('modal-perfil-abs');
+  }
+
   function refreshAbsenteismoCharts(){
     renderHBarChart('chart-abs-motivos', computeTopMotivos());
     renderHBarChart('chart-abs-postos', computeTopPostosAbs());
@@ -2914,6 +3066,8 @@
 
     var adv = computePctAdvertenciaFaltas();
     renderPieChart2('chart-abs-advertencia', adv.aplicada, 'Advertência Aplicada', 'var(--red)', adv.naoAplicada, 'Não Aplicado', 'var(--line-strong)');
+
+    renderAbsRankingColaboradores();
   }
 
   function refreshAbsenteismoView(){
