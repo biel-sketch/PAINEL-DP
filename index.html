@@ -906,6 +906,7 @@
         <div class="stat-card">
           <div class="stat-label">Atestados</div>
           <div class="stat-value teal" id="perfil-abs-atestados">0</div>
+          <div class="stat-sub" id="perfil-abs-atestados-dias">0 dias afastado</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Advertências</div>
@@ -3033,22 +3034,30 @@
 
     var counts = {};
     var totalAtestados = 0;
+    var diasAtestados = 0;
     eventos.filter(function(e){ return e.tipo === 'Atestado'; }).forEach(function(e){
       totalAtestados++;
+      var dias = Number(e.diasPerdidos) || 0;
+      diasAtestados += dias;
       var m = (e.motivo || '').trim().toUpperCase();
       if(!m) return;
-      counts[m] = (counts[m] || 0) + 1;
+      counts[m] = (counts[m] || 0) + dias;
     });
-    var arrCids = Object.keys(counts).map(function(k){ return {label:k, value:counts[k], displayValue:String(counts[k])}; });
+    var arrCids = Object.keys(counts).map(function(k){
+      var dias = counts[k];
+      return { label:k, value:dias, displayValue: dias.toLocaleString('pt-BR',{maximumFractionDigits:1}) + (dias === 1 ? ' dia' : ' dias') };
+    });
     arrCids.sort(function(a,b){ return b.value - a.value; });
     renderHBarChart('perfil-abs-cids', arrCids, {color:'var(--red)'});
-    var somaCids = arrCids.reduce(function(s,c){ return s + c.value; }, 0);
+    var somaCidsDias = arrCids.reduce(function(s,c){ return s + c.value; }, 0);
     document.getElementById('perfil-abs-cids-total').textContent =
-      'Total: ' + somaCids + ' de ' + totalAtestados + ' atestados' +
-      (somaCids < totalAtestados ? ' (' + (totalAtestados - somaCids) + ' sem motivo/CID informado)' : '');
+      'Total: ' + somaCidsDias.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' de ' + diasAtestados.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' dias afastado' +
+      (somaCidsDias < diasAtestados ? ' (' + (diasAtestados - somaCidsDias).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' sem motivo/CID informado)' : '');
 
     document.getElementById('perfil-abs-faltas').textContent = eventos.filter(function(e){ return e.tipo === 'Falta'; }).length;
     document.getElementById('perfil-abs-atestados').textContent = totalAtestados;
+    document.getElementById('perfil-abs-atestados-dias').textContent =
+      diasAtestados.toLocaleString('pt-BR', {maximumFractionDigits:1}) + (diasAtestados === 1 ? ' dia afastado' : ' dias afastado');
     document.getElementById('perfil-abs-advertencias').textContent = eventos.filter(function(e){ return e.advertencia; }).length;
 
     openModal('modal-perfil-abs');
