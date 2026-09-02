@@ -1008,9 +1008,14 @@
       </div>
 
       <div style="margin-bottom:18px;">
-        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Maiores CIDs</div>
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Maiores CIDs <span style="color:var(--text-faint);font-weight:400;">(atestados)</span></div>
         <div id="perfil-abs-cids"></div>
         <div id="perfil-abs-cids-total" style="font-size:11px;color:var(--text-faint);margin-top:8px;"></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Motivos de Falta</div>
+        <div id="perfil-abs-motivos-falta"></div>
       </div>
 
       <div class="stats" style="grid-template-columns:1fr 1fr 1fr;">
@@ -3819,6 +3824,21 @@
     document.getElementById('perfil-abs-cids-total').textContent =
       'Total: ' + somaCidsDias.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' de ' + diasAtestados.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' dias afastado' +
       (somaCidsDias < diasAtestados ? ' (' + (diasAtestados - somaCidsDias).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' sem motivo/CID informado)' : '');
+
+    // Motivos de Falta (contados por ocorrência, já que muitas faltas — inclusive
+    // advertências lançadas pelo atalho — não têm "dias perdidos" associados)
+    var countsFalta = {};
+    eventos.filter(function(e){ return e.tipo === 'Falta'; }).forEach(function(e){
+      var m = (e.motivo || '').trim();
+      if(!m) m = 'SEM MOTIVO INFORMADO';
+      m = m.toUpperCase();
+      countsFalta[m] = (countsFalta[m] || 0) + 1;
+    });
+    var arrMotivosFalta = Object.keys(countsFalta).map(function(k){
+      return { label:k, value:countsFalta[k], displayValue:String(countsFalta[k]) };
+    });
+    arrMotivosFalta.sort(function(a,b){ return b.value - a.value; });
+    renderHBarChart('perfil-abs-motivos-falta', arrMotivosFalta, {color:'var(--amber)'});
 
     document.getElementById('perfil-abs-faltas').textContent = eventos.filter(function(e){ return e.tipo === 'Falta'; }).length;
     document.getElementById('perfil-abs-atestados').textContent = totalAtestados;
