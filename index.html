@@ -776,6 +776,7 @@
               <select id="ferias-filtro-status" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
                 <option value="">Todos os Status</option>
                 <option value="VENCIDA">Férias Vencidas</option>
+                <option value="VENCENDO">Vencendo em 30 dias</option>
                 <option value="A_VENCER">À Vencer</option>
               </select>
               <select id="ferias-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os Postos</option></select>
@@ -784,10 +785,25 @@
           </div>
         </div>
 
-        <div class="stats" style="grid-template-columns:1fr;max-width:260px;margin-bottom:20px;">
+        <div class="stats" style="grid-template-columns:1fr 1fr;max-width:520px;margin-bottom:20px;">
           <div class="stat-card">
             <div class="stat-label">Férias Vencidas</div>
             <div class="stat-value red" id="ferias-total-vencidas">0</div>
+          </div>
+          <div class="stat-card" style="border-color:var(--amber-soft);">
+            <div class="stat-label">Vencendo em 30 dias</div>
+            <div class="stat-value amber" id="ferias-total-vencendo">0</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:20px;">
+          <div class="panel-head"><span class="panel-title">Vencimentos Próximos <span style="color:var(--text-faint);font-weight:400;font-size:11px;">(próximos 30 dias)</span></span></div>
+          <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
+            <table>
+              <thead><tr><th>Colaborador</th><th>Posto</th><th>Vencimento</th><th>Dias Restantes</th></tr></thead>
+              <tbody id="ferias-vencendo-tbody"></tbody>
+            </table>
+            <div class="empty-state" id="ferias-vencendo-empty" style="display:none;padding:30px;">Nenhum vencimento nos próximos 30 dias.</div>
           </div>
         </div>
 
@@ -835,6 +851,7 @@
               <select id="ferias-an-filtro-status" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
                 <option value="">Todos os Status</option>
                 <option value="VENCIDA">Férias Vencidas</option>
+                <option value="VENCENDO">Vencendo em 30 dias</option>
                 <option value="A_VENCER">À Vencer</option>
               </select>
               <select id="ferias-an-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os Postos</option></select>
@@ -856,11 +873,41 @@
 
     <div class="view" id="view-ocorrencias">
       <div class="topbar"><div class="page-title">Ocorrências</div><div class="page-date"></div></div>
+
+      <div class="stats" style="grid-template-columns:1fr 1fr;max-width:520px;margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-label">Advertências no Mês</div>
+          <div class="stat-value red" id="ocor-total-mes">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Advertências no Ano</div>
+          <div class="stat-value amber" id="ocor-total-ano">0</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-head"><span class="panel-title">Advertências por Posto</span></div>
+        <div style="padding:20px 20px 8px;" id="chart-ocor-postos"></div>
+      </div>
+
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Advertências e Suspensões</span></div>
-        <div class="empty-state">
+        <div class="panel-head" style="flex-wrap:wrap;gap:10px;">
+          <span class="panel-title">Advertências e Suspensões</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="ocor-search" placeholder="Buscar por nome..." style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;min-width:180px;">
+            <select id="ocor-filtro-mes" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os meses</option></select>
+            <select id="ocor-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os postos</option></select>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo</th><th>Supervisor</th></tr></thead>
+            <tbody id="ocor-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="ocor-empty" style="display:none;">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-          <div>Nenhum dado cadastrado ainda.</div>
+          <div>Nenhuma advertência encontrada com esse filtro.</div>
         </div>
       </div>
     </div>
@@ -2174,9 +2221,10 @@
     var proximoVencimento = addMeses(dataBase, FERIAS_CICLO_MESES);
     var vencimento1 = addMeses(dataBase, FERIAS_CICLO_MESES);
     var vencimento2 = addMeses(dataBase, FERIAS_CICLO_MESES * 2);
+    var diasParaVencer = diffDias(hoje, vencimento1);
 
     return { aplicavel:true, vencida:vencida, dataBase:dataBase, proximoVencimento:proximoVencimento,
-             vencimento1:vencimento1, vencimento2:vencimento2, mesesDesdeBase:mesesDesdeBase };
+             vencimento1:vencimento1, vencimento2:vencimento2, mesesDesdeBase:mesesDesdeBase, diasParaVencer:diasParaVencer };
   }
 
   function getAtivosComStatusFerias(){
@@ -2206,7 +2254,10 @@
     return lista.filter(function(a){
       var matchEmpresa = !empresa || a.empresa === empresa;
       var matchPosto = !posto || a.posto === posto;
-      var matchStatus = !status || (status === 'VENCIDA' ? a.feriasStatus.vencida : !a.feriasStatus.vencida);
+      var matchStatus = true;
+      if(status === 'VENCIDA') matchStatus = a.feriasStatus.vencida;
+      else if(status === 'VENCENDO') matchStatus = !a.feriasStatus.vencida && a.feriasStatus.diasParaVencer <= 30;
+      else if(status === 'A_VENCER') matchStatus = !a.feriasStatus.vencida;
       return matchEmpresa && matchPosto && matchStatus;
     });
   }
@@ -2217,7 +2268,24 @@
 
     var vencidas = filtrados.filter(function(a){ return a.feriasStatus.vencida; });
     var aVencer = filtrados.filter(function(a){ return !a.feriasStatus.vencida; });
+    var vencendoEm30 = filtrados.filter(function(a){ return !a.feriasStatus.vencida && a.feriasStatus.diasParaVencer <= 30; });
     document.getElementById('ferias-total-vencidas').textContent = vencidas.length;
+    document.getElementById('ferias-total-vencendo').textContent = vencendoEm30.length;
+
+    // Tabela de vencimentos próximos (ordenada do mais urgente pro menos urgente)
+    var ordenadosPorVencer = vencendoEm30.slice().sort(function(a,b){ return a.feriasStatus.diasParaVencer - b.feriasStatus.diasParaVencer; });
+    var tbodyVenc = document.getElementById('ferias-vencendo-tbody');
+    var emptyVenc = document.getElementById('ferias-vencendo-empty');
+    if(ordenadosPorVencer.length === 0){
+      tbodyVenc.innerHTML = ''; emptyVenc.style.display = 'block';
+    } else {
+      emptyVenc.style.display = 'none';
+      tbodyVenc.innerHTML = ordenadosPorVencer.map(function(a){
+        var dias = a.feriasStatus.diasParaVencer;
+        var cor = dias <= 7 ? 'red' : 'amber';
+        return '<tr><td>'+a.nome+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td class="mono">'+formatDateBR(a.feriasStatus.vencimento1)+'</td><td class="mono"><span class="pill '+cor+'">'+dias+' dias</span></td></tr>';
+      }).join('');
+    }
 
     // Vencidas por posto
     var porPosto = {};
@@ -2287,6 +2355,71 @@
     renderFeriasAnalitico();
     refreshExportacoesView();
   }
+
+  // ============================================================
+  // OCORRÊNCIAS — advertências dadas em faltas
+  // ============================================================
+  function getAdvertenciasDeFalta(){
+    return appState.absenteismo.filter(function(e){ return e.tipo === 'Falta' && e.advertencia; });
+  }
+
+  function populateOcorrenciasFiltros(){
+    var todas = getAdvertenciasDeFalta();
+    var mesSel = document.getElementById('ocor-filtro-mes');
+    var meses = Array.from(new Set(todas.map(function(e){ return e.mes; })));
+    meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
+    mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+
+    var postoSel = document.getElementById('ocor-filtro-posto');
+    var postos = Array.from(new Set(todas.map(function(e){ return e.posto; }).filter(Boolean))).sort();
+    postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+  }
+
+  function refreshOcorrenciasView(){
+    populateOcorrenciasFiltros();
+    var todas = getAdvertenciasDeFalta();
+
+    document.getElementById('ocor-total-mes').textContent = todas.filter(function(e){ return e.mes === MES_ATUAL; }).length;
+    document.getElementById('ocor-total-ano').textContent = todas.length;
+
+    var porPosto = {};
+    todas.forEach(function(e){ porPosto[e.posto] = (porPosto[e.posto] || 0) + 1; });
+    var arrPostos = Object.keys(porPosto).map(function(p){ return {label:p, value:porPosto[p], displayValue:String(porPosto[p])}; });
+    arrPostos.sort(function(a,b){ return b.value - a.value; });
+    renderHBarChart('chart-ocor-postos', arrPostos.slice(0, 10), {color:'var(--red)'});
+
+    aplicarFiltrosOcorrencias();
+  }
+
+  function aplicarFiltrosOcorrencias(){
+    var search = document.getElementById('ocor-search').value.trim().toLowerCase();
+    var mes = document.getElementById('ocor-filtro-mes').value;
+    var posto = document.getElementById('ocor-filtro-posto').value;
+    var filtradas = getAdvertenciasDeFalta().filter(function(e){
+      return (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
+             (!mes || e.mes === mes) && (!posto || e.posto === posto);
+    });
+    filtradas.sort(function(a,b){ return (b.inicio||'').localeCompare(a.inicio||''); });
+
+    var tbody = document.getElementById('ocor-tbody');
+    var emptyEl = document.getElementById('ocor-empty');
+    if(filtradas.length === 0){ tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = filtradas.map(function(e){
+      return '<tr>' +
+        '<td>'+e.nome+'</td>' +
+        '<td><span class="pill amber">'+(e.posto||'—')+'</span></td>' +
+        '<td>'+(e.cargo||'—')+'</td>' +
+        '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
+        '<td>'+(e.motivo||'—')+'</td>' +
+        '<td>'+(e.supervisor||'—')+'</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('ocor-search').addEventListener('input', aplicarFiltrosOcorrencias);
+  document.getElementById('ocor-filtro-mes').addEventListener('change', aplicarFiltrosOcorrencias);
+  document.getElementById('ocor-filtro-posto').addEventListener('change', aplicarFiltrosOcorrencias);
 
   // ============================================================
   // DESLIGAMENTOS EM ANDAMENTO
@@ -4249,6 +4382,7 @@
     refreshTurnoverView();
     refreshFeriasView();
     refreshDesligamentosView();
+    refreshOcorrenciasView();
     setSyncIndicator('ok', 'Sincronizado');
   }
 
