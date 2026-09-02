@@ -1007,14 +1007,14 @@
         <div><div style="font-size:11px;color:var(--text-dim);">Tempo de Casa</div><div id="perfil-abs-tempocasa" style="font-size:13.5px;"></div></div>
       </div>
 
-      <div style="margin-bottom:18px;">
+      <div style="margin-bottom:18px;" id="perfil-abs-cids-wrap">
         <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Maiores CIDs <span style="color:var(--text-faint);font-weight:400;">(atestados)</span></div>
         <div id="perfil-abs-cids"></div>
         <div id="perfil-abs-cids-total" style="font-size:11px;color:var(--text-faint);margin-top:8px;"></div>
       </div>
 
-      <div style="margin-bottom:18px;">
-        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Motivos de Falta</div>
+      <div style="margin-bottom:18px;" id="perfil-abs-motivos-falta-wrap">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:10px;">Motivos de Advertências</div>
         <div id="perfil-abs-motivos-falta"></div>
       </div>
 
@@ -3819,16 +3819,21 @@
       return { label:k, value:dias, displayValue: dias.toLocaleString('pt-BR',{maximumFractionDigits:1}) + (dias === 1 ? ' dia' : ' dias') };
     });
     arrCids.sort(function(a,b){ return b.value - a.value; });
-    renderHBarChart('perfil-abs-cids', arrCids, {color:'var(--red)'});
-    var somaCidsDias = arrCids.reduce(function(s,c){ return s + c.value; }, 0);
-    document.getElementById('perfil-abs-cids-total').textContent =
-      'Total: ' + somaCidsDias.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' de ' + diasAtestados.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' dias afastado' +
-      (somaCidsDias < diasAtestados ? ' (' + (diasAtestados - somaCidsDias).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' sem motivo/CID informado)' : '');
+    var wrapCids = document.getElementById('perfil-abs-cids-wrap');
+    if(arrCids.length === 0){
+      wrapCids.style.display = 'none';
+    } else {
+      wrapCids.style.display = 'block';
+      renderHBarChart('perfil-abs-cids', arrCids, {color:'var(--red)'});
+      var somaCidsDias = arrCids.reduce(function(s,c){ return s + c.value; }, 0);
+      document.getElementById('perfil-abs-cids-total').textContent =
+        'Total: ' + somaCidsDias.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' de ' + diasAtestados.toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' dias afastado' +
+        (somaCidsDias < diasAtestados ? ' (' + (diasAtestados - somaCidsDias).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' sem motivo/CID informado)' : '');
+    }
 
-    // Motivos de Falta (contados por ocorrência, já que muitas faltas — inclusive
-    // advertências lançadas pelo atalho — não têm "dias perdidos" associados)
+    // Motivos de Advertências (só eventos com advertência marcada, não todas as faltas)
     var countsFalta = {};
-    eventos.filter(function(e){ return e.tipo === 'Falta'; }).forEach(function(e){
+    eventos.filter(function(e){ return e.advertencia; }).forEach(function(e){
       var m = (e.motivo || '').trim();
       if(!m) m = 'SEM MOTIVO INFORMADO';
       m = m.toUpperCase();
@@ -3838,7 +3843,13 @@
       return { label:k, value:countsFalta[k], displayValue:String(countsFalta[k]) };
     });
     arrMotivosFalta.sort(function(a,b){ return b.value - a.value; });
-    renderHBarChart('perfil-abs-motivos-falta', arrMotivosFalta, {color:'var(--amber)'});
+    var wrapMotivosFalta = document.getElementById('perfil-abs-motivos-falta-wrap');
+    if(arrMotivosFalta.length === 0){
+      wrapMotivosFalta.style.display = 'none';
+    } else {
+      wrapMotivosFalta.style.display = 'block';
+      renderHBarChart('perfil-abs-motivos-falta', arrMotivosFalta, {color:'var(--amber)'});
+    }
 
     document.getElementById('perfil-abs-faltas').textContent = eventos.filter(function(e){ return e.tipo === 'Falta'; }).length;
     document.getElementById('perfil-abs-atestados').textContent = totalAtestados;
