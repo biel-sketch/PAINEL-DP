@@ -647,6 +647,7 @@
               <option value="Atestado">Atestado</option>
             </select>
             <button class="btn" id="abs-add-btn">+ Novo Registro</button>
+            <button class="btn" id="abs-add-advertencia-btn" style="border-color:var(--amber);color:var(--amber);">⚠️ + Advertência</button>
           </div>
         </div>
         <div style="overflow-x:auto;">
@@ -2363,7 +2364,11 @@
   // OCORRÊNCIAS — advertências dadas em faltas
   // ============================================================
   function getAdvertenciasDeFalta(){
-    return appState.absenteismo.filter(function(e){ return e.tipo === 'Falta' && e.advertencia; });
+    return appState.absenteismo.filter(function(e){
+      var tipoNorm = (e.tipo || '').toString().trim().toUpperCase();
+      var advertenciaTruthy = e.advertencia === true || e.advertencia === 'true' || e.advertencia === 'Sim' || e.advertencia === 1 || e.advertencia === '1';
+      return tipoNorm === 'FALTA' && advertenciaTruthy;
+    });
   }
 
   function populateOcorrenciasFiltros(){
@@ -3804,6 +3809,16 @@
     populateAbsDatalists();
     document.getElementById('abs-f-reposicao').value = 'Não';
     document.getElementById('abs-f-reposicao-aviso').style.display = 'none';
+    document.getElementById('abs-f-advertencia').checked = false;
+    openModal('modal-abs');
+  });
+
+  document.getElementById('abs-add-advertencia-btn').addEventListener('click', function(){
+    populateAbsDatalists();
+    document.getElementById('abs-f-reposicao').value = 'Não';
+    document.getElementById('abs-f-reposicao-aviso').style.display = 'none';
+    document.getElementById('abs-f-advertencia').checked = true; // já vem marcado — atalho pra advertência
+    document.getElementById('abs-f-tipo').value = 'Falta'; // advertência normalmente é dada em falta
     openModal('modal-abs');
   });
 
