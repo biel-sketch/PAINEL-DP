@@ -574,7 +574,14 @@
       </div>
 
       <div class="panel" style="margin-bottom:20px;">
-        <div class="panel-head"><span class="panel-title">Tendência Mensal — 2026</span></div>
+        <div class="panel-head" style="flex-wrap:wrap;gap:10px;">
+          <span class="panel-title">Tendência Mensal — 2026</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label for="abs-trend-visao" style="font-size:11.5px;color:var(--text-dim);">Visão:</label>
+            <select id="abs-trend-visao" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"><option value="">Empresa Toda</option></select>
+          </div>
+        </div>
+        <div id="abs-trend-supervisor-aviso" style="display:none;font-size:11px;color:var(--amber);background:var(--amber-soft);padding:8px 16px;"></div>
         <div style="overflow-x:auto;">
         <table>
           <thead><tr><th>Mês</th><th>Horas Previstas</th><th>Horas Perdidas</th><th>Custo</th><th>Absenteísmo</th><th>Meta</th><th>Situação</th></tr></thead>
@@ -633,6 +640,7 @@
             <input type="text" id="abs-search" placeholder="Buscar por nome..." style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;min-width:180px;">
             <select id="abs-filter-mes" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os meses</option></select>
             <select id="abs-filter-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os postos</option></select>
+            <select id="abs-filter-supervisor" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os supervisores</option></select>
             <select id="abs-filter-tipo" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
               <option value="">Falta e Atestado</option>
               <option value="Falta">Falta</option>
@@ -644,7 +652,7 @@
         <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>Nome</th><th>Posto</th><th>Cargo</th><th>Início</th><th>Fim</th><th>Dias</th><th>Horas</th><th>Custo</th><th>Tipo</th><th>Motivo/CID</th><th>Adv.</th><th>INSS</th><th>Supervisor</th></tr>
+            <tr><th>Nome</th><th>Posto</th><th>Cargo</th><th>Início</th><th>Fim</th><th>Dias</th><th>Horas</th><th>Custo</th><th>Reposição</th><th>Tipo</th><th>Motivo/CID</th><th>Adv.</th><th>INSS</th><th>Supervisor</th></tr>
           </thead>
           <tbody id="abs-tbody"></tbody>
         </table>
@@ -685,7 +693,14 @@
       </div>
 
       <div class="panel" style="margin-bottom:20px;">
-        <div class="panel-head"><span class="panel-title">Tendência Mensal — 2026</span></div>
+        <div class="panel-head" style="flex-wrap:wrap;gap:10px;">
+          <span class="panel-title">Tendência Mensal — 2026</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <label for="to-trend-visao" style="font-size:11.5px;color:var(--text-dim);">Visão:</label>
+            <select id="to-trend-visao" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"><option value="">Empresa Toda</option></select>
+          </div>
+        </div>
+        <div id="to-trend-supervisor-aviso" style="display:none;font-size:11px;color:var(--amber);background:var(--amber-soft);padding:8px 16px;"></div>
         <div style="overflow-x:auto;">
         <table>
           <thead><tr><th>Mês</th><th>Headcount</th><th>Admissões</th><th>Demissões</th><th>TurnOver</th><th>Meta</th><th>Situação</th></tr></thead>
@@ -717,6 +732,7 @@
             <input type="text" id="to-search" placeholder="Buscar por nome..." style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;min-width:180px;">
             <select id="to-filter-mes" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os meses</option></select>
             <select id="to-filter-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os postos</option></select>
+            <select id="to-filter-supervisor" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os supervisores</option></select>
             <select id="to-filter-tipo" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
               <option value="">Admissão e Demissão</option>
               <option value="Admissão">Admissão</option>
@@ -1023,7 +1039,15 @@
             <select id="nat-sexo"><option value="">Não informado</option><option value="Feminino">Feminino</option><option value="Masculino">Masculino</option></select>
           </div>
           <div class="modal-field"><label>Supervisor</label><input type="text" id="nat-supervisor"></div>
-          <div class="modal-field"><label>Custo de Admissão (R$)</label><input type="number" step="0.01" id="nat-custoadmissao" value="0"></div>
+          <div class="modal-field"><label>Valor do Exame (R$) <span style="color:var(--red);">*</span></label><input type="number" step="0.01" id="nat-valor-exame" value="0" required></div>
+          <div class="modal-field"><label>Valor do Uniforme (R$) <span style="color:var(--red);">*</span></label><input type="number" step="0.01" id="nat-valor-uniforme" value="0" required></div>
+          <div class="modal-field"><label>Valor do Treinamento (R$) <span style="color:var(--text-faint);font-weight:400;">- opcional</span></label><input type="number" step="0.01" id="nat-valor-treinamento" value="0"></div>
+          <div class="modal-field full">
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#0D1526;border:1px solid var(--line);padding:12px 16px;border-radius:8px;">
+              <span style="font-size:12.5px;color:var(--text-dim);">Custo Total da Admissão</span>
+              <span id="nat-custo-total-admissao" class="mono" style="font-size:15px;font-weight:600;color:var(--amber);">R$ 0,00</span>
+            </div>
+          </div>
           <div class="modal-field"><label>Tipo de Contrato</label>
             <select id="nat-contrato-tipo">
               <option value="INDETERMINADO">Indeterminado (Efetivo)</option>
@@ -1084,6 +1108,7 @@
           <div class="modal-field"><label>Sexo</label>
             <select id="edt-sexo"><option value="">Não informado</option><option value="Feminino">Feminino</option><option value="Masculino">Masculino</option></select>
           </div>
+          <div class="modal-field"><label>Supervisor</label><input type="text" id="edt-supervisor-atual"></div>
           <div class="modal-field"><label>Tipo de Contrato</label>
             <select id="edt-contrato-tipo">
               <option value="INDETERMINADO">Indeterminado (Efetivo)</option>
@@ -1203,9 +1228,16 @@
           <div class="modal-field"><label>Médico (se atestado)</label><input type="text" id="abs-f-medico"></div>
           <div class="modal-field"><label>Supervisor</label><input type="text" id="abs-f-supervisor"></div>
           <div class="modal-field"><label>Salário do Colaborador (R$)</label><input type="number" step="0.01" id="abs-f-salario" placeholder="Preenchido automaticamente se já for Ativo"></div>
+          <div class="modal-field"><label>Teve Reposição?</label>
+            <select id="abs-f-reposicao">
+              <option value="Não">Não</option>
+              <option value="Sim">Sim</option>
+            </select>
+          </div>
         </div>
         <label class="modal-check"><input type="checkbox" id="abs-f-advertencia"> Gerou advertência</label>
         <label class="modal-check"><input type="checkbox" id="abs-f-inss"> Encaminhado ao INSS</label>
+        <div id="abs-f-reposicao-aviso" style="display:none;font-size:11.5px;color:var(--amber);background:var(--amber-soft);padding:8px 12px;border-radius:8px;margin-top:8px;">⚠️ Com reposição, o custo desse afastamento será calculado em dobro (paga quem faltou + quem repôs).</div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-abs')">Cancelar</button>
           <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button>
@@ -1272,7 +1304,15 @@
           <div class="modal-field" id="to-f-empresa-wrap"><label>Empresa</label>
             <select id="to-f-empresa"><option value="LOGIN SERV">LOGIN SERV</option><option value="SOLUTIONS">SOLUTIONS</option></select>
           </div>
-          <div class="modal-field"><label>Custo de Admissão (R$)</label><input type="number" step="0.01" id="to-f-custoadmissao" value="0"></div>
+          <div class="modal-field" id="to-f-valorexame-wrap"><label>Valor do Exame (R$) <span style="color:var(--red);">*</span></label><input type="number" step="0.01" id="to-f-valorexame" value="0"></div>
+          <div class="modal-field" id="to-f-valoruniforme-wrap"><label>Valor do Uniforme (R$) <span style="color:var(--red);">*</span></label><input type="number" step="0.01" id="to-f-valoruniforme" value="0"></div>
+          <div class="modal-field" id="to-f-valortreinamento-wrap"><label>Valor do Treinamento (R$) <span style="color:var(--text-faint);font-weight:400;">- opcional</span></label><input type="number" step="0.01" id="to-f-valortreinamento" value="0"></div>
+          <div class="modal-field full" id="to-f-custo-total-wrap">
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#0D1526;border:1px solid var(--line);padding:12px 16px;border-radius:8px;">
+              <span style="font-size:12.5px;color:var(--text-dim);">Custo Total da Admissão</span>
+              <span id="to-f-custo-total-admissao" class="mono" style="font-size:15px;font-weight:600;color:var(--amber);">R$ 0,00</span>
+            </div>
+          </div>
           <div class="modal-field" id="to-f-custorescisao-wrap" style="display:none;"><label>Custo de Rescisão (R$)</label><input type="number" step="0.01" id="to-f-custorescisao" value="0"></div>
           <div class="modal-field full" id="to-f-observacao-wrap" style="display:none;"><label>Observação</label><textarea id="to-f-observacao" rows="3" placeholder="Anote aqui o contexto do desligamento — útil para consultar o perfil da pessoa no futuro."></textarea></div>
         </div>
@@ -2000,7 +2040,8 @@
       cpf: dados.cpf || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].cpf : '') || '',
       salario: dados.salario || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].salario : 0) || 0,
       jornada: dados.jornada || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].jornada : '') || '',
-      empresa: dados.empresa || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].empresa : '') || ''
+      empresa: dados.empresa || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].empresa : '') || '',
+      supervisor: dados.supervisor || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].supervisor : null) || null
     };
     if(idxAtivoExistente >= 0) appState.ativos.splice(idxAtivoExistente, 1);
     appState.ativos.unshift(registroAtivo);
@@ -2551,6 +2592,7 @@
         'Dias Perdidos': e.diasPerdidos,
         'Horas Perdidas': e.horasPerdidas,
         'Custo': calcCustoEvento(e, e.mes),
+        'Teve Reposição': e.reposicao === 'Sim' ? 'Sim' : 'Não',
         'Tipo': e.tipo,
         'Motivo / CID': e.motivo,
         'Advertência': e.advertencia ? 'Sim' : 'Não',
@@ -2572,6 +2614,9 @@
         'Data de Demissão': e.demissao ? formatDateBR(e.demissao) : '',
         'Motivo da Saída': e.motivoSaida || '',
         'Contrato': e.contrato || '',
+        'Valor do Exame': e.valorExame || 0,
+        'Valor do Uniforme': e.valorUniforme || 0,
+        'Valor do Treinamento': e.valorTreinamento || 0,
         'Custo de Admissão': e.custoAdmissao || 0,
         'Custo de Rescisão': e.custoRescisao || 0,
         'Custo Total': e.custoTotal || 0,
@@ -2711,7 +2756,7 @@
     var nomesInativos = Array.from(new Set(appState.inativos.map(function(a){ return a.nome; }))).sort();
     nomeList.innerHTML = nomesInativos.map(function(n){ return '<option value="'+n+'">'; }).join('');
     document.getElementById('form-novo-ativo').reset();
-    document.getElementById('nat-custoadmissao').value = 0;
+    document.getElementById('nat-custo-total-admissao').textContent = 'R$ 0,00';
     document.getElementById('nat-alerta').style.display = 'none';
     document.getElementById('nat-experiencia-hint-wrap').style.display = 'none';
     openModal('modal-novo-ativo');
@@ -2742,6 +2787,15 @@
       alert('Já existe um colaborador ativo com esse nome. Edite o cadastro existente na tabela em vez de criar um novo.');
       return;
     }
+    var valorExame = parseFloat(document.getElementById('nat-valor-exame').value) || 0;
+    var valorUniforme = parseFloat(document.getElementById('nat-valor-uniforme').value) || 0;
+    var valorTreinamento = parseFloat(document.getElementById('nat-valor-treinamento').value) || 0;
+    if(valorExame <= 0 || valorUniforme <= 0){
+      alert('Preencha o Valor do Exame e o Valor do Uniforme (são obrigatórios) para cadastrar o colaborador.');
+      return;
+    }
+    var custoTotalAdmissao = valorExame + valorUniforme + valorTreinamento;
+
     var posto = document.getElementById('nat-posto').value.trim();
     var cargo = document.getElementById('nat-cargo').value.trim();
     var admissao = document.getElementById('nat-admissao').value;
@@ -2763,6 +2817,7 @@
       pessoa.dataNascimento = document.getElementById('nat-nascimento').value || null;
       pessoa.temFilhos = document.getElementById('nat-filhos').value || null;
       pessoa.sexo = document.getElementById('nat-sexo').value || null;
+      pessoa.supervisor = document.getElementById('nat-supervisor').value.trim() || null;
       pessoa.contratoTipo = document.getElementById('nat-contrato-tipo').value;
       pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('nat-experiencia-duracao').value) : null;
       pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
@@ -2774,9 +2829,10 @@
       nome: nome, posto: posto, cargo: cargo, tipo: 'Admissão',
       admissao: admissao, demissao: null,
       motivoSaida: null, contrato: 'INDETERMINADO',
-      custoAdmissao: parseFloat(document.getElementById('nat-custoadmissao').value) || 0,
+      valorExame: valorExame, valorUniforme: valorUniforme, valorTreinamento: valorTreinamento,
+      custoAdmissao: custoTotalAdmissao,
       custoRescisao: 0,
-      custoTotal: parseFloat(document.getElementById('nat-custoadmissao').value) || 0,
+      custoTotal: custoTotalAdmissao,
       mes: MESES_ORDEM[mesIdx],
       supervisor: document.getElementById('nat-supervisor').value.trim(),
       area: null, sexo: document.getElementById('nat-sexo').value || null
@@ -2789,7 +2845,18 @@
     if(typeof refreshFeriasView === 'function') refreshFeriasView();
     closeModal('modal-novo-ativo');
     this.reset();
+    document.getElementById('nat-custo-total-admissao').textContent = 'R$ 0,00';
     document.getElementById('nat-experiencia-hint-wrap').style.display = 'none';
+  });
+
+  // Recalcula o Custo Total da Admissão em tempo real no cadastro de colaborador
+  ['nat-valor-exame','nat-valor-uniforme','nat-valor-treinamento'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', function(){
+      var soma = (parseFloat(document.getElementById('nat-valor-exame').value) || 0) +
+                 (parseFloat(document.getElementById('nat-valor-uniforme').value) || 0) +
+                 (parseFloat(document.getElementById('nat-valor-treinamento').value) || 0);
+      document.getElementById('nat-custo-total-admissao').textContent = formatMoney(soma);
+    });
   });
 
   // ============================================================
@@ -2830,6 +2897,7 @@
     document.getElementById('edt-nascimento').value = pessoa.dataNascimento || '';
     document.getElementById('edt-filhos').value = pessoa.temFilhos || '';
     document.getElementById('edt-sexo').value = pessoa.sexo || '';
+    document.getElementById('edt-supervisor-atual').value = pessoa.supervisor || '';
     document.getElementById('edt-contrato-tipo').value = pessoa.contratoTipo || 'INDETERMINADO';
     document.getElementById('edt-experiencia-duracao').value = pessoa.experienciaDuracaoDias || 45;
     document.getElementById('edt-experiencia-prorrogacao').value = pessoa.experienciaProrrogacaoDias || '';
@@ -2860,6 +2928,7 @@
     pessoa.dataNascimento = document.getElementById('edt-nascimento').value || null;
     pessoa.temFilhos = document.getElementById('edt-filhos').value || null;
     pessoa.sexo = document.getElementById('edt-sexo').value || null;
+    pessoa.supervisor = document.getElementById('edt-supervisor-atual').value.trim() || null;
     pessoa.contratoTipo = document.getElementById('edt-contrato-tipo').value;
     pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('edt-experiencia-duracao').value) : null;
     pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
@@ -2933,24 +3002,76 @@
     var horasMensais = ref.diasUteis * ref.horasDia;
     if(!evento.salario || !horasMensais) return 0;
     var valorHora = evento.salario / horasMensais;
-    return Math.round(valorHora * (Number(evento.horasPerdidas) || 0) * 100) / 100;
+    var custo = valorHora * (Number(evento.horasPerdidas) || 0);
+    if(evento.reposicao === 'Sim') custo = custo * 2; // custo dobra: paga o afastado + quem repôs
+    return Math.round(custo * 100) / 100;
   }
 
-  function computeAbsMonthStats(mes){
-    var ref = getHeadcountRef(mes);
-    var horasTotais = ref.headcount * ref.diasUteis * ref.horasDia;
-    var eventosMes = appState.absenteismo.filter(function(e){ return e.mes === mes; });
+  function computeHeadcountPorSupervisor(supervisor){
+    return appState.ativos.filter(function(a){ return (a.supervisor||'').trim() === supervisor; }).length;
+  }
+
+  function computeAbsMonthStats(mes, supervisorFiltro){
+    var eventosMes = appState.absenteismo.filter(function(e){
+      return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro);
+    });
+    var horasTotais;
+    if(supervisorFiltro){
+      var ref = getHeadcountRef(mes);
+      var headcountSupervisor = computeHeadcountPorSupervisor(supervisorFiltro);
+      horasTotais = headcountSupervisor * ref.diasUteis * ref.horasDia;
+    } else {
+      var refEmpresa = getHeadcountRef(mes);
+      horasTotais = refEmpresa.headcount * refEmpresa.diasUteis * refEmpresa.horasDia;
+    }
     var horasPerdidas = eventosMes.reduce(function(s, e){ return s + (Number(e.horasPerdidas) || 0); }, 0);
     var custoTotal = eventosMes.reduce(function(s, e){ return s + calcCustoEvento(e, mes); }, 0);
     var pct = horasTotais > 0 ? horasPerdidas / horasTotais : null;
     return { mes: mes, horasTotais: horasTotais, horasPerdidas: horasPerdidas, custoTotal: custoTotal, pct: pct, meta: 0.04 };
   }
 
+  function populateTrendVisaoSelects(){
+    var supervisoresAbs = Array.from(new Set(
+      appState.ativos.map(function(a){ return (a.supervisor||'').trim(); })
+        .concat(appState.absenteismo.map(function(e){ return (e.supervisor||'').trim(); }))
+        .filter(Boolean)
+    )).sort();
+    var selAbs = document.getElementById('abs-trend-visao');
+    if(selAbs.getAttribute('data-populated') !== 'true'){
+      selAbs.innerHTML = '<option value="">Empresa Toda</option>' + supervisoresAbs.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+      selAbs.setAttribute('data-populated', 'true');
+      selAbs.addEventListener('change', renderAbsTrend);
+    }
+
+    var supervisoresTo = Array.from(new Set(
+      appState.ativos.map(function(a){ return (a.supervisor||'').trim(); })
+        .concat(appState.turnover.map(function(e){ return (e.supervisor||'').trim(); }))
+        .filter(Boolean)
+    )).sort();
+    var selTo = document.getElementById('to-trend-visao');
+    if(selTo.getAttribute('data-populated') !== 'true'){
+      selTo.innerHTML = '<option value="">Empresa Toda</option>' + supervisoresTo.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+      selTo.setAttribute('data-populated', 'true');
+      selTo.addEventListener('change', renderToTrend);
+    }
+  }
+
   function renderAbsTrend(){
+    populateTrendVisaoSelects();
+    var supervisorFiltro = document.getElementById('abs-trend-visao').value;
+    var avisoEl = document.getElementById('abs-trend-supervisor-aviso');
+    if(supervisorFiltro){
+      var hc = computeHeadcountPorSupervisor(supervisorFiltro);
+      avisoEl.textContent = '⚠️ % calculado usando o headcount ATUAL da equipe de ' + supervisorFiltro + ' (' + hc + ' colaborador' + (hc===1?'':'es') + ') aplicado a todos os meses — não temos o histórico de quantas pessoas ele supervisionava em cada mês passado, então esse número é uma aproximação.';
+      avisoEl.style.display = 'block';
+    } else {
+      avisoEl.style.display = 'none';
+    }
+
     var tbody = document.getElementById('abs-trend-tbody');
     var mesesComDados = MESES_ORDEM.slice(0, MESES_ORDEM.indexOf(MES_ATUAL) + 1);
     var linhasMeses = mesesComDados.map(function(mes){
-      var s = computeAbsMonthStats(mes);
+      var s = computeAbsMonthStats(mes, supervisorFiltro);
       var dentro = s.pct !== null && s.pct <= s.meta;
       var pillClass = s.pct === null ? '' : (dentro ? 'teal' : 'red');
       return '<tr>' +
@@ -2964,7 +3085,7 @@
       '</tr>';
     }).join('');
 
-    var sAno = computeAbsPeriodStats('ANO');
+    var sAno = computeAbsPeriodStats('ANO', supervisorFiltro);
     var dentroAno = sAno.pct !== null && sAno.pct <= sAno.meta;
     var pillClassAno = sAno.pct === null ? '' : (dentroAno ? 'teal' : 'red');
     var linhaAno = '<tr style="background:#0D1526;border-top:2px solid var(--line-strong);font-weight:600;">' +
@@ -2983,11 +3104,14 @@
   function populateAbsFilters(){
     var mesSel = document.getElementById('abs-filter-mes');
     var postoSel = document.getElementById('abs-filter-posto');
+    var supervisorSel = document.getElementById('abs-filter-supervisor');
     var meses = Array.from(new Set(appState.absenteismo.map(function(e){ return e.mes; })));
     meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
     var postos = Array.from(new Set(appState.absenteismo.map(function(e){ return e.posto; }))).sort();
+    var supervisores = Array.from(new Set(appState.absenteismo.map(function(e){ return (e.supervisor||'').trim(); }).filter(Boolean))).sort();
     mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
     postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+    supervisorSel.innerHTML = '<option value="">Todos os supervisores</option>' + supervisores.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
   }
 
   var SELECTED_ABS_PERIODO = MES_ATUAL;
@@ -3018,18 +3142,18 @@
     return appState.absenteismo.filter(function(e){ return e.mes === periodo; });
   }
 
-  function computeAbsPeriodStats(periodo){
+  function computeAbsPeriodStats(periodo, supervisorFiltro){
     if(periodo === 'ANO'){
       var meses = getMesesDisponiveis();
       var horasTotais = 0, horasPerdidas = 0, custoTotal = 0;
       meses.forEach(function(m){
-        var s = computeAbsMonthStats(m);
+        var s = computeAbsMonthStats(m, supervisorFiltro);
         horasTotais += s.horasTotais; horasPerdidas += s.horasPerdidas; custoTotal += s.custoTotal;
       });
       return { horasTotais:horasTotais, horasPerdidas:horasPerdidas, custoTotal:custoTotal,
                pct: horasTotais>0 ? horasPerdidas/horasTotais : null, meta:0.04 };
     }
-    return computeAbsMonthStats(periodo);
+    return computeAbsMonthStats(periodo, supervisorFiltro);
   }
 
   // Tempo médio de afastamento (dias) por ocorrência, no período
@@ -3104,6 +3228,7 @@
         '<td class="mono">'+(e.diasPerdidos ?? '—')+'</td>' +
         '<td class="mono">'+(e.horasPerdidas ?? '—')+'</td>' +
         '<td class="mono">'+formatMoney(calcCustoEvento(e, e.mes))+'</td>' +
+        '<td>'+(e.reposicao === 'Sim' ? '<span class="pill amber">Sim (2x)</span>' : '—')+'</td>' +
         '<td><span class="pill '+tipoPill+'">'+e.tipo+'</span></td>' +
         '<td>'+(e.motivo || '—')+'</td>' +
         '<td>'+(e.advertencia ? '⚠️' : '—')+'</td>' +
@@ -3117,10 +3242,12 @@
     var search = document.getElementById('abs-search').value.trim().toLowerCase();
     var mes = document.getElementById('abs-filter-mes').value;
     var posto = document.getElementById('abs-filter-posto').value;
+    var supervisor = document.getElementById('abs-filter-supervisor').value;
     var tipo = document.getElementById('abs-filter-tipo').value;
     var filtered = appState.absenteismo.filter(function(e){
       return (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
-             (!mes || e.mes === mes) && (!posto || e.posto === posto) && (!tipo || e.tipo === tipo);
+             (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
+             (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo);
     });
     filtered.sort(function(a,b){ return (b.inicio||'').localeCompare(a.inicio||''); });
     renderAbsTable(filtered);
@@ -3443,7 +3570,7 @@
   }
 
   ['abs-search'].forEach(function(id){ document.getElementById(id).addEventListener('input', applyAbsFilters); });
-  ['abs-filter-mes','abs-filter-posto','abs-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyAbsFilters); });
+  ['abs-filter-mes','abs-filter-posto','abs-filter-supervisor','abs-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyAbsFilters); });
 
   // ============================================================
   // JORNADA -> HORAS PREVISTAS/DIA (regra fixa da empresa)
@@ -3534,7 +3661,13 @@
 
   document.getElementById('abs-add-btn').addEventListener('click', function(){
     populateAbsDatalists();
+    document.getElementById('abs-f-reposicao').value = 'Não';
+    document.getElementById('abs-f-reposicao-aviso').style.display = 'none';
     openModal('modal-abs');
+  });
+
+  document.getElementById('abs-f-reposicao').addEventListener('change', function(){
+    document.getElementById('abs-f-reposicao-aviso').style.display = this.value === 'Sim' ? 'block' : 'none';
   });
 
   document.getElementById('abs-f-nome').addEventListener('input', function(){
@@ -3578,7 +3711,8 @@
       sexo: null,
       salario: parseFloat(document.getElementById('abs-f-salario').value) || 0,
       admissaoColaborador: document.getElementById('abs-f-admissao').value || null,
-      inss: document.getElementById('abs-f-inss').checked
+      inss: document.getElementById('abs-f-inss').checked,
+      reposicao: document.getElementById('abs-f-reposicao').value
     };
     appState.absenteismo.unshift(novo);
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar:', err); });
@@ -3593,21 +3727,34 @@
   // ============================================================
   // TURNOVER
   // ============================================================
-  function computeTurnoverMonthStats(mes){
-    var ref = getHeadcountRef(mes);
-    var eventosMes = appState.turnover.filter(function(e){ return e.mes === mes; });
+  function computeTurnoverMonthStats(mes, supervisorFiltro){
+    var eventosMes = appState.turnover.filter(function(e){
+      return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro);
+    });
     var admissoes = eventosMes.filter(function(e){ return e.tipo === 'Admissão'; }).length;
     var demissoes = eventosMes.filter(function(e){ return e.tipo === 'Demissão'; }).length;
-    var pct = ref.headcount > 0 ? ((admissoes + demissoes) / 2) / ref.headcount : null;
+    var headcount = supervisorFiltro ? computeHeadcountPorSupervisor(supervisorFiltro) : getHeadcountRef(mes).headcount;
+    var pct = headcount > 0 ? ((admissoes + demissoes) / 2) / headcount : null;
     var custoTotal = eventosMes.reduce(function(s, e){ return s + (Number(e.custoTotal) || 0); }, 0);
-    return { mes: mes, headcount: ref.headcount, admissoes: admissoes, demissoes: demissoes, pct: pct, meta: 0.06, custoTotal: custoTotal };
+    return { mes: mes, headcount: headcount, admissoes: admissoes, demissoes: demissoes, pct: pct, meta: 0.06, custoTotal: custoTotal };
   }
 
   function renderToTrend(){
+    populateTrendVisaoSelects();
+    var supervisorFiltro = document.getElementById('to-trend-visao').value;
+    var avisoEl = document.getElementById('to-trend-supervisor-aviso');
+    if(supervisorFiltro){
+      var hc = computeHeadcountPorSupervisor(supervisorFiltro);
+      avisoEl.textContent = '⚠️ % calculado usando o headcount ATUAL da equipe de ' + supervisorFiltro + ' (' + hc + ' colaborador' + (hc===1?'':'es') + ') aplicado a todos os meses — não temos o histórico de quantas pessoas ele supervisionava em cada mês passado, então esse número é uma aproximação.';
+      avisoEl.style.display = 'block';
+    } else {
+      avisoEl.style.display = 'none';
+    }
+
     var tbody = document.getElementById('to-trend-tbody');
     var mesesComDados = MESES_ORDEM.slice(0, MESES_ORDEM.indexOf(MES_ATUAL) + 1);
     tbody.innerHTML = mesesComDados.map(function(mes){
-      var s = computeTurnoverMonthStats(mes);
+      var s = computeTurnoverMonthStats(mes, supervisorFiltro);
       var dentro = s.pct !== null && s.pct <= s.meta;
       var pillClass = s.pct === null ? '' : (dentro ? 'teal' : 'red');
       return '<tr>' +
@@ -3625,11 +3772,14 @@
   function populateToFilters(){
     var mesSel = document.getElementById('to-filter-mes');
     var postoSel = document.getElementById('to-filter-posto');
+    var supervisorSel = document.getElementById('to-filter-supervisor');
     var meses = Array.from(new Set(appState.turnover.map(function(e){ return e.mes; })));
     meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
     var postos = Array.from(new Set(appState.turnover.map(function(e){ return e.posto; }))).sort();
+    var supervisores = Array.from(new Set(appState.turnover.map(function(e){ return (e.supervisor||'').trim(); }).filter(Boolean))).sort();
     mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
     postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+    supervisorSel.innerHTML = '<option value="">Todos os supervisores</option>' + supervisores.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
   }
 
   var SELECTED_TO_PERIODO = MES_ATUAL;
@@ -3707,10 +3857,12 @@
     var search = document.getElementById('to-search').value.trim().toLowerCase();
     var mes = document.getElementById('to-filter-mes').value;
     var posto = document.getElementById('to-filter-posto').value;
+    var supervisor = document.getElementById('to-filter-supervisor').value;
     var tipo = document.getElementById('to-filter-tipo').value;
     var filtered = appState.turnover.filter(function(e){
       return (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
-             (!mes || e.mes === mes) && (!posto || e.posto === posto) && (!tipo || e.tipo === tipo);
+             (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
+             (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo);
     });
     filtered.sort(function(a,b){
       var da = a.tipo === 'Admissão' ? a.admissao : a.demissao;
@@ -3784,7 +3936,7 @@
   }
 
   ['to-search'].forEach(function(id){ document.getElementById(id).addEventListener('input', applyToFilters); });
-  ['to-filter-mes','to-filter-posto','to-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyToFilters); });
+  ['to-filter-mes','to-filter-posto','to-filter-supervisor','to-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyToFilters); });
 
   // ============================================================
   // EDITAR REGISTRO DE TURNOVER
@@ -3857,7 +4009,7 @@
     document.getElementById('to-f-motivo-wrap').style.display = isDemissao ? 'block' : 'none';
     document.getElementById('to-f-custorescisao-wrap').style.display = isDemissao ? 'block' : 'none';
     document.getElementById('to-f-observacao-wrap').style.display = isDemissao ? 'block' : 'none';
-    ['to-f-cpf-wrap','to-f-salario-wrap','to-f-jornada-wrap','to-f-empresa-wrap'].forEach(function(id){
+    ['to-f-cpf-wrap','to-f-salario-wrap','to-f-jornada-wrap','to-f-empresa-wrap','to-f-valorexame-wrap','to-f-valoruniforme-wrap','to-f-valortreinamento-wrap','to-f-custo-total-wrap'].forEach(function(id){
       document.getElementById(id).style.display = isDemissao ? 'none' : 'block';
     });
     document.getElementById('to-f-alerta-inativo').style.display = 'none';
@@ -3887,7 +4039,18 @@
     var supervisor = document.getElementById('to-f-supervisor').value.trim();
     var dataRef = tipo === 'Admissão' ? document.getElementById('to-f-admissao').value : document.getElementById('to-f-demissao').value;
     var mesIdx = new Date(dataRef + 'T00:00:00').getMonth();
-    var custoAdmissao = parseFloat(document.getElementById('to-f-custoadmissao').value) || 0;
+
+    var valorExame = 0, valorUniforme = 0, valorTreinamento = 0, custoAdmissao = 0;
+    if(tipo === 'Admissão'){
+      valorExame = parseFloat(document.getElementById('to-f-valorexame').value) || 0;
+      valorUniforme = parseFloat(document.getElementById('to-f-valoruniforme').value) || 0;
+      valorTreinamento = parseFloat(document.getElementById('to-f-valortreinamento').value) || 0;
+      if(valorExame <= 0 || valorUniforme <= 0){
+        alert('Preencha o Valor do Exame e o Valor do Uniforme (são obrigatórios) para registrar a admissão.');
+        return;
+      }
+      custoAdmissao = valorExame + valorUniforme + valorTreinamento;
+    }
     var custoRescisao = tipo === 'Demissão' ? (parseFloat(document.getElementById('to-f-custorescisao').value) || 0) : 0;
     var motivoSaida = tipo === 'Demissão' ? document.getElementById('to-f-motivosaida').value : null;
 
@@ -3898,6 +4061,7 @@
       demissao: tipo === 'Demissão' ? dataRef : null,
       motivoSaida: motivoSaida,
       contrato: contrato,
+      valorExame: valorExame, valorUniforme: valorUniforme, valorTreinamento: valorTreinamento,
       custoAdmissao: custoAdmissao, custoRescisao: custoRescisao,
       custoTotal: Math.round((custoAdmissao + custoRescisao) * 100) / 100,
       mes: MESES_ORDEM[mesIdx],
@@ -3912,7 +4076,8 @@
         cpf: document.getElementById('to-f-cpf').value.trim(),
         salario: parseFloat(document.getElementById('to-f-salario').value) || 0,
         jornada: document.getElementById('to-f-jornada').value.trim(),
-        empresa: document.getElementById('to-f-empresa').value
+        empresa: document.getElementById('to-f-empresa').value,
+        supervisor: supervisor
       });
     } else {
       moverParaDesligamentoAndamento(nome, {
@@ -3934,10 +4099,21 @@
     document.getElementById('to-f-motivo-wrap').style.display = 'none';
     document.getElementById('to-f-custorescisao-wrap').style.display = 'none';
     document.getElementById('to-f-observacao-wrap').style.display = 'none';
-    ['to-f-cpf-wrap','to-f-salario-wrap','to-f-jornada-wrap','to-f-empresa-wrap'].forEach(function(id){
+    ['to-f-cpf-wrap','to-f-salario-wrap','to-f-jornada-wrap','to-f-empresa-wrap','to-f-valorexame-wrap','to-f-valoruniforme-wrap','to-f-valortreinamento-wrap','to-f-custo-total-wrap'].forEach(function(id){
       document.getElementById(id).style.display = 'block';
     });
+    document.getElementById('to-f-custo-total-admissao').textContent = 'R$ 0,00';
     document.getElementById('to-f-alerta-inativo').style.display = 'none';
+  });
+
+  // Recalcula o Custo Total da Admissão em tempo real no formulário de TurnOver
+  ['to-f-valorexame','to-f-valoruniforme','to-f-valortreinamento'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', function(){
+      var soma = (parseFloat(document.getElementById('to-f-valorexame').value) || 0) +
+                 (parseFloat(document.getElementById('to-f-valoruniforme').value) || 0) +
+                 (parseFloat(document.getElementById('to-f-valortreinamento').value) || 0);
+      document.getElementById('to-f-custo-total-admissao').textContent = formatMoney(soma);
+    });
   });
 
   function setSyncIndicator(state, label){
