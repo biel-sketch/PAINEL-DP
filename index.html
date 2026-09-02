@@ -4485,6 +4485,16 @@
 
     if(cloud) appState = cloud;
     else appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [] };
+    // Garante que todos os campos essenciais existam como array, mesmo que o
+    // Firebase esteja com alguma chave ausente (ex: dados salvos antes de uma
+    // funcionalidade ter sido criada) — evita "Cannot read properties of undefined".
+    if(!appState.ativos) appState.ativos = [];
+    if(!appState.inativos) appState.inativos = [];
+    if(!appState.absenteismo) appState.absenteismo = [];
+    if(!appState.turnover) appState.turnover = [];
+    if(!appState.ferias) appState.ferias = [];
+    if(!appState.ocorrencias) appState.ocorrencias = [];
+    if(!appState.cat) appState.cat = [];
     if(!appState.desligamentosAndamento) appState.desligamentosAndamento = [];
 
     var needsSeed = !appState.ativos || appState.ativos.length === 0;
