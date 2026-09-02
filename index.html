@@ -681,10 +681,12 @@
         <div class="stat-card">
           <div class="stat-label">Admissões no Mês</div>
           <div class="stat-value teal" id="to-admissoes-mes">0</div>
+          <div class="stat-sub" id="to-custo-admissao-mes">Custo: R$ 0,00</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Demissões no Mês</div>
           <div class="stat-value red" id="to-demissoes-mes">0</div>
+          <div class="stat-sub" id="to-custo-rescisao-mes">Custo: R$ 0,00</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Custo Total no Mês</div>
@@ -1024,6 +1026,7 @@
               <option value="SEG-SEX">SEG-SEX</option>
               <option value="SEG-SAB">SEG-SAB</option>
               <option value="12X36">12X36</option>
+              <option value="SAB/DOM/FER">SAB/DOM/FER</option>
             </select>
           </div>
           <div class="modal-field"><label>Empresa</label>
@@ -2998,11 +3001,8 @@
   // ABSENTEÍSMO
   // ============================================================
   function calcCustoEvento(evento, mes){
-    var ref = getHeadcountRef(mes);
-    var horasMensais = ref.diasUteis * ref.horasDia;
-    if(!evento.salario || !horasMensais) return 0;
-    var valorHora = evento.salario / horasMensais;
-    var custo = valorHora * (Number(evento.horasPerdidas) || 0);
+    if(!evento.salario) return 0;
+    var custo = (evento.salario / 30) * (Number(evento.diasPerdidos) || 0);
     if(evento.reposicao === 'Sim') custo = custo * 2; // custo dobra: paga o afastado + quem repôs
     return Math.round(custo * 100) / 100;
   }
@@ -3280,16 +3280,18 @@
     var max = Math.max.apply(null, items.map(function(i){ return i.value; }).concat([0.0001]));
     var bars = items.map(function(it){
       var pct = Math.max((it.value / max) * 100, 2);
-      return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;min-width:34px;height:'+height+'px;">' +
+      return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;min-width:38px;height:'+height+'px;">' +
         '<div style="font-size:10.5px;font-family:var(--font-mono);color:var(--text);margin-bottom:5px;white-space:nowrap;">'+it.displayValue+'</div>' +
         '<div style="width:60%;background:'+color+';border-radius:4px 4px 0 0;height:'+pct+'%;min-height:2px;"></div>' +
       '</div>';
     }).join('');
     var labels = items.map(function(it){
-      return '<div style="flex:1;min-width:34px;font-size:9.5px;color:var(--text-dim);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px;transform:rotate(-40deg);transform-origin:top center;margin-top:14px;">'+it.label+'</div>';
+      return '<div style="flex:1;min-width:38px;display:flex;justify-content:center;">' +
+        '<div style="font-size:9.5px;color:var(--text-dim);white-space:nowrap;transform:rotate(-60deg);transform-origin:top right;">'+it.label+'</div>' +
+      '</div>';
     }).join('');
     var html = '<div style="display:flex;align-items:flex-end;gap:4px;">'+bars+'</div>' +
-                '<div style="display:flex;gap:4px;margin-top:2px;padding-bottom:34px;">'+labels+'</div>';
+                '<div style="display:flex;gap:4px;margin-top:10px;padding-bottom:130px;">'+labels+'</div>';
     document.getElementById(containerId).innerHTML = items.length ? html : '<div class="empty-state" style="padding:20px;">Sem dados suficientes.</div>';
   }
 
@@ -3440,9 +3442,12 @@
   // ---- Ranking: Colaboradores com maiores ausências (top 30) ----
   function computeTopColaboradoresAusencias(periodo){
     var eventos = eventosDoPeriodo(periodo);
+    var ativosSet = {};
+    appState.ativos.forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
     var porPessoa = {};
     eventos.forEach(function(e){
       var key = normNome(e.nome);
+      if(!ativosSet[key]) return; // só considera quem está ativo hoje
       if(!porPessoa[key]) porPessoa[key] = { nome:e.nome, posto:e.posto, cargo:e.cargo, count:0 };
       porPessoa[key].count++;
       porPessoa[key].posto = e.posto;
@@ -3576,9 +3581,9 @@
   // JORNADA -> HORAS PREVISTAS/DIA (regra fixa da empresa)
   // ============================================================
   var JORNADA_HORAS = {
-    'SEG-SEX': 7.2,
+    'SEG-SEX': 8.48,
     '12X36': 12,
-    'SEG-SAB': 8.48
+    'SEG-SAB': 7.20
   };
   function horasPorJornada(jornada){
     var j = (jornada || '').trim().toUpperCase();
@@ -3736,7 +3741,10 @@
     var headcount = supervisorFiltro ? computeHeadcountPorSupervisor(supervisorFiltro) : getHeadcountRef(mes).headcount;
     var pct = headcount > 0 ? ((admissoes + demissoes) / 2) / headcount : null;
     var custoTotal = eventosMes.reduce(function(s, e){ return s + (Number(e.custoTotal) || 0); }, 0);
-    return { mes: mes, headcount: headcount, admissoes: admissoes, demissoes: demissoes, pct: pct, meta: 0.06, custoTotal: custoTotal };
+    var custoAdmissaoTotal = eventosMes.reduce(function(s, e){ return s + (Number(e.custoAdmissao) || 0); }, 0);
+    var custoRescisaoTotal = eventosMes.reduce(function(s, e){ return s + (Number(e.custoRescisao) || 0); }, 0);
+    return { mes: mes, headcount: headcount, admissoes: admissoes, demissoes: demissoes, pct: pct, meta: 0.06,
+             custoTotal: custoTotal, custoAdmissaoTotal: custoAdmissaoTotal, custoRescisaoTotal: custoRescisaoTotal };
   }
 
   function renderToTrend(){
@@ -3753,7 +3761,7 @@
 
     var tbody = document.getElementById('to-trend-tbody');
     var mesesComDados = MESES_ORDEM.slice(0, MESES_ORDEM.indexOf(MES_ATUAL) + 1);
-    tbody.innerHTML = mesesComDados.map(function(mes){
+    var linhasMeses = mesesComDados.map(function(mes){
       var s = computeTurnoverMonthStats(mes, supervisorFiltro);
       var dentro = s.pct !== null && s.pct <= s.meta;
       var pillClass = s.pct === null ? '' : (dentro ? 'teal' : 'red');
@@ -3767,6 +3775,30 @@
         '<td>'+(s.pct === null ? '—' : (dentro ? '✅ Dentro da meta' : '⚠️ Acima da meta'))+'</td>' +
       '</tr>';
     }).join('');
+
+    // Linha de resumo do Ano — soma admissões/demissões dos meses e recalcula
+    // o % combinado (headcount médio dos meses, ou headcount do supervisor se filtrado)
+    var somaAdmissoes = 0, somaDemissoes = 0, somaHeadcount = 0;
+    mesesComDados.forEach(function(mes){
+      var s = computeTurnoverMonthStats(mes, supervisorFiltro);
+      somaAdmissoes += s.admissoes; somaDemissoes += s.demissoes; somaHeadcount += s.headcount;
+    });
+    var headcountMedioAno = mesesComDados.length ? Math.round(somaHeadcount / mesesComDados.length) : 0;
+    var pctAno = headcountMedioAno > 0 ? ((somaAdmissoes + somaDemissoes) / 2) / headcountMedioAno : null;
+    var metaAno = 0.06;
+    var dentroAno = pctAno !== null && pctAno <= metaAno;
+    var pillClassAno = pctAno === null ? '' : (dentroAno ? 'teal' : 'red');
+    var linhaAno = '<tr style="background:#0D1526;border-top:2px solid var(--line-strong);font-weight:600;">' +
+      '<td>Ano <span class="pill teal">total 2026</span></td>' +
+      '<td class="mono">'+headcountMedioAno+'</td>' +
+      '<td class="mono">'+somaAdmissoes+'</td>' +
+      '<td class="mono">'+somaDemissoes+'</td>' +
+      '<td class="mono"><span class="pill '+pillClassAno+'">'+pctFmt(pctAno)+'</span></td>' +
+      '<td class="mono">'+pctFmt(metaAno)+'</td>' +
+      '<td>'+(pctAno === null ? '—' : (dentroAno ? '✅ Dentro da meta' : '⚠️ Acima da meta'))+'</td>' +
+    '</tr>';
+
+    tbody.innerHTML = linhasMeses + linhaAno;
   }
 
   function populateToFilters(){
@@ -3800,15 +3832,18 @@
   function computeTurnoverPeriodStats(periodo){
     if(periodo === 'ANO'){
       var meses = getMesesDisponiveis();
-      var admissoes = 0, demissoes = 0, custoTotal = 0, somaHeadcount = 0;
+      var admissoes = 0, demissoes = 0, custoTotal = 0, custoAdmissaoTotal = 0, custoRescisaoTotal = 0, somaHeadcount = 0;
       meses.forEach(function(m){
         var s = computeTurnoverMonthStats(m);
         admissoes += s.admissoes; demissoes += s.demissoes; custoTotal += s.custoTotal;
+        custoAdmissaoTotal += s.custoAdmissaoTotal; custoRescisaoTotal += s.custoRescisaoTotal;
         somaHeadcount += s.headcount;
       });
       var headcountMedio = meses.length ? somaHeadcount / meses.length : 0;
       var pct = headcountMedio > 0 ? ((admissoes + demissoes) / 2) / headcountMedio : null;
-      return { admissoes:admissoes, demissoes:demissoes, custoTotal:custoTotal, pct:pct, meta:0.06, headcount:Math.round(headcountMedio) };
+      return { admissoes:admissoes, demissoes:demissoes, custoTotal:custoTotal,
+               custoAdmissaoTotal:custoAdmissaoTotal, custoRescisaoTotal:custoRescisaoTotal,
+               pct:pct, meta:0.06, headcount:Math.round(headcountMedio) };
     }
     return computeTurnoverMonthStats(periodo);
   }
@@ -3823,7 +3858,9 @@
     document.getElementById('to-pct-atual').className = 'stat-value ' + (s.pct !== null && s.pct > s.meta ? 'red' : 'teal');
     document.getElementById('to-status-atual').textContent = 'Meta: ' + pctFmt(s.meta) + (s.pct !== null ? (s.pct <= s.meta ? ' • dentro da meta' : ' • acima da meta') : '') + (periodo==='ANO' ? ' • média de headcount' : '');
     document.getElementById('to-admissoes-mes').textContent = s.admissoes;
+    document.getElementById('to-custo-admissao-mes').textContent = 'Custo: ' + formatMoney(s.custoAdmissaoTotal);
     document.getElementById('to-demissoes-mes').textContent = s.demissoes;
+    document.getElementById('to-custo-rescisao-mes').textContent = 'Custo: ' + formatMoney(s.custoRescisaoTotal);
     document.getElementById('to-custo-mes').textContent = formatMoney(s.custoTotal);
   }
 
