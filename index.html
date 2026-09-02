@@ -875,6 +875,10 @@
     <div class="view" id="view-ocorrencias">
       <div class="topbar"><div class="page-title">Ocorrências</div><div class="page-date"></div></div>
 
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+        <button class="btn" id="ocor-add-btn" style="background:var(--amber);color:#3a2c10;border:none;">⚠️ + Nova Advertência</button>
+      </div>
+
       <div class="stats" style="grid-template-columns:1fr 1fr;max-width:520px;margin-bottom:20px;">
         <div class="stat-card">
           <div class="stat-label">Advertências no Mês</div>
@@ -889,6 +893,17 @@
       <div class="panel" style="margin-bottom:20px;">
         <div class="panel-head"><span class="panel-title">Advertências por Posto</span></div>
         <div style="padding:20px 20px 8px;" id="chart-ocor-postos"></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-head"><span class="panel-title">Colaboradores Ativos com Mais Advertências <span style="color:var(--text-faint);font-weight:400;font-size:11px;">(top 30)</span></span></div>
+        <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+          <table>
+            <thead><tr><th>#</th><th>Colaborador</th><th>Posto</th><th>Advertências</th></tr></thead>
+            <tbody id="ocor-ranking-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="ocor-ranking-empty" style="display:none;padding:30px;">Nenhuma advertência registrada.</div>
+        </div>
       </div>
 
       <div class="panel">
@@ -1239,6 +1254,31 @@
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-ferias')">Cancelar</button>
           <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Nova Advertência (simplificado) -->
+  <div class="modal-overlay" id="modal-advertencia">
+    <div class="modal-box">
+      <div class="modal-title">⚠️ Nova Advertência</div>
+      <form id="form-advertencia">
+        <div class="modal-grid">
+          <div class="modal-field full">
+            <label>Nome do Colaborador</label>
+            <input type="text" id="adv-f-nome" list="adv-nome-datalist" autocomplete="off" placeholder="Comece a digitar o nome..." required>
+            <datalist id="adv-nome-datalist"></datalist>
+          </div>
+          <div class="modal-field"><label>Posto</label><input type="text" id="adv-f-posto" required></div>
+          <div class="modal-field"><label>Cargo</label><input type="text" id="adv-f-cargo" required></div>
+          <div class="modal-field"><label>Data da Advertência</label><input type="date" id="adv-f-data" required></div>
+          <div class="modal-field"><label>Supervisor</label><input type="text" id="adv-f-supervisor"></div>
+          <div class="modal-field full"><label>Motivo</label><textarea id="adv-f-motivo" rows="3" placeholder="Descreva o motivo da advertência..."></textarea></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-advertencia')">Cancelar</button>
+          <button type="submit" class="btn" style="background:var(--amber);color:#3a2c10;border:none;">Salvar Advertência</button>
         </div>
       </form>
     </div>
@@ -2396,8 +2436,106 @@
     arrPostos.sort(function(a,b){ return b.value - a.value; });
     renderHBarChart('chart-ocor-postos', arrPostos.slice(0, 10), {color:'var(--red)'});
 
+    renderRankingAdvertencias();
     aplicarFiltrosOcorrencias();
   }
+
+  function computeTopColaboradoresAdvertencias(){
+    var ativosSet = {};
+    appState.ativos.forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
+    var porPessoa = {};
+    getAdvertenciasDeFalta().forEach(function(e){
+      var key = normNome(e.nome);
+      if(!ativosSet[key]) return; // só considera quem está ativo hoje
+      if(!porPessoa[key]) porPessoa[key] = { nome:e.nome, posto:e.posto, count:0 };
+      porPessoa[key].count++;
+      porPessoa[key].posto = e.posto;
+    });
+    var arr = Object.keys(porPessoa).map(function(k){ return porPessoa[k]; });
+    arr.sort(function(a,b){ return b.count - a.count; });
+    return arr.slice(0, 30);
+  }
+
+  function renderRankingAdvertencias(){
+    var top = computeTopColaboradoresAdvertencias();
+    var tbody = document.getElementById('ocor-ranking-tbody');
+    var emptyEl = document.getElementById('ocor-ranking-empty');
+    if(top.length === 0){ tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = top.map(function(p, idx){
+      return '<tr data-nome="'+p.nome+'" class="row-clickable" title="Clique para ver o perfil">' +
+        '<td class="mono">'+(idx+1)+'</td>' +
+        '<td>'+p.nome+'</td>' +
+        '<td><span class="pill amber">'+(p.posto||'—')+'</span></td>' +
+        '<td class="mono"><span class="pill red">'+p.count+'</span></td>' +
+      '</tr>';
+    }).join('');
+    tbody.querySelectorAll('tr[data-nome]').forEach(function(tr){
+      tr.addEventListener('click', function(){
+        abrirPerfilAbsColaborador(tr.getAttribute('data-nome'), 'ANO');
+      });
+    });
+  }
+
+  function abrirModalAdvertencia(){
+    var nomeList = document.getElementById('adv-nome-datalist');
+    var nomes = Array.from(new Set(appState.ativos.map(function(a){ return a.nome; }))).sort();
+    nomeList.innerHTML = nomes.map(function(n){ return '<option value="'+n+'">'; }).join('');
+    document.getElementById('form-advertencia').reset();
+    openModal('modal-advertencia');
+  }
+
+  document.getElementById('ocor-add-btn').addEventListener('click', abrirModalAdvertencia);
+
+  document.getElementById('adv-f-nome').addEventListener('blur', function(){
+    var idx = findIndexByName(appState.ativos, this.value);
+    if(idx >= 0){
+      var pessoa = appState.ativos[idx];
+      document.getElementById('adv-f-posto').value = pessoa.posto || '';
+      document.getElementById('adv-f-cargo').value = pessoa.cargo || '';
+      if(!document.getElementById('adv-f-supervisor').value) {
+        document.getElementById('adv-f-supervisor').value = pessoa.supervisor || '';
+      }
+    }
+  });
+
+  document.getElementById('form-advertencia').addEventListener('submit', function(e){
+    e.preventDefault();
+    var nome = document.getElementById('adv-f-nome').value.trim();
+    var data = document.getElementById('adv-f-data').value;
+    var pessoa = appState.ativos.find(function(a){ return normNome(a.nome) === normNome(nome); });
+    var mesIdx = new Date(data + 'T00:00:00').getMonth();
+
+    var novo = {
+      id: 'ab' + Date.now(),
+      nome: nome,
+      posto: document.getElementById('adv-f-posto').value.trim(),
+      cargo: document.getElementById('adv-f-cargo').value.trim(),
+      inicio: data,
+      fim: data,
+      diasPerdidos: 0,
+      horasPerdidas: 0,
+      horasPrevistas: 0,
+      tipo: 'Falta',
+      motivo: document.getElementById('adv-f-motivo').value.trim(),
+      medico: null,
+      mes: MESES_ORDEM[mesIdx],
+      advertencia: true,
+      supervisor: document.getElementById('adv-f-supervisor').value.trim(),
+      sexo: pessoa ? pessoa.sexo : null,
+      salario: pessoa ? (pessoa.salario || 0) : 0,
+      admissaoColaborador: pessoa ? pessoa.admissao : null,
+      inss: false,
+      reposicao: 'Não'
+    };
+
+    appState.absenteismo.unshift(novo);
+    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar advertência:', err); });
+    refreshAbsenteismoView();
+    refreshOcorrenciasView();
+    closeModal('modal-advertencia');
+    this.reset();
+  });
 
   function aplicarFiltrosOcorrencias(){
     var search = document.getElementById('ocor-search').value.trim().toLowerCase();
@@ -3813,14 +3951,7 @@
     openModal('modal-abs');
   });
 
-  document.getElementById('abs-add-advertencia-btn').addEventListener('click', function(){
-    populateAbsDatalists();
-    document.getElementById('abs-f-reposicao').value = 'Não';
-    document.getElementById('abs-f-reposicao-aviso').style.display = 'none';
-    document.getElementById('abs-f-advertencia').checked = true; // já vem marcado — atalho pra advertência
-    document.getElementById('abs-f-tipo').value = 'Falta'; // advertência normalmente é dada em falta
-    openModal('modal-abs');
-  });
+  document.getElementById('abs-add-advertencia-btn').addEventListener('click', abrirModalAdvertencia);
 
   document.getElementById('abs-f-reposicao').addEventListener('change', function(){
     document.getElementById('abs-f-reposicao-aviso').style.display = this.value === 'Sim' ? 'block' : 'none';
