@@ -799,13 +799,13 @@
         </div>
 
         <div class="panel" style="margin-bottom:20px;">
-          <div class="panel-head"><span class="panel-title">Vencimentos Próximos <span style="color:var(--text-faint);font-weight:400;font-size:11px;">(próximos 30 dias)</span></span></div>
+          <div class="panel-head"><span class="panel-title">Vencimentos <span style="color:var(--text-faint);font-weight:400;font-size:11px;">(vencidas + próximos 30 dias)</span></span></div>
           <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>Posto</th><th>Vencimento</th><th>Dias Restantes</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>Posto</th><th>Admissão</th><th>Vencimento</th><th>Situação</th></tr></thead>
               <tbody id="ferias-vencendo-tbody"></tbody>
             </table>
-            <div class="empty-state" id="ferias-vencendo-empty" style="display:none;padding:30px;">Nenhum vencimento nos próximos 30 dias.</div>
+            <div class="empty-state" id="ferias-vencendo-empty" style="display:none;padding:30px;">Nenhum vencimento próximo ou pendente.</div>
           </div>
         </div>
 
@@ -1146,6 +1146,8 @@
             </div>
           </div>
         </div>
+        <label class="modal-check"><input type="checkbox" id="nat-estabilidade"> Colaborador em Estabilidade</label>
+        <div class="modal-field full" style="margin-top:8px;"><label>Observação</label><textarea id="nat-observacao" rows="2" placeholder="Motivo da estabilidade ou outras observações..."></textarea></div>
         <div class="modal-check" id="nat-alerta" style="display:none;color:var(--amber);"></div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-novo-ativo')">Cancelar</button>
@@ -1207,6 +1209,8 @@
             </div>
           </div>
         </div>
+        <label class="modal-check"><input type="checkbox" id="edt-estabilidade"> Colaborador em Estabilidade</label>
+        <div class="modal-field full" style="margin-top:8px;"><label>Observação</label><textarea id="edt-observacao" rows="2" placeholder="Motivo da estabilidade ou outras observações..."></textarea></div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-editar-ativo')">Cancelar</button>
           <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar Alterações</button>
@@ -1218,6 +1222,11 @@
       <div class="danger-zone">
         <div class="danger-title">Desligar Colaborador</div>
         <div class="danger-desc">Move o colaborador para Inativos e gera automaticamente o registro correspondente no TurnOver.</div>
+
+        <div id="danger-zone-bloqueado" style="display:none;color:var(--amber);font-size:12px;background:var(--amber-soft);padding:10px 14px;border-radius:8px;">
+          🔒 Este colaborador está marcado como <strong>em Estabilidade</strong> e não pode ser desligado. Desmarque a estabilidade acima (e salve) se isso não se aplicar mais.
+        </div>
+
         <button type="button" class="btn" id="btn-abrir-desligamento" style="border-color:var(--red);color:var(--red);">Desligar este colaborador</button>
 
         <div id="secao-desligamento" style="display:none;margin-top:14px;">
@@ -1724,8 +1733,10 @@
     emptyEl.style.display = 'none';
 
     tbody.innerHTML = list.map(function(c){
-      return '<tr data-id="'+c.id+'" class="row-clickable" title="Clique para editar">' +
-        '<td>'+c.nome+'</td>' +
+      var estiloEstabilidade = c.estabilidade ? ' style="background:rgba(242,184,75,0.16);"' : '';
+      var tituloLinha = c.estabilidade ? 'Colaborador em Estabilidade — clique para editar' : 'Clique para editar';
+      return '<tr data-id="'+c.id+'" class="row-clickable"'+estiloEstabilidade+' title="'+tituloLinha+'">' +
+        '<td>'+c.nome+(c.estabilidade ? ' <span class="pill amber">🔒 Estabilidade</span>' : '')+'</td>' +
         '<td>'+c.cargo+'</td>' +
         '<td><span class="pill teal">'+c.posto+'</span></td>' +
         '<td class="mono">'+(c.dataInicioPosto ? formatDateBR(c.dataInicioPosto) : '—')+'</td>' +
@@ -2322,8 +2333,13 @@
     document.getElementById('ferias-total-vencidas').textContent = vencidas.length;
     document.getElementById('ferias-total-vencendo').textContent = vencendoEm30.length;
 
-    // Tabela de vencimentos próximos (ordenada do mais urgente pro menos urgente)
-    var ordenadosPorVencer = vencendoEm30.slice().sort(function(a,b){ return a.feriasStatus.diasParaVencer - b.feriasStatus.diasParaVencer; });
+    // Tabela de vencimentos (vencidas + vencendo em 30 dias, do mais urgente pro menos urgente)
+    var relevantesVencimento = filtrados.filter(function(a){
+      return a.feriasStatus.vencida || a.feriasStatus.diasParaVencer <= 30;
+    });
+    var ordenadosPorVencer = relevantesVencimento.slice().sort(function(a,b){
+      return a.feriasStatus.diasParaVencer - b.feriasStatus.diasParaVencer;
+    });
     var tbodyVenc = document.getElementById('ferias-vencendo-tbody');
     var emptyVenc = document.getElementById('ferias-vencendo-empty');
     if(ordenadosPorVencer.length === 0){
@@ -2332,8 +2348,14 @@
       emptyVenc.style.display = 'none';
       tbodyVenc.innerHTML = ordenadosPorVencer.map(function(a){
         var dias = a.feriasStatus.diasParaVencer;
-        var cor = dias <= 7 ? 'red' : 'amber';
-        return '<tr><td>'+a.nome+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td class="mono">'+formatDateBR(a.feriasStatus.vencimento1)+'</td><td class="mono"><span class="pill '+cor+'">'+dias+' dias</span></td></tr>';
+        var situacao;
+        if(a.feriasStatus.vencida){
+          situacao = '<span class="pill red">Vencida há '+Math.abs(dias)+' dias</span>';
+        } else {
+          var cor = dias <= 7 ? 'red' : 'amber';
+          situacao = '<span class="pill '+cor+'">'+dias+' dias</span>';
+        }
+        return '<tr><td>'+a.nome+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td class="mono">'+formatDateBR(a.admissao)+'</td><td class="mono">'+formatDateBR(a.feriasStatus.vencimento1)+'</td><td class="mono">'+situacao+'</td></tr>';
       }).join('');
     }
 
@@ -3109,6 +3131,8 @@
       pessoa.contratoTipo = document.getElementById('nat-contrato-tipo').value;
       pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('nat-experiencia-duracao').value) : null;
       pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
+      pessoa.estabilidade = document.getElementById('nat-estabilidade').checked;
+      pessoa.observacao = document.getElementById('nat-observacao').value.trim() || null;
     }
 
     var mesIdx = new Date(admissao + 'T00:00:00').getMonth();
@@ -3189,10 +3213,21 @@
     document.getElementById('edt-contrato-tipo').value = pessoa.contratoTipo || 'INDETERMINADO';
     document.getElementById('edt-experiencia-duracao').value = pessoa.experienciaDuracaoDias || 45;
     document.getElementById('edt-experiencia-prorrogacao').value = pessoa.experienciaProrrogacaoDias || '';
+    document.getElementById('edt-estabilidade').checked = !!pessoa.estabilidade;
+    document.getElementById('edt-observacao').value = pessoa.observacao || '';
+    atualizarBloqueioEstabilidade();
     atualizarHintExperiencia('edt');
     resetSecaoDesligamento();
     openModal('modal-editar-ativo');
   }
+
+  function atualizarBloqueioEstabilidade(){
+    var emEstabilidade = document.getElementById('edt-estabilidade').checked;
+    document.getElementById('danger-zone-bloqueado').style.display = emEstabilidade ? 'block' : 'none';
+    document.getElementById('btn-abrir-desligamento').style.display = emEstabilidade ? 'none' : 'inline-flex';
+    if(emEstabilidade) document.getElementById('secao-desligamento').style.display = 'none';
+  }
+  document.getElementById('edt-estabilidade').addEventListener('change', atualizarBloqueioEstabilidade);
 
   document.getElementById('edt-contrato-tipo').addEventListener('change', function(){ atualizarHintExperiencia('edt'); });
   document.getElementById('edt-experiencia-duracao').addEventListener('input', function(){ atualizarHintExperiencia('edt'); });
@@ -3217,6 +3252,8 @@
     pessoa.temFilhos = document.getElementById('edt-filhos').value || null;
     pessoa.sexo = document.getElementById('edt-sexo').value || null;
     pessoa.supervisor = document.getElementById('edt-supervisor-atual').value.trim() || null;
+    pessoa.estabilidade = document.getElementById('edt-estabilidade').checked;
+    pessoa.observacao = document.getElementById('edt-observacao').value.trim() || null;
     pessoa.contratoTipo = document.getElementById('edt-contrato-tipo').value;
     pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('edt-experiencia-duracao').value) : null;
     pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
@@ -3238,6 +3275,10 @@
     var id = document.getElementById('edt-id').value;
     var pessoa = appState.ativos.find(function(a){ return a.id === id; });
     if(!pessoa) return;
+    if(pessoa.estabilidade){
+      alert('Este colaborador está marcado como em Estabilidade e não pode ser desligado. Desmarque a estabilidade primeiro, se aplicável.');
+      return;
+    }
     var dataDesligamento = document.getElementById('edt-data-desligamento').value;
     if(!dataDesligamento){
       alert('Informe a data de desligamento.');
