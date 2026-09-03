@@ -289,9 +289,13 @@
           <div class="stat-label">Folha Salarial</div>
           <div class="stat-value" id="ativos-folha">R$ 0,00</div>
         </div>
-        <div class="stat-card" style="border-color:var(--red-soft);">
+        <div class="stat-card row-clickable" id="card-ativos-experiencias-vencendo" style="border-color:var(--red-soft);" title="Clique para ver a lista">
           <div class="stat-label">Experiências Vencendo (≤ 15 dias)</div>
           <div class="stat-value red" id="ativos-experiencias-vencendo">0</div>
+        </div>
+        <div class="stat-card row-clickable" id="card-ativos-estabilidade" style="border-color:var(--amber-soft);" title="Clique para ver a lista">
+          <div class="stat-label">Em Estabilidade</div>
+          <div class="stat-value amber" id="ativos-estabilidade">0</div>
         </div>
       </div>
 
@@ -930,12 +934,76 @@
     </div>
 
     <div class="view" id="view-cat">
-      <div class="topbar"><div class="page-title">Cat</div><div class="page-date"></div></div>
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">Comunicações de Acidente de Trabalho</span></div>
-        <div class="empty-state">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          <div>Nenhum dado cadastrado ainda.</div>
+      <div class="topbar"><div class="page-title">Cat <span style="font-size:11px;color:var(--text-faint);font-weight:400;">— Comunicação de Acidente de Trabalho</span></div><div class="page-date"></div></div>
+
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button class="btn" id="cat-tab-painel" style="background:var(--teal);color:#052622;border:none;">Painel</button>
+        <button class="btn btn-ghost" id="cat-tab-analitico">Analítico</button>
+      </div>
+
+      <!-- ===== SUBVIEW: PAINEL ===== -->
+      <div id="cat-subview-painel">
+        <div class="panel" style="margin-bottom:20px;">
+          <div class="panel-head" style="flex-wrap:wrap;gap:12px;">
+            <span class="panel-title">Filtros</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="cat-filtro-mes" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os meses</option></select>
+              <select id="cat-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os postos</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats" style="grid-template-columns:1fr 1fr;max-width:520px;margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-label">CAT no Mês</div>
+            <div class="stat-value red" id="cat-total-mes">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">CAT no Ano</div>
+            <div class="stat-value amber" id="cat-total-ano">0</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:20px;">
+          <div class="panel-head"><span class="panel-title">CAT por Posto</span></div>
+          <div style="padding:20px 20px 8px;" id="chart-cat-postos"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Registros de CAT</span></div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo/CID</th><th>Dias Perdidos</th><th>Supervisor</th></tr></thead>
+              <tbody id="cat-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="cat-empty" style="display:none;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <div>Nenhuma CAT registrada. Ela é lançada automaticamente ao marcar "Foi aberto CAT?" = Sim no lançamento de Absenteísmo.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUBVIEW: ANALÍTICO ===== -->
+      <div id="cat-subview-analitico" style="display:none;">
+        <div class="panel" style="margin-bottom:20px;">
+          <div class="panel-head" style="flex-wrap:wrap;gap:12px;">
+            <span class="panel-title">Filtros</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <input type="text" id="cat-an-search" placeholder="Buscar por nome..." style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;min-width:180px;">
+              <select id="cat-an-filtro-mes" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os meses</option></select>
+              <select id="cat-an-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os postos</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Início</th><th>Fim</th><th>Dias Perdidos</th><th>Motivo/CID</th><th>Médico</th><th>Supervisor</th></tr></thead>
+              <tbody id="cat-an-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="cat-an-empty" style="display:none;">Nenhum registro encontrado com esse filtro.</div>
         </div>
       </div>
     </div>
@@ -1076,6 +1144,40 @@
   </div>
 
   <!-- MODAL: Novo Colaborador (Ativo) -->
+  <!-- MODAL: Lista de Colaboradores em Estabilidade -->
+  <!-- MODAL: Lista de Experiências Vencendo -->
+  <div class="modal-overlay" id="modal-lista-experiencia">
+    <div class="modal-box" style="max-width:640px;">
+      <div class="modal-title">⏳ Experiências Vencendo (≤ 15 dias)</div>
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+        <table>
+          <thead><tr><th>Colaborador</th><th>Cargo</th><th>Posto</th><th>Etapa</th><th>Vencimento</th></tr></thead>
+          <tbody id="lista-experiencia-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="lista-experiencia-empty" style="display:none;padding:30px;">Nenhuma experiência vencendo nos próximos 15 dias.</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modal-lista-experiencia')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-lista-estabilidade">
+    <div class="modal-box" style="max-width:640px;">
+      <div class="modal-title">🔒 Colaboradores em Estabilidade</div>
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+        <table>
+          <thead><tr><th>Colaborador</th><th>Cargo</th><th>Posto</th><th>Observação</th></tr></thead>
+          <tbody id="lista-estabilidade-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="lista-estabilidade-empty" style="display:none;padding:30px;">Nenhum colaborador em estabilidade no momento.</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modal-lista-estabilidade')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-novo-ativo">
     <div class="modal-box" style="max-width:620px;">
       <div class="modal-title">Novo Colaborador</div>
@@ -1340,6 +1442,12 @@
               <option value="Sim">Sim</option>
             </select>
           </div>
+          <div class="modal-field"><label>Foi aberto CAT?</label>
+            <select id="abs-f-cat">
+              <option value="Não">Não</option>
+              <option value="Sim">Sim</option>
+            </select>
+          </div>
         </div>
         <label class="modal-check"><input type="checkbox" id="abs-f-advertencia"> Gerou advertência</label>
         <label class="modal-check"><input type="checkbox" id="abs-f-inss"> Encaminhado ao INSS</label>
@@ -1598,6 +1706,10 @@
         var btnExpPainel = document.getElementById('exp-tab-painel');
         if(btnExpPainel) btnExpPainel.click();
       }
+      if(view === 'cat'){
+        var btnCatPainel = document.getElementById('cat-tab-painel');
+        if(btnCatPainel) btnCatPainel.click();
+      }
     });
   });
 
@@ -1686,6 +1798,9 @@
       return info && !info.vencida && info.diasRestantes <= 15;
     }).length;
     document.getElementById('ativos-experiencias-vencendo').textContent = vencendo;
+
+    var emEstabilidade = list.filter(function(c){ return c.estabilidade; }).length;
+    document.getElementById('ativos-estabilidade').textContent = emEstabilidade;
   }
 
   // Converte automaticamente para Indeterminado (Efetivo) quem passou do prazo de
@@ -2451,6 +2566,120 @@
     postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
   }
 
+  // ============================================================
+  // CAT — Comunicação de Acidente de Trabalho
+  // ============================================================
+  function getEventosCAT(){
+    return appState.absenteismo.filter(function(e){ return e.cat === 'Sim'; });
+  }
+
+  function populateCatFiltros(){
+    var todas = getEventosCAT();
+    ['cat-filtro-mes','cat-an-filtro-mes'].forEach(function(id){
+      var sel = document.getElementById(id);
+      var meses = Array.from(new Set(todas.map(function(e){ return e.mes; })));
+      meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
+      sel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+    });
+    ['cat-filtro-posto','cat-an-filtro-posto'].forEach(function(id){
+      var sel = document.getElementById(id);
+      var postos = Array.from(new Set(todas.map(function(e){ return e.posto; }).filter(Boolean))).sort();
+      sel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+    });
+  }
+
+  function refreshCatView(){
+    populateCatFiltros();
+    var todas = getEventosCAT();
+
+    document.getElementById('cat-total-mes').textContent = todas.filter(function(e){ return e.mes === MES_ATUAL; }).length;
+    document.getElementById('cat-total-ano').textContent = todas.length;
+
+    var porPosto = {};
+    todas.forEach(function(e){ porPosto[e.posto] = (porPosto[e.posto] || 0) + 1; });
+    var arrPostos = Object.keys(porPosto).map(function(p){ return {label:p, value:porPosto[p], displayValue:String(porPosto[p])}; });
+    arrPostos.sort(function(a,b){ return b.value - a.value; });
+    renderHBarChart('chart-cat-postos', arrPostos.slice(0, 10), {color:'var(--red)'});
+
+    aplicarFiltrosCatPainel();
+    aplicarFiltrosCatAnalitico();
+  }
+
+  function aplicarFiltrosCatPainel(){
+    var mes = document.getElementById('cat-filtro-mes').value;
+    var posto = document.getElementById('cat-filtro-posto').value;
+    var filtradas = getEventosCAT().filter(function(e){
+      return (!mes || e.mes === mes) && (!posto || e.posto === posto);
+    });
+    filtradas.sort(function(a,b){ return (b.inicio||'').localeCompare(a.inicio||''); });
+
+    var tbody = document.getElementById('cat-tbody');
+    var emptyEl = document.getElementById('cat-empty');
+    if(filtradas.length === 0){ tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = filtradas.map(function(e){
+      return '<tr>' +
+        '<td>'+e.nome+'</td>' +
+        '<td><span class="pill red">'+(e.posto||'—')+'</span></td>' +
+        '<td>'+(e.cargo||'—')+'</td>' +
+        '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
+        '<td>'+(e.motivo||'—')+'</td>' +
+        '<td class="mono">'+(e.diasPerdidos||0)+'</td>' +
+        '<td>'+(e.supervisor||'—')+'</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function aplicarFiltrosCatAnalitico(){
+    var search = document.getElementById('cat-an-search').value.trim().toLowerCase();
+    var mes = document.getElementById('cat-an-filtro-mes').value;
+    var posto = document.getElementById('cat-an-filtro-posto').value;
+    var filtradas = getEventosCAT().filter(function(e){
+      return (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
+             (!mes || e.mes === mes) && (!posto || e.posto === posto);
+    });
+    filtradas.sort(function(a,b){ return (b.inicio||'').localeCompare(a.inicio||''); });
+
+    var tbody = document.getElementById('cat-an-tbody');
+    var emptyEl = document.getElementById('cat-an-empty');
+    if(filtradas.length === 0){ tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = filtradas.map(function(e){
+      return '<tr>' +
+        '<td>'+e.nome+'</td>' +
+        '<td><span class="pill red">'+(e.posto||'—')+'</span></td>' +
+        '<td>'+(e.cargo||'—')+'</td>' +
+        '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
+        '<td class="mono">'+formatDateBR(e.fim)+'</td>' +
+        '<td class="mono">'+(e.diasPerdidos||0)+'</td>' +
+        '<td>'+(e.motivo||'—')+'</td>' +
+        '<td>'+(e.medico||'—')+'</td>' +
+        '<td>'+(e.supervisor||'—')+'</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('cat-filtro-mes').addEventListener('change', aplicarFiltrosCatPainel);
+  document.getElementById('cat-filtro-posto').addEventListener('change', aplicarFiltrosCatPainel);
+  document.getElementById('cat-an-search').addEventListener('input', aplicarFiltrosCatAnalitico);
+  document.getElementById('cat-an-filtro-mes').addEventListener('change', aplicarFiltrosCatAnalitico);
+  document.getElementById('cat-an-filtro-posto').addEventListener('change', aplicarFiltrosCatAnalitico);
+
+  document.getElementById('cat-tab-painel').addEventListener('click', function(){
+    document.getElementById('cat-subview-painel').style.display = 'block';
+    document.getElementById('cat-subview-analitico').style.display = 'none';
+    this.className = 'btn'; this.style.background = 'var(--teal)'; this.style.color = '#052622'; this.style.border = 'none';
+    var outro = document.getElementById('cat-tab-analitico');
+    outro.className = 'btn btn-ghost'; outro.style.background=''; outro.style.color=''; outro.style.border='';
+  });
+  document.getElementById('cat-tab-analitico').addEventListener('click', function(){
+    document.getElementById('cat-subview-painel').style.display = 'none';
+    document.getElementById('cat-subview-analitico').style.display = 'block';
+    this.className = 'btn'; this.style.background = 'var(--teal)'; this.style.color = '#052622'; this.style.border = 'none';
+    var outro = document.getElementById('cat-tab-painel');
+    outro.className = 'btn btn-ghost'; outro.style.background=''; outro.style.color=''; outro.style.border='';
+  });
+
   function refreshOcorrenciasView(){
     populateOcorrenciasFiltros();
     var todas = getAdvertenciasDeFalta();
@@ -2903,6 +3132,7 @@
         'Horas Perdidas': e.horasPerdidas,
         'Custo': calcCustoEvento(e, e.mes),
         'Teve Reposição': e.reposicao === 'Sim' ? 'Sim' : 'Não',
+        'Foi Aberto CAT': e.cat === 'Sim' ? 'Sim' : 'Não',
         'Tipo': e.tipo,
         'Motivo / CID': e.motivo,
         'Advertência': e.advertencia ? 'Sim' : 'Não',
@@ -3191,6 +3421,71 @@
     document.getElementById('edt-supervisor-desligamento').value = '';
     document.getElementById('edt-observacao-desligamento').value = '';
   }
+
+  function abrirListaExperienciaVencendo(){
+    var lista = appState.ativos.filter(function(a){
+      var info = computeExperienciaInfo(a);
+      return info && !info.vencida && info.diasRestantes <= 15;
+    }).map(function(a){ return { pessoa:a, info:computeExperienciaInfo(a) }; });
+    lista.sort(function(a,b){ return a.info.diasRestantes - b.info.diasRestantes; });
+
+    var tbody = document.getElementById('lista-experiencia-tbody');
+    var emptyEl = document.getElementById('lista-experiencia-empty');
+    if(lista.length === 0){
+      tbody.innerHTML = ''; emptyEl.style.display = 'block';
+    } else {
+      emptyEl.style.display = 'none';
+      tbody.innerHTML = lista.map(function(item){
+        var a = item.pessoa, info = item.info;
+        var etapaLabel = info.etapa === 1 ? '1ª Experiência' : '2ª Experiência';
+        var cor = info.diasRestantes <= 7 ? 'red' : 'amber';
+        return '<tr data-id="'+a.id+'" class="row-clickable" title="Clique para editar">' +
+          '<td>'+a.nome+'</td>' +
+          '<td>'+(a.cargo||'—')+'</td>' +
+          '<td><span class="pill teal">'+(a.posto||'—')+'</span></td>' +
+          '<td>'+etapaLabel+'</td>' +
+          '<td class="mono"><span class="pill '+cor+'">'+formatDateBR(info.vencimento)+' ('+info.diasRestantes+' dias)</span></td>' +
+        '</tr>';
+      }).join('');
+      tbody.querySelectorAll('tr[data-id]').forEach(function(tr){
+        tr.addEventListener('click', function(){
+          closeModal('modal-lista-experiencia');
+          abrirEdicaoAtivo(tr.getAttribute('data-id'));
+        });
+      });
+    }
+    openModal('modal-lista-experiencia');
+  }
+  document.getElementById('card-ativos-experiencias-vencendo').addEventListener('click', abrirListaExperienciaVencendo);
+
+  function abrirListaEstabilidade(){
+    var lista = appState.ativos.filter(function(a){ return a.estabilidade; });
+    lista.sort(function(a,b){ return a.nome.localeCompare(b.nome); });
+
+    var tbody = document.getElementById('lista-estabilidade-tbody');
+    var emptyEl = document.getElementById('lista-estabilidade-empty');
+    if(lista.length === 0){
+      tbody.innerHTML = ''; emptyEl.style.display = 'block';
+    } else {
+      emptyEl.style.display = 'none';
+      tbody.innerHTML = lista.map(function(a){
+        return '<tr data-id="'+a.id+'" class="row-clickable" title="Clique para editar">' +
+          '<td>'+a.nome+'</td>' +
+          '<td>'+(a.cargo||'—')+'</td>' +
+          '<td><span class="pill teal">'+(a.posto||'—')+'</span></td>' +
+          '<td>'+(a.observacao||'—')+'</td>' +
+        '</tr>';
+      }).join('');
+      tbody.querySelectorAll('tr[data-id]').forEach(function(tr){
+        tr.addEventListener('click', function(){
+          closeModal('modal-lista-estabilidade');
+          abrirEdicaoAtivo(tr.getAttribute('data-id'));
+        });
+      });
+    }
+    openModal('modal-lista-estabilidade');
+  }
+  document.getElementById('card-ativos-estabilidade').addEventListener('click', abrirListaEstabilidade);
 
   function abrirEdicaoAtivo(id){
     var pessoa = appState.ativos.find(function(a){ return a.id === id; });
@@ -4021,6 +4316,7 @@
     document.getElementById('abs-f-reposicao').value = 'Não';
     document.getElementById('abs-f-reposicao-aviso').style.display = 'none';
     document.getElementById('abs-f-advertencia').checked = false;
+    document.getElementById('abs-f-cat').value = 'Não';
     openModal('modal-abs');
   });
 
@@ -4072,7 +4368,8 @@
       salario: parseFloat(document.getElementById('abs-f-salario').value) || 0,
       admissaoColaborador: document.getElementById('abs-f-admissao').value || null,
       inss: document.getElementById('abs-f-inss').checked,
-      reposicao: document.getElementById('abs-f-reposicao').value
+      reposicao: document.getElementById('abs-f-reposicao').value,
+      cat: document.getElementById('abs-f-cat').value
     };
     appState.absenteismo.unshift(novo);
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar:', err); });
@@ -4627,6 +4924,7 @@
     executarComProtecao('Férias', refreshFeriasView);
     executarComProtecao('Desligamentos em Andamento', refreshDesligamentosView);
     executarComProtecao('Ocorrências', refreshOcorrenciasView);
+    executarComProtecao('Cat', refreshCatView);
     setSyncIndicator('ok', 'Sincronizado');
   }
 
