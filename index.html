@@ -1056,6 +1056,16 @@
         <button type="button" class="btn" id="btn-atualizar-base" style="border-color:var(--red);color:var(--red);">🔄 Atualizar Base de Dados (Setembro/2026)</button>
       </div>
 
+      <div class="danger-zone" style="margin-bottom:20px;border-color:var(--amber-soft);">
+        <div class="danger-title" style="color:var(--amber);">Corrigir só Absenteísmo e TurnOver</div>
+        <div class="danger-desc">
+          Substitui <strong>somente Absenteísmo e TurnOver</strong> pela versão corrigida das planilhas (853 registros de absenteísmo, 584 eventos de turnover) —
+          <strong>não mexe</strong> em Ativos, Inativos, Férias, Desligamentos em Andamento nem Clientes. Use essa opção se você já ajustou algo
+          manualmente nessas outras abas depois da última atualização e não quer perder esse trabalho.
+        </div>
+        <button type="button" class="btn" id="btn-corrigir-abs-to" style="border-color:var(--amber);color:var(--amber);">🔧 Corrigir Absenteísmo e TurnOver</button>
+      </div>
+
       <div class="stats" style="grid-template-columns:1fr 1fr 1fr;max-width:720px;margin-bottom:20px;">
         <div class="stat-card">
           <div class="stat-label">Total de Clientes</div>
@@ -2948,6 +2958,31 @@
     refreshOcorrenciasView();
     refreshCatView();
     refreshClientesView();
+  });
+
+  document.getElementById('btn-corrigir-abs-to').addEventListener('click', function(){
+    var msg = 'Isso vai substituir SOMENTE Absenteísmo e TurnOver pela versão corrigida das planilhas:\n\n' +
+      '• ' + IMPORT_ABSENTEISMO_2026_09.length + ' registros de absenteísmo\n' +
+      '• ' + IMPORT_TURNOVER_2026_09.length + ' eventos de turnover\n\n' +
+      'Ativos, Inativos, Férias, Desligamentos em Andamento e Clientes NÃO são afetados — ' +
+      'qualquer ajuste manual que você já fez nessas outras abas continua intacto.\n\n' +
+      'Os dados atuais de Absenteísmo e TurnOver serão perdidos e substituídos. Deseja continuar?';
+    if(!confirm(msg)) return;
+
+    appState.absenteismo = IMPORT_ABSENTEISMO_2026_09.map(function(e){ return Object.assign({}, e); });
+    appState.turnover = IMPORT_TURNOVER_2026_09.map(function(e){ return Object.assign({}, e); });
+
+    cloudPut(appState).then(function(){
+      alert('Absenteísmo e TurnOver corrigidos com sucesso!');
+    }).catch(function(err){
+      console.error('Erro ao corrigir Absenteísmo e TurnOver:', err);
+      alert('Ocorreu um erro ao salvar. Verifique sua conexão e tente novamente.');
+    });
+
+    refreshAbsenteismoView();
+    refreshTurnoverView();
+    refreshOcorrenciasView();
+    refreshCatView();
   });
 
   document.getElementById('cli-add-btn').addEventListener('click', function(){
