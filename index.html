@@ -1061,7 +1061,7 @@
         </div>
         <div style="overflow-x:auto;">
           <table>
-            <thead><tr><th>Cliente / Posto</th><th>Qtd Colaborador</th><th>Valor do Contrato</th></tr></thead>
+            <thead><tr><th>Cliente / Posto</th><th>Qtd Colaborador</th><th>Valor do Contrato</th><th>Ações</th></tr></thead>
             <tbody id="cli-tbody"></tbody>
           </table>
         </div>
@@ -2846,17 +2846,40 @@
     if(lista.length === 0){ tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
     emptyEl.style.display = 'none';
     tbody.innerHTML = lista.map(function(c){
-      return '<tr data-id="'+c.id+'" class="row-clickable" title="Clique para editar o valor do contrato">' +
+      return '<tr data-id="'+c.id+'">' +
         '<td>'+c.nome+'</td>' +
         '<td class="mono">'+c.hc+'</td>' +
         '<td class="mono">'+formatMoney(c.valorContrato||0)+'</td>' +
+        '<td style="display:flex;gap:6px;">' +
+          '<button type="button" class="btn btn-ghost" data-editar-cliente-id="'+c.id+'" style="padding:5px 10px;font-size:11.5px;">Editar</button>' +
+          '<button type="button" class="btn btn-ghost" data-apagar-cliente-id="'+c.id+'" style="padding:5px 10px;font-size:11.5px;border-color:var(--red);color:var(--red);">Apagar</button>' +
+        '</td>' +
       '</tr>';
     }).join('');
-    tbody.querySelectorAll('tr[data-id]').forEach(function(tr){
-      tr.addEventListener('click', function(){ abrirEdicaoCliente(tr.getAttribute('data-id')); });
+    tbody.querySelectorAll('[data-editar-cliente-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){ abrirEdicaoCliente(this.getAttribute('data-editar-cliente-id')); });
+    });
+    tbody.querySelectorAll('[data-apagar-cliente-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){ apagarCliente(this.getAttribute('data-apagar-cliente-id')); });
     });
   }
   document.getElementById('cli-search').addEventListener('input', aplicarFiltroClientes);
+
+  function apagarCliente(id){
+    var cliente = appState.clientes.find(function(c){ return c.id === id; });
+    if(!cliente) return;
+    var hc = getClientesComHC().find(function(c){ return c.id === id; }).hc;
+    if(hc > 0){
+      alert('Não é possível apagar "' + cliente.nome + '" — existem ' + hc + ' colaborador(es) ativo(s) nesse posto. Mova ou desligue esses colaboradores antes de apagar o cliente.');
+      return;
+    }
+    if(!confirm('Apagar o cliente "' + cliente.nome + '"? Essa ação não pode ser desfeita.')) return;
+    var idx = appState.clientes.findIndex(function(c){ return c.id === id; });
+    if(idx >= 0) appState.clientes.splice(idx, 1);
+    cloudPut(appState).catch(function(err){ console.error('Erro ao apagar cliente:', err); });
+    refreshClientesView();
+    populatePostoClienteSelects();
+  }
 
   function abrirEdicaoCliente(id){
     var cliente = appState.clientes.find(function(c){ return c.id === id; });
