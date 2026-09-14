@@ -510,7 +510,7 @@
         <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>Nome</th><th>Cargo</th><th>Posto</th><th>Admissão</th><th>Desligamento</th><th>Motivo</th><th>Contrato</th><th>Supervisor</th><th>Faltas</th><th>Advertências</th></tr>
+            <tr><th>Nome</th><th>CPF</th><th>Cargo</th><th>Posto</th><th>Admissão</th><th>Desligamento</th><th>Motivo</th><th>Contrato</th><th>Supervisor</th><th>Faltas</th><th>Advertências</th></tr>
           </thead>
           <tbody id="inativos-tbody"></tbody>
         </table>
@@ -678,7 +678,7 @@
         <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>Nome</th><th>Posto</th><th>Cargo</th><th>Início</th><th>Fim</th><th>Dias</th><th>Horas</th><th>Custo</th><th>Reposição</th><th>Tipo</th><th>Motivo/CID</th><th>Adv.</th><th>INSS</th><th>Supervisor</th></tr>
+            <tr><th>Nome</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Início</th><th>Fim</th><th>Dias</th><th>Horas</th><th>Custo</th><th>Reposição</th><th>Tipo</th><th>Motivo/CID</th><th>Adv.</th><th>INSS</th><th>Supervisor</th></tr>
           </thead>
           <tbody id="abs-tbody"></tbody>
         </table>
@@ -909,7 +909,7 @@
         <div class="panel">
           <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Vencimento 1º Período</th><th>Vencimento 2º Período</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Vencimento 1º Período</th><th>Vencimento 2º Período</th></tr></thead>
               <tbody id="ferias-analitico-tbody"></tbody>
             </table>
           </div>
@@ -963,7 +963,7 @@
         </div>
         <div style="overflow-x:auto;">
           <table>
-            <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo</th><th>Supervisor</th></tr></thead>
+            <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo</th><th>Supervisor</th></tr></thead>
             <tbody id="ocor-tbody"></tbody>
           </table>
         </div>
@@ -1014,7 +1014,7 @@
           <div class="panel-head"><span class="panel-title">Registros de CAT</span></div>
           <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo/CID</th><th>Dias Perdidos</th><th>Supervisor</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo/CID</th><th>Dias Perdidos</th><th>Supervisor</th></tr></thead>
               <tbody id="cat-tbody"></tbody>
             </table>
           </div>
@@ -1040,7 +1040,7 @@
         <div class="panel">
           <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>Posto</th><th>Cargo</th><th>Início</th><th>Fim</th><th>Dias Perdidos</th><th>Motivo/CID</th><th>Médico</th><th>Supervisor</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Início</th><th>Fim</th><th>Dias Perdidos</th><th>Motivo/CID</th><th>Médico</th><th>Supervisor</th></tr></thead>
               <tbody id="cat-an-tbody"></tbody>
             </table>
           </div>
@@ -1223,6 +1223,7 @@
       <div class="modal-grid" style="margin-bottom:16px;">
         <div><div style="font-size:11px;color:var(--text-dim);">Cargo</div><div id="perfil-cargo" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Posto</div><div id="perfil-posto" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">CPF</div><div id="perfil-cpf" class="mono" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Admissão</div><div id="perfil-admissao" class="mono" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Desligamento</div><div id="perfil-desligamento" class="mono" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Motivo da Saída</div><div id="perfil-motivo" style="font-size:13.5px;"></div></div>
@@ -1240,6 +1241,21 @@
         </div>
       </div>
 
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label style="font-size:12.5px;font-weight:600;">Rescisão Complementar</label>
+          <button type="button" class="btn btn-ghost" id="btn-add-rescisao-complementar" style="padding:5px 10px;font-size:11.5px;">+ Adicionar</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Valor</th><th>Data de Pagamento</th><th>Motivo</th><th></th></tr></thead>
+            <tbody id="perfil-rescisao-complementar-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="perfil-rescisao-complementar-empty" style="display:none;padding:16px;font-size:12px;">Nenhuma rescisão complementar lançada ainda.</div>
+        <div style="text-align:right;font-size:12px;color:var(--text-dim);margin-top:6px;">Total: <strong id="perfil-rescisao-complementar-total" class="mono" style="color:var(--amber);">R$ 0,00</strong></div>
+      </div>
+
       <div class="modal-field full">
         <label>Observação</label>
         <textarea id="perfil-observacao" rows="4" placeholder="Nenhuma observação registrada ainda. Escreva aqui o contexto do desligamento ou qualquer nota relevante sobre o perfil desta pessoa."></textarea>
@@ -1248,6 +1264,25 @@
         <button type="button" class="btn btn-ghost" onclick="closeModal('modal-perfil-inativo')">Fechar</button>
         <button type="button" class="btn" id="btn-salvar-observacao" style="background:var(--teal);color:#052622;border:none;">Salvar Observação</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Adicionar Rescisão Complementar -->
+  <div class="modal-overlay" id="modal-rescisao-complementar">
+    <div class="modal-box">
+      <div class="modal-title">Adicionar Rescisão Complementar</div>
+      <form id="form-rescisao-complementar">
+        <input type="hidden" id="rc-f-inativo-id">
+        <div class="modal-grid">
+          <div class="modal-field"><label>Valor (R$)</label><input type="number" step="0.01" id="rc-f-valor" required></div>
+          <div class="modal-field"><label>Data de Pagamento</label><input type="date" id="rc-f-data" required></div>
+          <div class="modal-field full"><label>Motivo da Complementar</label><textarea id="rc-f-motivo" rows="2"></textarea></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-rescisao-complementar')">Cancelar</button>
+          <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -2000,6 +2035,7 @@
   var MESES_ORDEM = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   var MES_ATUAL = MESES_ORDEM[new Date().getMonth()];
   function formatCPF(cpf){
+    if(!cpf) return '—';
     cpf = String(cpf).padStart(11, '0');
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   }
@@ -2446,18 +2482,32 @@
       nome: nome,
       cargo: dados.cargo || base.cargo || '',
       posto: dados.posto || base.posto || '',
+      cpf: base.cpf || null,
       admissao: base.admissao || dados.admissao || null,
       desligamento: dados.desligamento,
       motivoSaida: dados.motivoSaida || null,
       contrato: dados.contrato || null,
       supervisor: dados.supervisor || null,
       empresa: base.empresa || null,
-      observacao: dados.observacao || null
+      observacao: dados.observacao || null,
+      rescisaoComplementar: []
     };
     if(idxAtivo >= 0) appState.ativos.splice(idxAtivo, 1);
     var idxInativoExistente = findIndexByName(appState.inativos, nome);
     if(idxInativoExistente >= 0) appState.inativos.splice(idxInativoExistente, 1);
     appState.inativos.unshift(registroInativo);
+  }
+
+  // Busca o CPF de alguém a partir do cadastro (ativos primeiro, depois
+  // inativos) — usado para preencher CPF em relatórios que hoje não têm essa
+  // informação (Absenteísmo, Ocorrências, Cat, Férias).
+  function getCpfPorNome(nome){
+    var key = normNome(nome);
+    var ativo = appState.ativos.find(function(a){ return normNome(a.nome) === key; });
+    if(ativo && ativo.cpf) return ativo.cpf;
+    var inativo = appState.inativos.find(function(i){ return normNome(i.nome) === key; });
+    if(inativo && inativo.cpf) return inativo.cpf;
+    return null;
   }
 
   // Move uma pessoa de Ativos -> Desligamentos em Andamento (chamado quando se
@@ -2483,6 +2533,7 @@
       observacao: dados.observacao || null,
       sexo: base.sexo || null,
       turnoverId: dados.turnoverId || null, // vincula ao registro já criado no TurnOver
+      ativoOriginal: idxAtivo >= 0 ? Object.assign({}, base) : null, // cópia completa, usada se o desligamento for cancelado
       // Checklist de homologação
       uniformeDevolvido: null,
       valorUniforme: 0,
@@ -2536,6 +2587,38 @@
       motivoSaida: registro.motivoSaida, contrato: registro.contrato,
       supervisor: registro.supervisor, observacao: registro.observacao
     });
+    appState.desligamentosAndamento.splice(idx, 1);
+  }
+
+  // Cancela o desligamento: a pessoa volta pra Ativos exatamente como estava
+  // antes (usando o snapshot guardado), e o registro de Demissão criado no
+  // TurnOver é removido — como se o desligamento nunca tivesse acontecido.
+  function cancelarDesligamento(id){
+    var idx = appState.desligamentosAndamento.findIndex(function(d){ return d.id === id; });
+    if(idx < 0) return;
+    var registro = appState.desligamentosAndamento[idx];
+
+    if(registro.turnoverId){
+      var idxTO = appState.turnover.findIndex(function(t){ return t.id === registro.turnoverId; });
+      if(idxTO >= 0) appState.turnover.splice(idxTO, 1);
+    }
+
+    if(registro.ativoOriginal){
+      // remove qualquer duplicidade por nome antes de restaurar, por segurança
+      var idxDup = findIndexByName(appState.ativos, registro.nome);
+      if(idxDup >= 0) appState.ativos.splice(idxDup, 1);
+      appState.ativos.unshift(registro.ativoOriginal);
+    } else {
+      // fallback: não tínhamos o snapshot completo (registro antigo) — reconstrói
+      // com o que estava disponível, para não perder a pessoa por completo.
+      appState.ativos.unshift({
+        id: 'a' + Date.now(),
+        nome: registro.nome, cpf: registro.cpf, cargo: registro.cargo, posto: registro.posto,
+        admissao: registro.admissao, empresa: registro.empresa, sexo: registro.sexo,
+        salario: 0, jornada: '', contratoTipo: 'INDETERMINADO'
+      });
+    }
+
     appState.desligamentosAndamento.splice(idx, 1);
   }
 
@@ -2600,6 +2683,7 @@
       var contagem = contarFaltasEAdvertencias(c.nome);
       return '<tr data-id="'+c.id+'" class="row-clickable" title="Clique para ver o perfil">' +
         '<td>'+c.nome+'</td>' +
+        '<td class="mono">'+formatCPF(c.cpf || getCpfPorNome(c.nome))+'</td>' +
         '<td>'+(c.cargo||'—')+'</td>' +
         '<td><span class="pill red">'+(c.posto||'—')+'</span></td>' +
         '<td class="mono">'+formatDateBR(c.admissao)+'</td>' +
@@ -2624,6 +2708,7 @@
     document.getElementById('perfil-nome-titulo').textContent = c.nome;
     document.getElementById('perfil-cargo').textContent = c.cargo || '—';
     document.getElementById('perfil-posto').textContent = c.posto || '—';
+    document.getElementById('perfil-cpf').textContent = formatCPF(c.cpf || getCpfPorNome(c.nome));
     document.getElementById('perfil-admissao').textContent = formatDateBR(c.admissao);
     document.getElementById('perfil-desligamento').textContent = formatDateBR(c.desligamento);
     document.getElementById('perfil-motivo').textContent = motivoLabel[c.motivoSaida] || c.motivoSaida || '—';
@@ -2633,8 +2718,67 @@
     document.getElementById('perfil-advertencias').textContent = contagem.advertencias;
     document.getElementById('perfil-observacao').value = c.observacao || '';
     document.getElementById('perfil-observacao').setAttribute('data-id', c.id);
+    document.getElementById('btn-add-rescisao-complementar').setAttribute('data-inativo-id', c.id);
+    renderRescisaoComplementar(c);
     openModal('modal-perfil-inativo');
   }
+
+  function renderRescisaoComplementar(inativo){
+    var lista = inativo.rescisaoComplementar || [];
+    var tbody = document.getElementById('perfil-rescisao-complementar-tbody');
+    var emptyEl = document.getElementById('perfil-rescisao-complementar-empty');
+    if(lista.length === 0){
+      tbody.innerHTML = '';
+      emptyEl.style.display = 'block';
+    } else {
+      emptyEl.style.display = 'none';
+      var ordenada = lista.slice().sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+      tbody.innerHTML = ordenada.map(function(r){
+        return '<tr>' +
+          '<td class="mono">'+formatMoney(r.valor)+'</td>' +
+          '<td class="mono">'+formatDateBR(r.data)+'</td>' +
+          '<td>'+(r.motivo || '—')+'</td>' +
+          '<td><button type="button" class="btn btn-ghost" data-remover-rc-id="'+r.id+'" style="padding:3px 8px;font-size:11px;border-color:var(--red);color:var(--red);">Remover</button></td>' +
+        '</tr>';
+      }).join('');
+      tbody.querySelectorAll('[data-remover-rc-id]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if(!confirm('Remover esse lançamento de rescisão complementar?')) return;
+          var rcId = this.getAttribute('data-remover-rc-id');
+          inativo.rescisaoComplementar = (inativo.rescisaoComplementar || []).filter(function(r){ return r.id !== rcId; });
+          cloudPut(appState).catch(function(err){ console.error('Erro ao remover rescisão complementar:', err); });
+          renderRescisaoComplementar(inativo);
+        });
+      });
+    }
+    var total = lista.reduce(function(s,r){ return s + (Number(r.valor)||0); }, 0);
+    document.getElementById('perfil-rescisao-complementar-total').textContent = formatMoney(total);
+  }
+
+  document.getElementById('btn-add-rescisao-complementar').addEventListener('click', function(){
+    var inativoId = this.getAttribute('data-inativo-id');
+    document.getElementById('rc-f-inativo-id').value = inativoId;
+    document.getElementById('form-rescisao-complementar').reset();
+    openModal('modal-rescisao-complementar');
+  });
+
+  document.getElementById('form-rescisao-complementar').addEventListener('submit', function(e){
+    e.preventDefault();
+    var inativoId = document.getElementById('rc-f-inativo-id').value;
+    var inativo = appState.inativos.find(function(i){ return i.id === inativoId; });
+    if(!inativo) return;
+    if(!inativo.rescisaoComplementar) inativo.rescisaoComplementar = [];
+    inativo.rescisaoComplementar.push({
+      id: 'rc' + Date.now(),
+      valor: parseFloat(document.getElementById('rc-f-valor').value) || 0,
+      data: document.getElementById('rc-f-data').value,
+      motivo: document.getElementById('rc-f-motivo').value.trim()
+    });
+    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar rescisão complementar:', err); });
+    renderRescisaoComplementar(inativo);
+    closeModal('modal-rescisao-complementar');
+    this.reset();
+  });
 
   document.getElementById('btn-salvar-observacao').addEventListener('click', function(){
     var id = document.getElementById('perfil-observacao').getAttribute('data-id');
@@ -2815,6 +2959,7 @@
       var cor2 = venceu2 ? 'red' : 'teal';
       return '<tr>' +
         '<td>'+a.nome+'</td>' +
+        '<td class="mono">'+formatCPF(a.cpf)+'</td>' +
         '<td><span class="pill amber">'+(a.posto||'—')+'</span></td>' +
         '<td>'+(a.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(a.admissao)+'</td>' +
@@ -3102,6 +3247,7 @@
     tbody.innerHTML = filtradas.map(function(e){
       return '<tr>' +
         '<td>'+e.nome+'</td>' +
+        '<td class="mono">'+formatCPF(getCpfPorNome(e.nome))+'</td>' +
         '<td><span class="pill red">'+(e.posto||'—')+'</span></td>' +
         '<td>'+(e.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
@@ -3129,6 +3275,7 @@
     tbody.innerHTML = filtradas.map(function(e){
       return '<tr>' +
         '<td>'+e.nome+'</td>' +
+        '<td class="mono">'+formatCPF(getCpfPorNome(e.nome))+'</td>' +
         '<td><span class="pill red">'+(e.posto||'—')+'</span></td>' +
         '<td>'+(e.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
@@ -3377,6 +3524,7 @@
     tbody.innerHTML = filtradas.map(function(e){
       return '<tr>' +
         '<td>'+e.nome+'</td>' +
+        '<td class="mono">'+formatCPF(getCpfPorNome(e.nome))+'</td>' +
         '<td><span class="pill amber">'+(e.posto||'—')+'</span></td>' +
         '<td>'+(e.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
@@ -3440,8 +3588,10 @@
     if(registro.magnumStatus !== 'OK' && registro.magnumStatus !== 'NOK') pendencias.push('Status Magnum');
 
     if(!registro.financeiroData) pendencias.push('Data Financeiro');
-    if(!(Number(registro.valorTRCT) > 0)) pendencias.push('Valor TRCT');
-    if(!(Number(registro.valorFGTS) > 0)) pendencias.push('Valor FGTS');
+    // Valor TRCT/FGTS deixam de ser obrigatórios aqui — esses valores costumam
+    // ser apurados depois do desligamento, e forçar um número agora criaria um
+    // custo ilusório na tela. Eles são lançados depois, em Inativos, na
+    // Rescisão Complementar.
 
     if(!registro.homologacaoData) pendencias.push('Data Homologação');
     if(registro.homologacaoStatus !== 'OK' && registro.homologacaoStatus !== 'NOK') pendencias.push('Status Homologação');
@@ -3536,9 +3686,10 @@
 
         '<div class="desl-check-row">' +
           '<div><label>Data Financeiro</label><input type="date" data-field="financeiroData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.financeiroData||'')+'"></div>' +
-          '<div><label>Valor TRCT (R$)</label><input type="number" step="0.01" data-field="valorTRCT" data-id="'+registro.id+'" class="desl-input" value="'+(registro.valorTRCT||0)+'"></div>' +
-          '<div><label>Valor FGTS (R$)</label><input type="number" step="0.01" data-field="valorFGTS" data-id="'+registro.id+'" class="desl-input" value="'+(registro.valorFGTS||0)+'"></div>' +
+          '<div><label>Valor TRCT (R$) <span style="color:var(--text-faint);font-weight:400;">- opcional</span></label><input type="number" step="0.01" data-field="valorTRCT" data-id="'+registro.id+'" class="desl-input" value="'+(registro.valorTRCT||0)+'"></div>' +
+          '<div><label>Valor FGTS (R$) <span style="color:var(--text-faint);font-weight:400;">- opcional</span></label><input type="number" step="0.01" data-field="valorFGTS" data-id="'+registro.id+'" class="desl-input" value="'+(registro.valorFGTS||0)+'"></div>' +
         '</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 Se ainda não souber os valores finais de TRCT/FGTS, deixe em branco — eles são lançados depois, em Inativos → Rescisão Complementar.</div>' +
 
         '<div class="desl-check-row">' +
           '<div><label>Data Homologação</label><input type="date" data-field="homologacaoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.homologacaoData||'')+'"></div>' +
@@ -3574,7 +3725,10 @@
           '<div class="lbl">Valor Total</div>' +
           '<div class="desl-total-value" data-total-id="'+registro.id+'">'+formatMoney(valorTotal)+'</div>' +
         '</div>' +
-        '<button type="button" class="btn" data-concluir-id="'+registro.id+'" style="background:var(--teal);color:#052622;border:none;">Concluir</button>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button type="button" class="btn btn-ghost" data-cancelar-id="'+registro.id+'" style="border-color:var(--red);color:var(--red);">Cancelar Desligamento</button>' +
+          '<button type="button" class="btn" data-concluir-id="'+registro.id+'" style="background:var(--teal);color:#052622;border:none;">Concluir</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }
@@ -3702,6 +3856,24 @@
       });
     });
 
+    container.querySelectorAll('[data-cancelar-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var idAtual = this.getAttribute('data-cancelar-id');
+        var reg = appState.desligamentosAndamento.find(function(d){ return d.id === idAtual; });
+        if(!reg) return;
+
+        if(!confirm('Cancelar o desligamento de ' + reg.nome + '?\n\nEla voltará para Colaboradores Ativos exatamente como estava antes, ' +
+          'e o registro de Demissão criado no TurnOver será removido — como se o desligamento nunca tivesse acontecido.\n\nEssa ação não pode ser desfeita.')) return;
+
+        cancelarDesligamento(idAtual);
+        cloudPut(appState).catch(function(err){ console.error('Erro ao cancelar desligamento:', err); });
+        closeModal('modal-desligamento-checklist');
+        refreshDesligamentosView();
+        refreshAtivosView();
+        refreshTurnoverView();
+      });
+    });
+
     openModal('modal-desligamento-checklist');
   }
 
@@ -3784,6 +3956,7 @@
     return appState.absenteismo.map(function(e){
       return {
         'Nome': e.nome,
+        'CPF': formatCPF(getCpfPorNome(e.nome)),
         'Posto': e.posto,
         'Cargo': e.cargo,
         'Início do Afastamento': formatDateBR(e.inicio),
@@ -4550,6 +4723,7 @@
       var tipoPill = e.tipo === 'Falta' ? 'red' : 'teal';
       return '<tr>' +
         '<td>'+e.nome+'</td>' +
+        '<td class="mono">'+formatCPF(getCpfPorNome(e.nome))+'</td>' +
         '<td><span class="pill teal">'+e.posto+'</span></td>' +
         '<td>'+e.cargo+'</td>' +
         '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
