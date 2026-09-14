@@ -333,6 +333,7 @@
               <th>Nascimento</th>
               <th>Filhos</th>
               <th>Sexo</th>
+              <th>Status</th>
               <th>Contrato</th>
             </tr>
           </thead>
@@ -1434,6 +1435,15 @@
           <div class="modal-field"><label>Empresa</label>
             <select id="nat-empresa"><option value="LOGIN SERV">LOGIN SERV</option><option value="SOLUTIONS">SOLUTIONS</option></select>
           </div>
+          <div class="modal-field"><label>Status</label>
+            <select id="nat-status">
+              <option value="ATIVO">ATIVO</option>
+              <option value="ABANDONO">ABANDONO</option>
+              <option value="FERIAS">FERIAS</option>
+              <option value="INSS">INSS</option>
+              <option value="ATESTADO">ATESTADO</option>
+            </select>
+          </div>
           <div class="modal-field"><label>Data de Admissão</label><input type="date" id="nat-admissao" required></div>
           <div class="modal-field"><label>Início no Posto Atual</label><input type="date" id="nat-inicio-posto" placeholder="Se diferente da admissão"></div>
           <div class="modal-field"><label>Data de Nascimento</label><input type="date" id="nat-nascimento"></div>
@@ -1523,6 +1533,15 @@
           <div class="modal-field"><label>Jornada</label><input type="text" id="edt-jornada" placeholder="Ex: SEG-SEX"></div>
           <div class="modal-field"><label>Empresa</label>
             <select id="edt-empresa"><option value="LOGIN SERV">LOGIN SERV</option><option value="SOLUTIONS">SOLUTIONS</option></select>
+          </div>
+          <div class="modal-field"><label>Status</label>
+            <select id="edt-status">
+              <option value="ATIVO">ATIVO</option>
+              <option value="ABANDONO">ABANDONO</option>
+              <option value="FERIAS">FERIAS</option>
+              <option value="INSS">INSS</option>
+              <option value="ATESTADO">ATESTADO</option>
+            </select>
           </div>
           <div class="modal-field"><label>Data de Admissão</label><input type="date" id="edt-admissao"></div>
           <div class="modal-field"><label>Início no Posto Atual</label><input type="date" id="edt-inicio-posto" placeholder="Se diferente da admissão"></div>
@@ -2116,6 +2135,20 @@
     return mudou;
   }
 
+  // Garante que todo colaborador ativo tenha um Status definido — quem
+  // ainda não tinha esse campo (ex: dados importados de planilha antes
+  // dessa funcionalidade existir) recebe "ATIVO" como padrão.
+  function reconciliarStatusAtivos(){
+    var mudou = false;
+    appState.ativos.forEach(function(a){
+      if(!a.status){
+        a.status = 'ATIVO';
+        mudou = true;
+      }
+    });
+    return mudou;
+  }
+
   function renderContratoCell(pessoa){
     var tipo = pessoa.contratoTipo || 'INDETERMINADO';
 
@@ -2146,6 +2179,8 @@
     tbody.innerHTML = list.map(function(c){
       var estiloEstabilidade = c.estabilidade ? ' style="background:rgba(242,184,75,0.16);"' : '';
       var tituloLinha = c.estabilidade ? 'Colaborador em Estabilidade — clique para editar' : 'Clique para editar';
+      var statusAtual = c.status || 'ATIVO';
+      var corStatus = {ATIVO:'teal', ABANDONO:'red', FERIAS:'amber', INSS:'red', ATESTADO:'amber'}[statusAtual] || 'teal';
       return '<tr data-id="'+c.id+'" class="row-clickable"'+estiloEstabilidade+' title="'+tituloLinha+'">' +
         '<td>'+c.nome+(c.estabilidade ? ' <span class="pill amber">🔒 Estabilidade</span>' : '')+'</td>' +
         '<td>'+c.cargo+'</td>' +
@@ -2159,6 +2194,7 @@
         '<td class="mono">'+(c.dataNascimento ? formatDateBR(c.dataNascimento) : '—')+'</td>' +
         '<td>'+(c.temFilhos || '—')+'</td>' +
         '<td>'+(c.sexo || '—')+'</td>' +
+        '<td><span class="pill '+corStatus+'">'+statusAtual+'</span></td>' +
         '<td>'+renderContratoCell(c)+'</td>' +
       '</tr>';
     }).join('');
@@ -2188,6 +2224,7 @@
     var precisaSalvar = false;
     if(reconciliarExperienciasVencidas()) precisaSalvar = true;
     if(reconciliarNomeEmpresa()) precisaSalvar = true;
+    if(reconciliarStatusAtivos()) precisaSalvar = true;
     if(precisaSalvar){
       cloudPut(appState).catch(function(err){ console.error('Erro ao reconciliar dados de ativos:', err); });
     }
@@ -3945,6 +3982,7 @@
         'Data de Nascimento': a.dataNascimento ? formatDateBR(a.dataNascimento) : '',
         'Tem Filhos': a.temFilhos || '',
         'Sexo': a.sexo || '',
+        'Status': a.status || 'ATIVO',
         'Tipo de Contrato': tipoLabel[a.contratoTipo] || 'Indeterminado (Efetivo)',
         'Etapa da Experiência': info ? (info.etapa === 1 ? '1ª Experiência' : '2ª Experiência (Prorrogação)') : '',
         'Vencimento da Experiência': info ? formatDateBR(info.vencimento) : ''
@@ -4203,6 +4241,7 @@
       pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
       pessoa.estabilidade = document.getElementById('nat-estabilidade').checked;
       pessoa.observacao = document.getElementById('nat-observacao').value.trim() || null;
+      pessoa.status = document.getElementById('nat-status').value;
     }
 
     var mesIdx = new Date(admissao + 'T00:00:00').getMonth();
@@ -4373,6 +4412,7 @@
     document.getElementById('edt-experiencia-prorrogacao').value = pessoa.experienciaProrrogacaoDias || '';
     document.getElementById('edt-estabilidade').checked = !!pessoa.estabilidade;
     document.getElementById('edt-observacao').value = pessoa.observacao || '';
+    document.getElementById('edt-status').value = pessoa.status || 'ATIVO';
     atualizarBloqueioEstabilidade();
     atualizarHintExperiencia('edt');
     resetSecaoDesligamento();
@@ -4418,6 +4458,7 @@
     pessoa.supervisor = document.getElementById('edt-supervisor-atual').value.trim() || null;
     pessoa.estabilidade = document.getElementById('edt-estabilidade').checked;
     pessoa.observacao = document.getElementById('edt-observacao').value.trim() || null;
+    pessoa.status = document.getElementById('edt-status').value;
     pessoa.contratoTipo = document.getElementById('edt-contrato-tipo').value;
     pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('edt-experiencia-duracao').value) : null;
     pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
