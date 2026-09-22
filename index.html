@@ -1876,7 +1876,6 @@
     {user:'mariana', email:'mariana@loginserv.com.br', name:'Mariana', role:'administrador'},
     {user:'simone', email:'simone@loginserv.com.br', name:'Simone', role:'operacional'},
     {user:'elaine', email:'elaine@loginserv.com.br', name:'Elaine', role:'supervisor'},
-    {user:'caroline', email:'supervisora.caroline@loginserv.com.br', name:'Caroline', role:'dp'},
     {user:'mariah', email:'dp@loginserv.com.br', name:'Mariah', role:'dp'},
     {user:'larissa', email:'dp.1@loginserv.com.br', name:'Larissa', role:'dp'},
     {user:'marilia', email:'dp.3@loginserv.com.br', name:'Marilia', role:'dp'},
@@ -4507,6 +4506,7 @@
       nome: pessoa.nome, posto: pessoa.posto, cargo: pessoa.cargo, tipo: 'Demissão',
       admissao: pessoa.admissao || null, demissao: dataDesligamento,
       motivoSaida: motivoSaida, contrato: contrato,
+      desligadoNaExperiencia: pessoa.contratoTipo === 'EXPERIENCIA',
       custoAdmissao: 0, custoRescisao: 0, custoTotal: 0,
       mes: MESES_ORDEM[mesIdx], supervisor: supervisor, area: null, sexo: pessoa.sexo || null
     });
@@ -5394,15 +5394,20 @@
       '</tr>';
     }).join('');
 
-    // Linha de resumo do Ano — soma admissões/demissões dos meses e recalcula
-    // o % combinado (headcount médio dos meses, ou headcount do supervisor se filtrado)
+    // Linha de resumo do Ano — Admissões/Demissões continuam sendo a soma do
+    // ano (faz sentido como total), mas o % de TurnOver passa a ser a MÉDIA
+    // dos percentuais mensais — antes estava somando admissões+demissões do
+    // ano inteiro e dividindo pelo headcount médio, o que gerava um número
+    // sem sentido (ex: 136%) por não ser comparável aos % de cada mês.
     var somaAdmissoes = 0, somaDemissoes = 0, somaHeadcount = 0;
+    var somaPct = 0, countPctValidos = 0;
     mesesComDados.forEach(function(mes){
       var s = computeTurnoverMonthStats(mes, supervisorFiltro);
       somaAdmissoes += s.admissoes; somaDemissoes += s.demissoes; somaHeadcount += s.headcount;
+      if(s.pct !== null){ somaPct += s.pct; countPctValidos++; }
     });
     var headcountMedioAno = mesesComDados.length ? Math.round(somaHeadcount / mesesComDados.length) : 0;
-    var pctAno = headcountMedioAno > 0 ? ((somaAdmissoes + somaDemissoes) / 2) / headcountMedioAno : null;
+    var pctAno = countPctValidos > 0 ? (somaPct / countPctValidos) : null;
     var metaAno = 0.06;
     var dentroAno = pctAno !== null && pctAno <= metaAno;
     var pillClassAno = pctAno === null ? '' : (dentroAno ? 'teal' : 'red');
@@ -5737,6 +5742,13 @@
     }
     var custoRescisao = tipo === 'Demissão' ? (parseFloat(document.getElementById('to-f-custorescisao').value) || 0) : 0;
     var motivoSaida = tipo === 'Demissão' ? document.getElementById('to-f-motivosaida').value : null;
+    // Para demissão, descobre se a pessoa estava em contrato de experiência
+    // (usado no card "Desligamentos na Experiência") antes dela sair de Ativos.
+    var desligadoNaExperiencia = null;
+    if(tipo === 'Demissão'){
+      var pessoaAtual = appState.ativos.find(function(a){ return normNome(a.nome) === normNome(nome); });
+      desligadoNaExperiencia = pessoaAtual ? (pessoaAtual.contratoTipo === 'EXPERIENCIA') : false;
+    }
 
     var novo = {
       id: 'to' + Date.now(),
@@ -5745,6 +5757,7 @@
       demissao: tipo === 'Demissão' ? dataRef : null,
       motivoSaida: motivoSaida,
       contrato: contrato,
+      desligadoNaExperiencia: desligadoNaExperiencia,
       valorExame: valorExame, valorUniforme: valorUniforme, valorTreinamento: valorTreinamento,
       custoAdmissao: custoAdmissao, custoRescisao: custoRescisao,
       custoTotal: Math.round((custoAdmissao + custoRescisao) * 100) / 100,
