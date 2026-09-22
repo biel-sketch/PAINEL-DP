@@ -5487,12 +5487,19 @@
     document.getElementById('to-custo-mes').textContent = formatMoney(s.custoTotal);
 
     // % Desligamentos na Experiência (dentro do mesmo período selecionado, respeitando o filtro de Contrato)
+    // Regra: conta como "na experiência" quem foi desligado com até 90 dias de
+    // casa, calculado direto pelas datas de admissão/demissão — independe do
+    // campo de contrato (que pode estar como Indeterminado mesmo dentro do
+    // período de experiência).
     var demissoesPeriodo = getTurnoverBase().filter(function(e){
       if(e.tipo !== 'Demissão') return false;
       if(periodo === 'ANO') return true;
       return e.mes === periodo;
     });
-    var naExperiencia = demissoesPeriodo.filter(function(e){ return e.desligadoNaExperiencia === true; });
+    var naExperiencia = demissoesPeriodo.filter(function(e){
+      if(!e.admissao || !e.demissao) return false;
+      return diffDias(e.admissao, e.demissao) <= 90;
+    });
     var pctExperiencia = demissoesPeriodo.length > 0 ? (naExperiencia.length / demissoesPeriodo.length) : null;
     document.getElementById('to-pct-desligamento-experiencia').textContent = pctExperiencia !== null ? pctFmt(pctExperiencia) : '—';
     document.getElementById('to-desligamento-experiencia-sub').textContent = naExperiencia.length + ' de ' + demissoesPeriodo.length + ' demissões';
