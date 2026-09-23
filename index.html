@@ -1220,7 +1220,10 @@
 
   <div class="modal-overlay" id="modal-perfil-inativo">
     <div class="modal-box" style="max-width:600px;">
-      <div class="modal-title" id="perfil-nome-titulo">Perfil do Colaborador</div>
+      <div class="modal-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span id="perfil-nome-titulo">Perfil do Colaborador</span>
+        <button type="button" class="btn btn-ghost" id="btn-editar-inativo" style="padding:5px 12px;font-size:11.5px;">✏️ Editar</button>
+      </div>
       <div class="modal-grid" style="margin-bottom:16px;">
         <div><div style="font-size:11px;color:var(--text-dim);">Cargo</div><div id="perfil-cargo" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Posto</div><div id="perfil-posto" style="font-size:13.5px;"></div></div>
@@ -1239,6 +1242,24 @@
         <div class="stat-card">
           <div class="stat-label">Advertências</div>
           <div class="stat-value amber" id="perfil-advertencias">0</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12.5px;font-weight:600;">Rescisão Inicial <span style="color:var(--text-faint);font-weight:400;">(apurada no desligamento)</span></label>
+        <div class="stats" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px;">
+          <div class="stat-card">
+            <div class="stat-label">TRCT</div>
+            <div class="stat-value" style="font-size:18px;" id="perfil-valor-trct">R$ 0,00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">FGTS</div>
+            <div class="stat-value" style="font-size:18px;" id="perfil-valor-fgts">R$ 0,00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Uniforme</div>
+            <div class="stat-value" style="font-size:18px;" id="perfil-valor-uniforme">R$ 0,00</div>
+          </div>
         </div>
       </div>
 
@@ -1282,6 +1303,49 @@
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-rescisao-complementar')">Cancelar</button>
           <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Editar Colaborador Inativo -->
+  <div class="modal-overlay" id="modal-editar-inativo">
+    <div class="modal-box">
+      <div class="modal-title">Editar Colaborador Inativo</div>
+      <form id="form-editar-inativo">
+        <input type="hidden" id="edti-id">
+        <div class="modal-grid">
+          <div class="modal-field full"><label>Nome</label><input type="text" id="edti-nome" required></div>
+          <div class="modal-field"><label>Cargo</label><input type="text" id="edti-cargo"></div>
+          <div class="modal-field"><label>Posto</label><input type="text" id="edti-posto"></div>
+          <div class="modal-field"><label>CPF</label><input type="text" id="edti-cpf"></div>
+          <div class="modal-field"><label>Empresa</label>
+            <select id="edti-empresa"><option value="LOGIN SERV">LOGIN SERV</option><option value="SOLUTIONS">SOLUTIONS</option></select>
+          </div>
+          <div class="modal-field"><label>Jornada</label>
+            <select id="edti-jornada">
+              <option value="SEG-SEX">SEG-SEX</option>
+              <option value="SEG-SAB">SEG-SAB</option>
+              <option value="12X36">12X36</option>
+              <option value="SAB/DOM/FER">SAB/DOM/FER</option>
+            </select>
+          </div>
+          <div class="modal-field"><label>Data de Admissão</label><input type="date" id="edti-admissao"></div>
+          <div class="modal-field"><label>Data de Desligamento</label><input type="date" id="edti-desligamento"></div>
+          <div class="modal-field"><label>Motivo da Saída</label>
+            <select id="edti-motivo"><option value="COLABORADOR">Pedido do Colaborador</option><option value="EMPRESA">Pedido da Empresa</option><option value="ABANDONO">Abandono</option></select>
+          </div>
+          <div class="modal-field"><label>Contrato</label>
+            <select id="edti-contrato"><option value="INDETERMINADO">Indeterminado</option><option value="DETERMINADO">Determinado</option></select>
+          </div>
+          <div class="modal-field"><label>Supervisor</label><input type="text" id="edti-supervisor"></div>
+          <div class="modal-field"><label>Valor TRCT (R$)</label><input type="number" step="0.01" id="edti-trct"></div>
+          <div class="modal-field"><label>Valor FGTS (R$)</label><input type="number" step="0.01" id="edti-fgts"></div>
+          <div class="modal-field"><label>Valor Uniforme (R$)</label><input type="number" step="0.01" id="edti-uniforme"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-editar-inativo')">Cancelar</button>
+          <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar Alterações</button>
         </div>
       </form>
     </div>
@@ -2528,6 +2592,11 @@
       supervisor: dados.supervisor || null,
       empresa: base.empresa || null,
       observacao: dados.observacao || null,
+      // Valores apurados no checklist de Desligamentos em Andamento (rescisão inicial)
+      valorTRCT: Number(dados.valorTRCT) || 0,
+      valorFGTS: Number(dados.valorFGTS) || 0,
+      valorUniforme: Number(dados.valorUniforme) || 0,
+      uniformeDevolvido: dados.uniformeDevolvido || null,
       rescisaoComplementar: []
     };
     if(idxAtivo >= 0) appState.ativos.splice(idxAtivo, 1);
@@ -2623,7 +2692,9 @@
     moverParaInativos(registro.nome, {
       cargo: registro.cargo, posto: registro.posto, desligamento: registro.desligamento,
       motivoSaida: registro.motivoSaida, contrato: registro.contrato,
-      supervisor: registro.supervisor, observacao: registro.observacao
+      supervisor: registro.supervisor, observacao: registro.observacao,
+      valorTRCT: registro.valorTRCT, valorFGTS: registro.valorFGTS,
+      valorUniforme: registro.valorUniforme, uniformeDevolvido: registro.uniformeDevolvido
     });
     appState.desligamentosAndamento.splice(idx, 1);
   }
@@ -2751,15 +2822,68 @@
     document.getElementById('perfil-desligamento').textContent = formatDateBR(c.desligamento);
     document.getElementById('perfil-motivo').textContent = motivoLabel[c.motivoSaida] || c.motivoSaida || '—';
     document.getElementById('perfil-supervisor').textContent = c.supervisor || '—';
+    document.getElementById('perfil-valor-trct').textContent = formatMoney(c.valorTRCT || 0);
+    document.getElementById('perfil-valor-fgts').textContent = formatMoney(c.valorFGTS || 0);
+    document.getElementById('perfil-valor-uniforme').textContent = formatMoney(c.valorUniforme || 0);
     var contagem = contarFaltasEAdvertencias(c.nome);
     document.getElementById('perfil-faltas').textContent = contagem.faltas;
     document.getElementById('perfil-advertencias').textContent = contagem.advertencias;
     document.getElementById('perfil-observacao').value = c.observacao || '';
     document.getElementById('perfil-observacao').setAttribute('data-id', c.id);
     document.getElementById('btn-add-rescisao-complementar').setAttribute('data-inativo-id', c.id);
+    document.getElementById('btn-editar-inativo').setAttribute('data-inativo-id', c.id);
     renderRescisaoComplementar(c);
     openModal('modal-perfil-inativo');
   }
+
+  document.getElementById('btn-editar-inativo').addEventListener('click', function(){
+    var id = this.getAttribute('data-inativo-id');
+    var c = appState.inativos.find(function(i){ return i.id === id; });
+    if(!c) return;
+    document.getElementById('edti-id').value = c.id;
+    document.getElementById('edti-nome').value = c.nome || '';
+    document.getElementById('edti-cargo').value = c.cargo || '';
+    document.getElementById('edti-posto').value = c.posto || '';
+    document.getElementById('edti-cpf').value = c.cpf || '';
+    document.getElementById('edti-empresa').value = c.empresa || 'LOGIN SERV';
+    document.getElementById('edti-jornada').value = c.jornada || 'SEG-SEX';
+    document.getElementById('edti-admissao').value = c.admissao || '';
+    document.getElementById('edti-desligamento').value = c.desligamento || '';
+    document.getElementById('edti-motivo').value = c.motivoSaida || 'COLABORADOR';
+    document.getElementById('edti-contrato').value = c.contrato || 'INDETERMINADO';
+    document.getElementById('edti-supervisor').value = c.supervisor || '';
+    document.getElementById('edti-trct').value = c.valorTRCT || 0;
+    document.getElementById('edti-fgts').value = c.valorFGTS || 0;
+    document.getElementById('edti-uniforme').value = c.valorUniforme || 0;
+    closeModal('modal-perfil-inativo');
+    openModal('modal-editar-inativo');
+  });
+
+  document.getElementById('form-editar-inativo').addEventListener('submit', function(e){
+    e.preventDefault();
+    var id = document.getElementById('edti-id').value;
+    var idx = appState.inativos.findIndex(function(i){ return i.id === id; });
+    if(idx < 0) return;
+    var c = appState.inativos[idx];
+    c.nome = document.getElementById('edti-nome').value.trim();
+    c.cargo = document.getElementById('edti-cargo').value.trim();
+    c.posto = document.getElementById('edti-posto').value.trim();
+    c.cpf = document.getElementById('edti-cpf').value.trim();
+    c.empresa = document.getElementById('edti-empresa').value;
+    c.jornada = document.getElementById('edti-jornada').value;
+    c.admissao = document.getElementById('edti-admissao').value || null;
+    c.desligamento = document.getElementById('edti-desligamento').value || null;
+    c.motivoSaida = document.getElementById('edti-motivo').value;
+    c.contrato = document.getElementById('edti-contrato').value;
+    c.supervisor = document.getElementById('edti-supervisor').value.trim();
+    c.valorTRCT = parseFloat(document.getElementById('edti-trct').value) || 0;
+    c.valorFGTS = parseFloat(document.getElementById('edti-fgts').value) || 0;
+    c.valorUniforme = parseFloat(document.getElementById('edti-uniforme').value) || 0;
+
+    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar edição de inativo:', err); });
+    closeModal('modal-editar-inativo');
+    refreshInativosView();
+  });
 
   function renderRescisaoComplementar(inativo){
     var lista = inativo.rescisaoComplementar || [];
