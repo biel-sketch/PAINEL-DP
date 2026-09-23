@@ -2520,6 +2520,7 @@
       cargo: dados.cargo || base.cargo || '',
       posto: dados.posto || base.posto || '',
       cpf: base.cpf || null,
+      jornada: base.jornada || null,
       admissao: base.admissao || dados.admissao || null,
       desligamento: dados.desligamento,
       motivoSaida: dados.motivoSaida || null,
@@ -4532,6 +4533,60 @@
     return { mes: mes, headcount: appState.ativos.length, diasUteis: 22, horasDia: 8, admissoes: 0, demissoes: 0 };
   }
 
+  // Conta dias úteis (segunda a sexta) de um mês de 2026.
+  function computeDiasUteisMes(mesNome){
+    var mesIdx = MESES_ORDEM.indexOf(mesNome);
+    if(mesIdx < 0) return 22;
+    var ano = 2026;
+    var d = new Date(ano, mesIdx, 1);
+    var count = 0;
+    while(d.getMonth() === mesIdx){
+      var dow = d.getDay(); // 0=domingo, 6=sábado
+      if(dow >= 1 && dow <= 5) count++;
+      d.setDate(d.getDate() + 1);
+    }
+    return count;
+  }
+
+  // Horas Previstas do mês, calculadas de verdade: soma a jornada real de
+  // cada colaborador ativo (SEG-SEX=8,48h, SEG-SAB=7,20h, 12X36=12h etc.) —
+  // em vez de um headcount × horas/dia genérico da empresa toda.
+  // Quem foi desligado DENTRO do mês tem as horas "travadas": só conta os
+  // dias úteis até a data de desligamento, não o mês inteiro.
+  function computeHorasPrevistasAtivosMes(mesNome, supervisorFiltro){
+    var mesIdx = MESES_ORDEM.indexOf(mesNome);
+    if(mesIdx < 0) return 0;
+    var ano = 2026;
+    var totalHoras = 0;
+
+    appState.ativos.forEach(function(a){
+      if(supervisorFiltro && (a.supervisor||'').trim() !== supervisorFiltro) return;
+      var horasDia = horasPorJornada(a.jornada);
+      if(horasDia === null) horasDia = 7.2; // fallback se a jornada não for reconhecida
+      totalHoras += horasDia * computeDiasUteisMes(mesNome);
+    });
+
+    appState.inativos.forEach(function(i){
+      if(supervisorFiltro && (i.supervisor||'').trim() !== supervisorFiltro) return;
+      if(!i.desligamento) return;
+      var dtDeslig = new Date(i.desligamento + 'T00:00:00');
+      if(dtDeslig.getFullYear() !== ano || dtDeslig.getMonth() !== mesIdx) return; // só quem saiu NESTE mês
+      var horasDia = horasPorJornada(i.jornada);
+      if(horasDia === null) horasDia = 7.2;
+      // dias úteis do início do mês até a data de desligamento (travando as horas dela ali)
+      var diasUteisAteSaida = 0;
+      var d = new Date(ano, mesIdx, 1);
+      while(d <= dtDeslig){
+        var dow = d.getDay();
+        if(dow >= 1 && dow <= 5) diasUteisAteSaida++;
+        d.setDate(d.getDate() + 1);
+      }
+      totalHoras += horasDia * diasUteisAteSaida;
+    });
+
+    return totalHoras;
+  }
+
   // ============================================================
   // ABSENTEÍSMO
   // ============================================================
@@ -4560,13 +4615,19 @@
       return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro);
     });
     var horasTotais;
-    if(supervisorFiltro){
-      var ref = getHeadcountRef(mes);
-      var headcountSupervisor = computeHeadcountPorSupervisor(supervisorFiltro);
-      horasTotais = headcountSupervisor * ref.diasUteis * ref.horasDia;
+    var refHistorico = HEADCOUNT_MENSAL.find(function(h){ return h.mes === mes; });
+    if(refHistorico){
+      // Mês já fechado/curado no histórico — mantém como estava.
+      if(supervisorFiltro){
+        var headcountSupervisor = computeHeadcountPorSupervisor(supervisorFiltro);
+        horasTotais = headcountSupervisor * refHistorico.diasUteis * refHistorico.horasDia;
+      } else {
+        horasTotais = refHistorico.headcount * refHistorico.diasUteis * refHistorico.horasDia;
+      }
     } else {
-      var refEmpresa = getHeadcountRef(mes);
-      horasTotais = refEmpresa.headcount * refEmpresa.diasUteis * refEmpresa.horasDia;
+      // Mês atual (ou futuro) sem histórico curado — soma a jornada real de
+      // cada ativo, travando as horas de quem foi desligado dentro do mês.
+      horasTotais = computeHorasPrevistasAtivosMes(mes, supervisorFiltro || null);
     }
     var horasPerdidas = eventosMes.reduce(function(s, e){ return s + (Number(e.horasPerdidas) || 0); }, 0);
     var custoTotal = eventosMes.reduce(function(s, e){ return s + calcCustoEvento(e, mes); }, 0);
