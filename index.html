@@ -3048,7 +3048,15 @@
     var todos = getAtivosComStatusFerias();
     var filtrados = aplicarFiltrosFerias(todos, 'ferias');
 
-    var vencidas = filtrados.filter(function(a){ return a.feriasStatus.vencida; });
+    // Quem venceu antes de 2026 é tratado como informação velha demais pra
+    // aparecer nas listas rápidas (card, gráfico, tabela de vencimentos) —
+    // continua contando como vencida de verdade, só não polui essas visões.
+    // O Analítico continua mostrando todo mundo, de propósito.
+    function vencidaRelevante(a){
+      return a.feriasStatus.vencida && new Date(a.feriasStatus.vencimento1 + 'T00:00:00').getFullYear() >= 2026;
+    }
+
+    var vencidas = filtrados.filter(vencidaRelevante);
     var aVencer = filtrados.filter(function(a){ return !a.feriasStatus.vencida; });
     var vencendoEm30 = filtrados.filter(function(a){ return !a.feriasStatus.vencida && a.feriasStatus.diasParaVencer <= 30; });
     document.getElementById('ferias-total-vencidas').textContent = vencidas.length;
@@ -3056,7 +3064,7 @@
 
     // Tabela de vencimentos (vencidas + vencendo em 30 dias, do mais urgente pro menos urgente)
     var relevantesVencimento = filtrados.filter(function(a){
-      return a.feriasStatus.vencida || a.feriasStatus.diasParaVencer <= 30;
+      return vencidaRelevante(a) || (!a.feriasStatus.vencida && a.feriasStatus.diasParaVencer <= 30);
     });
     var ordenadosPorVencer = relevantesVencimento.slice().sort(function(a,b){
       return a.feriasStatus.diasParaVencer - b.feriasStatus.diasParaVencer;
@@ -3087,8 +3095,9 @@
     arrPostos.sort(function(a,b){ return b.value - a.value; });
     renderHBarChart('chart-ferias-postos', arrPostos.slice(0, 10), {color:'var(--red)'});
 
-    // Pizza de status
-    var total = filtrados.length || 1;
+    // Pizza de status (total recalculado só com quem aparece em algum dos dois grupos —
+    // os vencidos antes de 2026 ficam de fora daqui também, junto com o resto das listas rápidas)
+    var total = (aVencer.length + vencidas.length) || 1;
     renderPieChart2('chart-ferias-status',
       (aVencer.length/total*100), 'À Vencer ('+aVencer.length+')', 'var(--teal)',
       (vencidas.length/total*100), 'Férias Vencidas ('+vencidas.length+')', 'var(--red)');
