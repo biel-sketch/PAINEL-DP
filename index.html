@@ -1300,6 +1300,70 @@
     </div>
   </div>
 
+  <!-- MODAL: Editar Férias do Colaborador -->
+  <div class="modal-overlay" id="modal-editar-ferias-colaborador">
+    <div class="modal-box" style="max-width:640px;">
+      <div class="modal-title" id="fer-edit-nome-titulo">Férias do Colaborador</div>
+      <div class="modal-grid" style="margin-bottom:16px;">
+        <div><div style="font-size:11px;color:var(--text-dim);">Posto</div><div id="fer-edit-posto" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Cargo</div><div id="fer-edit-cargo" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Admissão</div><div id="fer-edit-admissao" class="mono" style="font-size:13.5px;"></div></div>
+      </div>
+
+      <div class="stats" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px;">
+        <div class="stat-card">
+          <div class="stat-label">Dias Tirados no Ciclo</div>
+          <div class="stat-value" style="font-size:18px;" id="fer-edit-dias-tirados">0 de 30</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Dias Restantes</div>
+          <div class="stat-value amber" style="font-size:18px;" id="fer-edit-dias-restantes">30 dias</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Vencimento Atual</div>
+          <div class="stat-value teal" style="font-size:18px;" id="fer-edit-vencimento">—</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label style="font-size:12.5px;font-weight:600;">Períodos de Férias Registrados</label>
+          <button type="button" class="btn btn-ghost" id="btn-add-periodo-ferias" style="padding:5px 10px;font-size:11.5px;">+ Adicionar Período</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Data Inicial</th><th>Data Final</th><th>Dias</th><th></th></tr></thead>
+            <tbody id="fer-edit-periodos-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="fer-edit-periodos-empty" style="display:none;padding:16px;font-size:12px;">Nenhum período de férias registrado ainda.</div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modal-editar-ferias-colaborador')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Adicionar/Editar Período de Férias -->
+  <div class="modal-overlay" id="modal-periodo-ferias">
+    <div class="modal-box">
+      <div class="modal-title" id="periodo-ferias-titulo">Adicionar Período de Férias</div>
+      <form id="form-periodo-ferias">
+        <input type="hidden" id="pf-f-id">
+        <input type="hidden" id="pf-f-nome">
+        <div class="modal-grid">
+          <div class="modal-field"><label>Data Inicial</label><input type="date" id="pf-f-data-inicial" required></div>
+          <div class="modal-field"><label>Data Final</label><input type="date" id="pf-f-data-final" required></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-periodo-ferias')">Cancelar</button>
+          <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL: Adicionar Rescisão Complementar -->
   <div class="modal-overlay" id="modal-rescisao-complementar">
     <div class="modal-box">
@@ -3095,8 +3159,12 @@
           var cor = dias <= 7 ? 'red' : 'amber';
           situacao = '<span class="pill '+cor+'">'+dias+' dias</span>';
         }
-        return '<tr><td>'+a.nome+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td class="mono">'+formatDateBR(a.admissao)+'</td><td class="mono">'+formatDateBR(a.feriasStatus.vencimento1)+'</td><td class="mono">'+situacao+'</td></tr>';
+        return '<tr data-nome-ferias="'+a.nome+'" class="row-clickable" title="Clique para editar as férias">' +
+          '<td>'+a.nome+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td class="mono">'+formatDateBR(a.admissao)+'</td><td class="mono">'+formatDateBR(a.feriasStatus.vencimento1)+'</td><td class="mono">'+situacao+'</td></tr>';
       }).join('');
+      tbodyVenc.querySelectorAll('tr[data-nome-ferias]').forEach(function(tr){
+        tr.addEventListener('click', function(){ abrirEdicaoFeriasColaborador(tr.getAttribute('data-nome-ferias')); });
+      });
     }
 
     // Vencidas por posto
@@ -3123,16 +3191,128 @@
     } else {
       emptyAtual.style.display = 'none';
       tbodyAtual.innerHTML = deFeriasHoje.map(function(f){
-        return '<tr><td>'+f.nome+'</td><td class="mono">'+formatDateBR(f.dataInicial)+'</td><td class="mono">'+formatDateBR(f.dataFinal)+'</td><td><span class="pill teal">Sim</span></td></tr>';
+        return '<tr data-nome-ferias="'+f.nome+'" class="row-clickable" title="Clique para editar as férias"><td>'+f.nome+'</td><td class="mono">'+formatDateBR(f.dataInicial)+'</td><td class="mono">'+formatDateBR(f.dataFinal)+'</td><td><span class="pill teal">Sim</span></td></tr>';
       }).join('');
+      tbodyAtual.querySelectorAll('tr[data-nome-ferias]').forEach(function(tr){
+        tr.addEventListener('click', function(){ abrirEdicaoFeriasColaborador(tr.getAttribute('data-nome-ferias')); });
+      });
     }
 
     // Lista de colaboradores (nome + cargo)
     var tbodyColab = document.getElementById('ferias-colaboradores-tbody');
     tbodyColab.innerHTML = filtrados.slice().sort(function(a,b){ return a.nome.localeCompare(b.nome); }).map(function(a){
-      return '<tr><td>'+a.nome+'</td><td>'+(a.cargo||'—')+'</td></tr>';
+      return '<tr data-nome-ferias="'+a.nome+'" class="row-clickable" title="Clique para editar as férias"><td>'+a.nome+'</td><td>'+(a.cargo||'—')+'</td></tr>';
     }).join('');
+    tbodyColab.querySelectorAll('tr[data-nome-ferias]').forEach(function(tr){
+      tr.addEventListener('click', function(){ abrirEdicaoFeriasColaborador(tr.getAttribute('data-nome-ferias')); });
+    });
   }
+
+  // ============================================================
+  // EDIÇÃO DE FÉRIAS POR COLABORADOR
+  // ============================================================
+  function abrirEdicaoFeriasColaborador(nome){
+    var pessoa = appState.ativos.find(function(a){ return normNome(a.nome) === normNome(nome); });
+    if(!pessoa) return;
+    var status = computeFeriasStatus(pessoa);
+
+    document.getElementById('fer-edit-nome-titulo').textContent = pessoa.nome;
+    document.getElementById('fer-edit-posto').textContent = pessoa.posto || '—';
+    document.getElementById('fer-edit-cargo').textContent = pessoa.cargo || '—';
+    document.getElementById('fer-edit-admissao').textContent = formatDateBR(pessoa.admissao);
+
+    if(status.aplicavel){
+      document.getElementById('fer-edit-dias-tirados').textContent = status.diasTirados + ' de ' + FERIAS_DIAS_POR_CICLO;
+      document.getElementById('fer-edit-dias-restantes').textContent = status.diasRestantes + ' dias';
+      document.getElementById('fer-edit-vencimento').textContent = formatDateBR(status.vencimento1);
+    } else {
+      document.getElementById('fer-edit-dias-tirados').textContent = '—';
+      document.getElementById('fer-edit-dias-restantes').textContent = '—';
+      document.getElementById('fer-edit-vencimento').textContent = '—';
+    }
+
+    document.getElementById('btn-add-periodo-ferias').setAttribute('data-nome', pessoa.nome);
+    renderPeriodosFerias(pessoa.nome);
+    openModal('modal-editar-ferias-colaborador');
+  }
+
+  function renderPeriodosFerias(nome){
+    var periodos = appState.ferias.filter(function(f){ return normNome(f.nome) === normNome(nome); });
+    periodos.sort(function(a,b){ return (b.dataInicial||'').localeCompare(a.dataInicial||''); });
+    var tbody = document.getElementById('fer-edit-periodos-tbody');
+    var emptyEl = document.getElementById('fer-edit-periodos-empty');
+    if(periodos.length === 0){
+      tbody.innerHTML = ''; emptyEl.style.display = 'block'; return;
+    }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = periodos.map(function(f){
+      var dias = (f.dataInicial && f.dataFinal) ? (diffDias(f.dataInicial, f.dataFinal) + 1) : '—';
+      return '<tr>' +
+        '<td class="mono">'+formatDateBR(f.dataInicial)+'</td>' +
+        '<td class="mono">'+formatDateBR(f.dataFinal)+'</td>' +
+        '<td class="mono">'+dias+'</td>' +
+        '<td style="display:flex;gap:6px;">' +
+          '<button type="button" class="btn btn-ghost" data-editar-periodo-id="'+f.id+'" style="padding:3px 8px;font-size:11px;">Editar</button>' +
+          '<button type="button" class="btn btn-ghost" data-remover-periodo-id="'+f.id+'" style="padding:3px 8px;font-size:11px;border-color:var(--red);color:var(--red);">Remover</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+    tbody.querySelectorAll('[data-editar-periodo-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){ abrirModalPeriodoFerias(nome, this.getAttribute('data-editar-periodo-id')); });
+    });
+    tbody.querySelectorAll('[data-remover-periodo-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if(!confirm('Remover esse período de férias?')) return;
+        var id = this.getAttribute('data-remover-periodo-id');
+        appState.ferias = appState.ferias.filter(function(f){ return f.id !== id; });
+        cloudPut(appState).catch(function(err){ console.error('Erro ao remover período de férias:', err); });
+        renderPeriodosFerias(nome);
+        abrirEdicaoFeriasColaborador(nome); // atualiza os totais recalculados
+      });
+    });
+  }
+
+  function abrirModalPeriodoFerias(nome, id){
+    document.getElementById('pf-f-nome').value = nome;
+    document.getElementById('pf-f-id').value = id || '';
+    if(id){
+      var f = appState.ferias.find(function(x){ return x.id === id; });
+      document.getElementById('periodo-ferias-titulo').textContent = 'Editar Período de Férias';
+      document.getElementById('pf-f-data-inicial').value = f ? f.dataInicial : '';
+      document.getElementById('pf-f-data-final').value = f ? f.dataFinal : '';
+    } else {
+      document.getElementById('periodo-ferias-titulo').textContent = 'Adicionar Período de Férias';
+      document.getElementById('form-periodo-ferias').reset();
+    }
+    openModal('modal-periodo-ferias');
+  }
+
+  document.getElementById('btn-add-periodo-ferias').addEventListener('click', function(){
+    abrirModalPeriodoFerias(this.getAttribute('data-nome'), null);
+  });
+
+  document.getElementById('form-periodo-ferias').addEventListener('submit', function(e){
+    e.preventDefault();
+    var nome = document.getElementById('pf-f-nome').value;
+    var id = document.getElementById('pf-f-id').value;
+    var dataInicial = document.getElementById('pf-f-data-inicial').value;
+    var dataFinal = document.getElementById('pf-f-data-final').value;
+    if(dataFinal < dataInicial){
+      alert('A Data Final não pode ser anterior à Data Inicial.');
+      return;
+    }
+    if(id){
+      var f = appState.ferias.find(function(x){ return x.id === id; });
+      if(f){ f.dataInicial = dataInicial; f.dataFinal = dataFinal; }
+    } else {
+      appState.ferias.push({ id: 'fer' + Date.now(), nome: nome, dataInicial: dataInicial, dataFinal: dataFinal });
+    }
+    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar período de férias:', err); });
+    closeModal('modal-periodo-ferias');
+    renderPeriodosFerias(nome);
+    abrirEdicaoFeriasColaborador(nome); // atualiza os totais recalculados
+    refreshFeriasView();
+  });
 
   function renderFeriasAnalitico(){
     var todos = getAtivosComStatusFerias();
@@ -3152,7 +3332,7 @@
       var cor1 = venceu1 ? 'red' : 'teal';
       var cor2 = venceu2 ? 'red' : 'teal';
       var corDiasRestantes = a.feriasStatus.diasRestantes <= 10 ? 'amber' : 'teal';
-      return '<tr>' +
+      return '<tr data-nome-ferias="'+a.nome+'" class="row-clickable" title="Clique para editar as férias">' +
         '<td>'+a.nome+'</td>' +
         '<td class="mono">'+formatCPF(a.cpf)+'</td>' +
         '<td><span class="pill amber">'+(a.posto||'—')+'</span></td>' +
@@ -3164,6 +3344,9 @@
         '<td class="mono"><span class="pill '+cor2+'">'+formatDateBR(a.feriasStatus.vencimento2)+'</span></td>' +
       '</tr>';
     }).join('');
+    tbody.querySelectorAll('tr[data-nome-ferias]').forEach(function(tr){
+      tr.addEventListener('click', function(){ abrirEdicaoFeriasColaborador(tr.getAttribute('data-nome-ferias')); });
+    });
   }
 
   function refreshFeriasView(){
