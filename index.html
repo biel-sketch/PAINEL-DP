@@ -910,7 +910,7 @@
         <div class="panel">
           <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Vencimento 1º Período</th><th>Vencimento 2º Período</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Dias Tirados</th><th>Dias Restantes</th><th>Vencimento 1º Período</th><th>Vencimento 2º Período</th></tr></thead>
               <tbody id="ferias-analitico-tbody"></tbody>
             </table>
           </div>
@@ -2983,6 +2983,8 @@
 
   // Calcula o status de férias de um colaborador ativo:
   // a cada ciclo de 12 meses sem registrar férias, o período vence.
+  var FERIAS_DIAS_POR_CICLO = 30;
+
   function computeFeriasStatus(pessoa){
     if(!pessoa.admissao) return { aplicavel:false };
     var feriasDoColaborador = appState.ferias
@@ -2991,11 +2993,18 @@
 
     var dataBase = pessoa.admissao;
     var hoje = new Date().toISOString().slice(0,10);
+    var diasTirados = 0; // dias já tirados dentro do ciclo atual (ainda em aberto)
 
     feriasDoColaborador.forEach(function(f){
-      // cada férias registrada com início após a data-base "consome" um ciclo,
-      // e a próxima data-base passa a contar a partir do fim daquelas férias.
-      if(f.dataInicial >= dataBase) dataBase = f.dataFinal;
+      if(f.dataInicial < dataBase) return; // já pertence a um ciclo anterior, já fechado
+      var diasDesseTrecho = diffDias(f.dataInicial, f.dataFinal) + 1; // inclusive
+      diasTirados += diasDesseTrecho;
+      // só fecha o ciclo (e abre um novo, zerado) quando completar os 30 dias de direito —
+      // até lá, os dias tirados vão só se somando dentro do mesmo ciclo em aberto.
+      if(diasTirados >= FERIAS_DIAS_POR_CICLO){
+        dataBase = f.dataFinal;
+        diasTirados = 0;
+      }
     });
 
     var mesesDesdeBase = diffMeses(dataBase, hoje);
@@ -3004,9 +3013,11 @@
     var vencimento1 = addMeses(dataBase, FERIAS_CICLO_MESES);
     var vencimento2 = addMeses(dataBase, FERIAS_CICLO_MESES * 2);
     var diasParaVencer = diffDias(hoje, vencimento1);
+    var diasRestantes = Math.max(FERIAS_DIAS_POR_CICLO - diasTirados, 0);
 
     return { aplicavel:true, vencida:vencida, dataBase:dataBase, proximoVencimento:proximoVencimento,
-             vencimento1:vencimento1, vencimento2:vencimento2, mesesDesdeBase:mesesDesdeBase, diasParaVencer:diasParaVencer };
+             vencimento1:vencimento1, vencimento2:vencimento2, mesesDesdeBase:mesesDesdeBase, diasParaVencer:diasParaVencer,
+             diasTirados:diasTirados, diasRestantes:diasRestantes };
   }
 
   function getAtivosComStatusFerias(){
@@ -3140,12 +3151,15 @@
       var venceu2 = a.feriasStatus.vencimento2 <= hoje;
       var cor1 = venceu1 ? 'red' : 'teal';
       var cor2 = venceu2 ? 'red' : 'teal';
+      var corDiasRestantes = a.feriasStatus.diasRestantes <= 10 ? 'amber' : 'teal';
       return '<tr>' +
         '<td>'+a.nome+'</td>' +
         '<td class="mono">'+formatCPF(a.cpf)+'</td>' +
         '<td><span class="pill amber">'+(a.posto||'—')+'</span></td>' +
         '<td>'+(a.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(a.admissao)+'</td>' +
+        '<td class="mono">'+a.feriasStatus.diasTirados+' de '+FERIAS_DIAS_POR_CICLO+'</td>' +
+        '<td class="mono"><span class="pill '+corDiasRestantes+'">'+a.feriasStatus.diasRestantes+' dias</span></td>' +
         '<td class="mono"><span class="pill '+cor1+'">'+formatDateBR(a.feriasStatus.vencimento1)+'</span></td>' +
         '<td class="mono"><span class="pill '+cor2+'">'+formatDateBR(a.feriasStatus.vencimento2)+'</span></td>' +
       '</tr>';
@@ -4221,6 +4235,8 @@
         'Posto': a.posto,
         'Cargo': a.cargo,
         'Admissão': formatDateBR(a.admissao),
+        'Dias Tirados no Ciclo Atual': a.feriasStatus.diasTirados,
+        'Dias Restantes no Ciclo Atual': a.feriasStatus.diasRestantes,
         'Vencimento 1º Período': formatDateBR(a.feriasStatus.vencimento1),
         'Vencimento 2º Período': formatDateBR(a.feriasStatus.vencimento2),
         'Status': a.feriasStatus.vencida ? 'Férias Vencidas' : 'À Vencer'
