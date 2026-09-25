@@ -1528,11 +1528,11 @@
   </div>
 
   <div class="modal-overlay" id="modal-lista-estabilidade">
-    <div class="modal-box" style="max-width:640px;">
+    <div class="modal-box" style="max-width:860px;">
       <div class="modal-title">🔒 Colaboradores em Estabilidade</div>
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
         <table>
-          <thead><tr><th>Colaborador</th><th>Cargo</th><th>Posto</th><th>Observação</th></tr></thead>
+          <thead><tr><th>Colaborador</th><th>Cargo</th><th>Posto</th><th>Data Início</th><th>Data Fim</th><th>Observação</th></tr></thead>
           <tbody id="lista-estabilidade-tbody"></tbody>
         </table>
         <div class="empty-state" id="lista-estabilidade-empty" style="display:none;padding:30px;">Nenhum colaborador em estabilidade no momento.</div>
@@ -1641,6 +1641,10 @@
           </div>
         </div>
         <label class="modal-check"><input type="checkbox" id="nat-estabilidade"> Colaborador em Estabilidade</label>
+        <div class="modal-grid" id="nat-estabilidade-datas-wrap" style="display:none;margin-top:8px;">
+          <div class="modal-field"><label>Data de Início</label><input type="date" id="nat-estabilidade-inicio"></div>
+          <div class="modal-field"><label>Data de Fim <span style="color:var(--text-faint);font-weight:400;">(deixe em branco se indeterminado)</span></label><input type="date" id="nat-estabilidade-fim"></div>
+        </div>
         <div class="modal-field full" style="margin-top:8px;"><label>Observação</label><textarea id="nat-observacao" rows="2" placeholder="Motivo da estabilidade ou outras observações..."></textarea></div>
         <div class="modal-check" id="nat-alerta" style="display:none;color:var(--amber);"></div>
         <div class="modal-actions">
@@ -1731,6 +1735,10 @@
           </div>
         </div>
         <label class="modal-check"><input type="checkbox" id="edt-estabilidade"> Colaborador em Estabilidade</label>
+        <div class="modal-grid" id="edt-estabilidade-datas-wrap" style="display:none;margin-top:8px;">
+          <div class="modal-field"><label>Data de Início</label><input type="date" id="edt-estabilidade-inicio"></div>
+          <div class="modal-field"><label>Data de Fim <span style="color:var(--text-faint);font-weight:400;">(deixe em branco se indeterminado)</span></label><input type="date" id="edt-estabilidade-fim"></div>
+        </div>
         <div class="modal-field full" style="margin-top:8px;"><label>Observação</label><textarea id="edt-observacao" rows="2" placeholder="Motivo da estabilidade ou outras observações..."></textarea></div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-editar-ativo')">Cancelar</button>
@@ -3633,6 +3641,8 @@
       var registroCat = IMPORT_CAT_2026_09.find(function(c){ return normNome(c.nome) === normNome(a.nome) && c.estabilidadeCat === 'SIM'; });
       if(registroCat && !a.estabilidade){
         a.estabilidade = true;
+        a.estabilidadeInicio = registroCat.inicio || null;
+        a.estabilidadeFim = (registroCat.dataFinalEstabilidadeCat && registroCat.dataFinalEstabilidadeCat !== 'INDETERMINADO') ? registroCat.dataFinalEstabilidadeCat : null;
         var notaEstabilidade = 'Estabilidade por acidente de trabalho (CAT em ' + formatDateBR(registroCat.inicio) + ')' +
           (registroCat.dataFinalEstabilidadeCat ? ' até ' + (registroCat.dataFinalEstabilidadeCat === 'INDETERMINADO' ? 'data indeterminada' : formatDateBR(registroCat.dataFinalEstabilidadeCat)) : '') + '.';
         a.observacao = a.observacao ? (a.observacao + ' | ' + notaEstabilidade) : notaEstabilidade;
@@ -4692,6 +4702,8 @@
       pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('nat-experiencia-duracao').value) : null;
       pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
       pessoa.estabilidade = document.getElementById('nat-estabilidade').checked;
+      pessoa.estabilidadeInicio = pessoa.estabilidade ? (document.getElementById('nat-estabilidade-inicio').value || null) : null;
+      pessoa.estabilidadeFim = pessoa.estabilidade ? (document.getElementById('nat-estabilidade-fim').value || null) : null;
       pessoa.observacao = document.getElementById('nat-observacao').value.trim() || null;
       pessoa.status = document.getElementById('nat-status').value;
     }
@@ -4804,6 +4816,8 @@
           '<td>'+a.nome+'</td>' +
           '<td>'+(a.cargo||'—')+'</td>' +
           '<td><span class="pill teal">'+(a.posto||'—')+'</span></td>' +
+          '<td>'+(a.estabilidadeInicio ? formatDateBR(a.estabilidadeInicio) : '—')+'</td>' +
+          '<td>'+(a.estabilidadeFim ? formatDateBR(a.estabilidadeFim) : 'Indeterminado')+'</td>' +
           '<td>'+(a.observacao||'—')+'</td>' +
         '</tr>';
       }).join('');
@@ -4863,6 +4877,9 @@
     document.getElementById('edt-experiencia-duracao').value = pessoa.experienciaDuracaoDias || 45;
     document.getElementById('edt-experiencia-prorrogacao').value = pessoa.experienciaProrrogacaoDias || '';
     document.getElementById('edt-estabilidade').checked = !!pessoa.estabilidade;
+    document.getElementById('edt-estabilidade-inicio').value = pessoa.estabilidadeInicio || '';
+    document.getElementById('edt-estabilidade-fim').value = pessoa.estabilidadeFim || '';
+    document.getElementById('edt-estabilidade-datas-wrap').style.display = pessoa.estabilidade ? 'grid' : 'none';
     document.getElementById('edt-observacao').value = pessoa.observacao || '';
     document.getElementById('edt-status').value = pessoa.status || 'ATIVO';
     atualizarBloqueioEstabilidade();
@@ -4876,8 +4893,12 @@
     document.getElementById('danger-zone-bloqueado').style.display = emEstabilidade ? 'block' : 'none';
     document.getElementById('btn-abrir-desligamento').style.display = emEstabilidade ? 'none' : 'inline-flex';
     if(emEstabilidade) document.getElementById('secao-desligamento').style.display = 'none';
+    document.getElementById('edt-estabilidade-datas-wrap').style.display = emEstabilidade ? 'grid' : 'none';
   }
   document.getElementById('edt-estabilidade').addEventListener('change', atualizarBloqueioEstabilidade);
+  document.getElementById('nat-estabilidade').addEventListener('change', function(){
+    document.getElementById('nat-estabilidade-datas-wrap').style.display = this.checked ? 'grid' : 'none';
+  });
 
   document.getElementById('edt-contrato-tipo').addEventListener('change', function(){ atualizarHintExperiencia('edt'); });
   document.getElementById('edt-experiencia-duracao').addEventListener('input', function(){ atualizarHintExperiencia('edt'); });
@@ -4909,6 +4930,8 @@
     pessoa.sexo = document.getElementById('edt-sexo').value || null;
     pessoa.supervisor = document.getElementById('edt-supervisor-atual').value.trim() || null;
     pessoa.estabilidade = document.getElementById('edt-estabilidade').checked;
+    pessoa.estabilidadeInicio = pessoa.estabilidade ? (document.getElementById('edt-estabilidade-inicio').value || null) : null;
+    pessoa.estabilidadeFim = pessoa.estabilidade ? (document.getElementById('edt-estabilidade-fim').value || null) : null;
     pessoa.observacao = document.getElementById('edt-observacao').value.trim() || null;
     pessoa.status = document.getElementById('edt-status').value;
     pessoa.contratoTipo = document.getElementById('edt-contrato-tipo').value;
