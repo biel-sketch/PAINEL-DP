@@ -1901,6 +1901,60 @@
     </div>
   </div>
 
+  <!-- MODAL: Editar Registro de Absenteísmo -->
+  <div class="modal-overlay" id="modal-editar-abs">
+    <div class="modal-box">
+      <div class="modal-title">Editar Registro de Absenteísmo</div>
+      <form id="form-editar-abs">
+        <input type="hidden" id="eabs-id">
+        <div class="modal-grid">
+          <div class="modal-field full"><label>Nome do Colaborador</label><input type="text" id="eabs-nome" required></div>
+          <div class="modal-field"><label>Posto</label><input type="text" id="eabs-posto" required></div>
+          <div class="modal-field"><label>Cargo</label><input type="text" id="eabs-cargo" required></div>
+          <div class="modal-field"><label>Início do Afastamento</label><input type="date" id="eabs-inicio" required></div>
+          <div class="modal-field"><label>Fim do Afastamento</label><input type="date" id="eabs-fim" required></div>
+          <div class="modal-field"><label>Horas Previstas / Dia</label><input type="number" step="0.01" id="eabs-horasdia" required></div>
+          <div class="modal-field"><label>Tipo</label>
+            <select id="eabs-tipo"><option value="Falta">Falta</option><option value="Atestado">Atestado</option></select>
+          </div>
+          <div class="modal-field full">
+            <label>Motivo / CID</label>
+            <input type="text" id="eabs-motivo" list="abs-cid-datalist" autocomplete="off">
+          </div>
+          <div class="modal-field"><label>Médico (se atestado)</label><input type="text" id="eabs-medico"></div>
+          <div class="modal-field"><label>Supervisor</label><input type="text" id="eabs-supervisor"></div>
+          <div class="modal-field"><label>Salário do Colaborador (R$)</label><input type="number" step="0.01" id="eabs-salario"></div>
+          <div class="modal-field"><label>Teve Reposição?</label>
+            <select id="eabs-reposicao">
+              <option value="Não">Não</option>
+              <option value="Sim">Sim</option>
+            </select>
+          </div>
+          <div class="modal-field"><label>Foi aberto CAT?</label>
+            <select id="eabs-cat">
+              <option value="Não">Não</option>
+              <option value="Sim">Sim</option>
+            </select>
+          </div>
+        </div>
+        <label class="modal-check"><input type="checkbox" id="eabs-advertencia"> Gerou advertência</label>
+        <label class="modal-check"><input type="checkbox" id="eabs-inss"> Encaminhado ao INSS</label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-editar-abs')">Cancelar</button>
+          <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar Alterações</button>
+        </div>
+      </form>
+
+      <hr class="modal-divider">
+
+      <div class="danger-zone">
+        <div class="danger-title">Excluir Registro</div>
+        <div class="danger-desc">Remove este registro de absenteísmo permanentemente do sistema.</div>
+        <button type="button" class="btn" id="btn-excluir-abs" style="border-color:var(--red);color:var(--red);">🗑️ Excluir Registro</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: Novo Registro de TurnOver -->
   <!-- MODAL: Editar Registro de TurnOver -->
   <div class="modal-overlay" id="modal-editar-to">
@@ -5372,7 +5426,7 @@
     emptyEl.style.display = 'none';
     tbody.innerHTML = list.map(function(e){
       var tipoPill = e.tipo === 'Falta' ? 'red' : 'teal';
-      return '<tr>' +
+      return '<tr data-id="'+e.id+'" class="row-clickable" title="Clique para editar">' +
         '<td>'+e.nome+'</td>' +
         '<td class="mono">'+formatCPF(getCpfPorNome(e.nome))+'</td>' +
         '<td><span class="pill teal">'+e.posto+'</span></td>' +
@@ -5390,6 +5444,10 @@
         '<td>'+(e.supervisor || '—')+'</td>' +
       '</tr>';
     }).join('');
+
+    tbody.querySelectorAll('tr[data-id]').forEach(function(tr){
+      tr.addEventListener('click', function(){ abrirEdicaoAbsenteismo(tr.getAttribute('data-id')); });
+    });
   }
 
   function applyAbsFilters(){
@@ -5925,6 +5983,84 @@
     document.getElementById('abs-f-horasdia').value = 8;
     document.getElementById('abs-f-horasdia-hint').textContent = 'Preenchido pela jornada do colaborador';
     document.getElementById('abs-f-admissao-hint').textContent = 'Preenchida ao selecionar o colaborador';
+  });
+
+  // ============================================================
+  // EDITAR REGISTRO DE ABSENTEÍSMO
+  // ============================================================
+  function abrirEdicaoAbsenteismo(id){
+    var registro = appState.absenteismo.find(function(e){ return e.id === id; });
+    if(!registro) return;
+
+    document.getElementById('eabs-id').value = registro.id;
+    document.getElementById('eabs-nome').value = registro.nome || '';
+    document.getElementById('eabs-posto').value = registro.posto || '';
+    document.getElementById('eabs-cargo').value = registro.cargo || '';
+    document.getElementById('eabs-inicio').value = registro.inicio || '';
+    document.getElementById('eabs-fim').value = registro.fim || '';
+    document.getElementById('eabs-horasdia').value = registro.horasPrevistas || 8;
+    document.getElementById('eabs-tipo').value = registro.tipo || 'Falta';
+    document.getElementById('eabs-motivo').value = registro.motivo || '';
+    document.getElementById('eabs-medico').value = registro.medico || '';
+    document.getElementById('eabs-supervisor').value = registro.supervisor || '';
+    document.getElementById('eabs-salario').value = registro.salario || '';
+    document.getElementById('eabs-reposicao').value = registro.reposicao || 'Não';
+    document.getElementById('eabs-cat').value = registro.cat || 'Não';
+    document.getElementById('eabs-advertencia').checked = !!registro.advertencia;
+    document.getElementById('eabs-inss').checked = !!registro.inss;
+
+    openModal('modal-editar-abs');
+  }
+
+  document.getElementById('form-editar-abs').addEventListener('submit', function(e){
+    e.preventDefault();
+    var id = document.getElementById('eabs-id').value;
+    var registro = appState.absenteismo.find(function(ev){ return ev.id === id; });
+    if(!registro) return;
+
+    var inicio = document.getElementById('eabs-inicio').value;
+    var fim = document.getElementById('eabs-fim').value;
+    var horasDia = parseFloat(document.getElementById('eabs-horasdia').value) || 8;
+    var dias = Math.round((new Date(fim) - new Date(inicio)) / 86400000) + 1;
+    if(dias < 1) dias = 1;
+    var mesIdx = new Date(inicio + 'T00:00:00').getMonth();
+
+    registro.nome = document.getElementById('eabs-nome').value.trim();
+    registro.posto = document.getElementById('eabs-posto').value.trim();
+    registro.cargo = document.getElementById('eabs-cargo').value.trim();
+    registro.inicio = inicio;
+    registro.fim = fim;
+    registro.diasPerdidos = dias;
+    registro.horasPerdidas = Math.round(dias * horasDia * 100) / 100;
+    registro.horasPrevistas = horasDia;
+    registro.tipo = document.getElementById('eabs-tipo').value;
+    registro.motivo = document.getElementById('eabs-motivo').value.trim();
+    registro.medico = document.getElementById('eabs-medico').value.trim();
+    registro.mes = MESES_ORDEM[mesIdx];
+    registro.advertencia = document.getElementById('eabs-advertencia').checked;
+    registro.supervisor = document.getElementById('eabs-supervisor').value.trim();
+    registro.salario = parseFloat(document.getElementById('eabs-salario').value) || 0;
+    registro.inss = document.getElementById('eabs-inss').checked;
+    registro.reposicao = document.getElementById('eabs-reposicao').value;
+    registro.cat = document.getElementById('eabs-cat').value;
+
+    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar edição de absenteísmo:', err); });
+    refreshAbsenteismoView();
+    refreshCatView();
+    closeModal('modal-editar-abs');
+  });
+
+  document.getElementById('btn-excluir-abs').addEventListener('click', function(){
+    var id = document.getElementById('eabs-id').value;
+    var idx = appState.absenteismo.findIndex(function(e){ return e.id === id; });
+    if(idx < 0) return;
+    var registro = appState.absenteismo[idx];
+    if(!confirm('Tem certeza que deseja EXCLUIR este registro de absenteísmo de ' + registro.nome + ' (' + formatDateBR(registro.inicio) + ' a ' + formatDateBR(registro.fim) + ')?\n\nEsta ação não pode ser desfeita.')) return;
+    appState.absenteismo.splice(idx, 1);
+    cloudPut(appState).catch(function(err){ console.error('Erro ao excluir registro de absenteísmo:', err); });
+    refreshAbsenteismoView();
+    refreshCatView();
+    closeModal('modal-editar-abs');
   });
 
   // ============================================================
