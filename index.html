@@ -1435,6 +1435,14 @@
           <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar Alterações</button>
         </div>
       </form>
+
+      <hr class="modal-divider">
+
+      <div class="danger-zone">
+        <div class="danger-title">Excluir Cadastro</div>
+        <div class="danger-desc">Remove este registro de inativo permanentemente do sistema. Use apenas para corrigir um cadastro feito por engano.</div>
+        <button type="button" class="btn" id="btn-excluir-inativo" style="border-color:var(--red);color:var(--red);">🗑️ Excluir Cadastro</button>
+      </div>
     </div>
   </div>
 
@@ -3002,6 +3010,18 @@
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar edição de inativo:', err); });
     closeModal('modal-editar-inativo');
     refreshInativosView();
+  });
+
+  document.getElementById('btn-excluir-inativo').addEventListener('click', function(){
+    var id = document.getElementById('edti-id').value;
+    var idx = appState.inativos.findIndex(function(i){ return i.id === id; });
+    if(idx < 0) return;
+    var pessoa = appState.inativos[idx];
+    if(!confirm('Tem certeza que deseja EXCLUIR o cadastro de ' + pessoa.nome + '?\n\nIsso remove o registro de inativo permanentemente. Use apenas para corrigir um cadastro feito por engano.\n\nEsta ação não pode ser desfeita.')) return;
+    appState.inativos.splice(idx, 1);
+    cloudPut(appState).catch(function(err){ console.error('Erro ao excluir cadastro de inativo:', err); });
+    refreshInativosView();
+    closeModal('modal-editar-inativo');
   });
 
   function renderRescisaoComplementar(inativo){
