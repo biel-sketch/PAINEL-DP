@@ -1776,6 +1776,12 @@
           </div>
         </div>
       </div>
+
+      <div class="danger-zone" style="margin-top:14px;">
+        <div class="danger-title">Excluir Cadastro</div>
+        <div class="danger-desc">Remove este colaborador do sistema permanentemente, sem gerar desligamento nem registro de TurnOver. Use apenas para corrigir um cadastro feito por engano — não para desligamentos reais.</div>
+        <button type="button" class="btn" id="btn-excluir-ativo" style="border-color:var(--red);color:var(--red);">🗑️ Excluir Cadastro</button>
+      </div>
     </div>
   </div>
 
@@ -2823,6 +2829,22 @@
         admissao: registro.admissao, empresa: registro.empresa, sexo: registro.sexo,
         salario: 0, jornada: '', contratoTipo: 'INDETERMINADO'
       });
+    }
+
+    appState.desligamentosAndamento.splice(idx, 1);
+  }
+
+  // Exclui permanentemente um registro de Desligamentos em Andamento (e seu
+  // lançamento vinculado no TurnOver), sem restaurar o colaborador para Ativos —
+  // usado para corrigir um cadastro feito por engano, não para desligamentos reais.
+  function excluirRegistroDesligamento(id){
+    var idx = appState.desligamentosAndamento.findIndex(function(d){ return d.id === id; });
+    if(idx < 0) return;
+    var registro = appState.desligamentosAndamento[idx];
+
+    if(registro.turnoverId){
+      var idxTO = appState.turnover.findIndex(function(t){ return t.id === registro.turnoverId; });
+      if(idxTO >= 0) appState.turnover.splice(idxTO, 1);
     }
 
     appState.desligamentosAndamento.splice(idx, 1);
@@ -4222,7 +4244,8 @@
           '<div class="lbl">Valor Total</div>' +
           '<div class="desl-total-value" data-total-id="'+registro.id+'">'+formatMoney(valorTotal)+'</div>' +
         '</div>' +
-        '<div style="display:flex;gap:8px;">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button type="button" class="btn btn-ghost" data-excluir-id="'+registro.id+'" style="border-color:var(--red);color:var(--red);">🗑️ Excluir Registro</button>' +
           '<button type="button" class="btn btn-ghost" data-cancelar-id="'+registro.id+'" style="border-color:var(--red);color:var(--red);">Cancelar Desligamento</button>' +
           '<button type="button" class="btn" data-concluir-id="'+registro.id+'" style="background:var(--teal);color:#052622;border:none;">Concluir</button>' +
         '</div>' +
@@ -4350,6 +4373,25 @@
     container.querySelectorAll('[data-abrir-entrevista-id]').forEach(function(btn){
       btn.addEventListener('click', function(){
         abrirModalEntrevista(this.getAttribute('data-abrir-entrevista-id'));
+      });
+    });
+
+    container.querySelectorAll('[data-excluir-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var idAtual = this.getAttribute('data-excluir-id');
+        var reg = appState.desligamentosAndamento.find(function(d){ return d.id === idAtual; });
+        if(!reg) return;
+
+        if(!confirm('EXCLUIR permanentemente o registro de ' + reg.nome + '?\n\n' +
+          'Isso remove o registro de Desligamentos em Andamento (e o lançamento de Demissão no TurnOver, se houver), ' +
+          'SEM restaurar o colaborador para Ativos. Use apenas para apagar um cadastro feito por engano.\n\n' +
+          'Esta ação não pode ser desfeita.')) return;
+
+        excluirRegistroDesligamento(idAtual);
+        cloudPut(appState).catch(function(err){ console.error('Erro ao excluir registro de desligamento:', err); });
+        closeModal('modal-desligamento-checklist');
+        refreshDesligamentosView();
+        refreshTurnoverView();
       });
     });
 
@@ -4997,6 +5039,18 @@
     refreshInativosView();
     refreshDesligamentosView();
     refreshTurnoverView();
+    closeModal('modal-editar-ativo');
+  });
+
+  document.getElementById('btn-excluir-ativo').addEventListener('click', function(){
+    var id = document.getElementById('edt-id').value;
+    var idx = appState.ativos.findIndex(function(a){ return a.id === id; });
+    if(idx < 0) return;
+    var pessoa = appState.ativos[idx];
+    if(!confirm('Tem certeza que deseja EXCLUIR o cadastro de ' + pessoa.nome + '?\n\nIsso remove o colaborador permanentemente, sem gerar desligamento nem registro de TurnOver. Use apenas para corrigir um cadastro feito por engano.\n\nEsta ação não pode ser desfeita.')) return;
+    appState.ativos.splice(idx, 1);
+    cloudPut(appState).catch(function(err){ console.error('Erro ao excluir cadastro:', err); });
+    refreshAtivosView();
     closeModal('modal-editar-ativo');
   });
 
