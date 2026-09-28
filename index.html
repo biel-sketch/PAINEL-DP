@@ -964,7 +964,7 @@
         </div>
         <div style="overflow-x:auto;">
           <table>
-            <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo</th><th>Supervisor</th></tr></thead>
+            <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Data</th><th>Motivo</th><th>Supervisor</th><th></th></tr></thead>
             <tbody id="ocor-tbody"></tbody>
           </table>
         </div>
@@ -4136,11 +4136,35 @@
         '<td class="mono">'+formatDateBR(e.inicio)+'</td>' +
         '<td>'+(e.motivo||'—')+'</td>' +
         '<td>'+(e.supervisor||'—')+'</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button type="button" class="btn btn-ghost" data-editar-adv-id="'+e.id+'" title="Editar" style="padding:4px 8px;font-size:12px;margin-right:4px;">✏️</button>' +
+          '<button type="button" class="btn btn-ghost" data-excluir-adv-id="'+e.id+'" title="Excluir" style="padding:4px 8px;font-size:12px;border-color:var(--red);color:var(--red);">🗑️</button>' +
+        '</td>' +
       '</tr>';
     }).join('');
     tbody.querySelectorAll('tr[data-nome]').forEach(function(tr){
       tr.addEventListener('click', function(){
         abrirPerfilAbsColaborador(tr.getAttribute('data-nome'), 'ANO');
+      });
+    });
+    tbody.querySelectorAll('[data-editar-adv-id]').forEach(function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        abrirEdicaoAbsenteismo(this.getAttribute('data-editar-adv-id'));
+      });
+    });
+    tbody.querySelectorAll('[data-excluir-adv-id]').forEach(function(btn){
+      btn.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        var id = this.getAttribute('data-excluir-adv-id');
+        var idx = appState.absenteismo.findIndex(function(a){ return a.id === id; });
+        if(idx < 0) return;
+        var registro = appState.absenteismo[idx];
+        if(!confirm('Tem certeza que deseja EXCLUIR a advertência de ' + registro.nome + ' em ' + formatDateBR(registro.inicio) + '?\n\nEsta ação não pode ser desfeita.')) return;
+        appState.absenteismo.splice(idx, 1);
+        cloudPut(appState).catch(function(err){ console.error('Erro ao excluir advertência:', err); });
+        refreshAbsenteismoView();
+        refreshOcorrenciasView();
       });
     });
   }
