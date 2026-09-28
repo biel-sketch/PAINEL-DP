@@ -2750,6 +2750,7 @@
       posto: dados.posto || base.posto || '',
       cpf: base.cpf || null,
       jornada: base.jornada || null,
+      dataNascimento: base.dataNascimento || null,
       admissao: base.admissao || dados.admissao || null,
       desligamento: dados.desligamento,
       motivoSaida: dados.motivoSaida || null,
@@ -2779,6 +2780,18 @@
     if(ativo && ativo.cpf) return ativo.cpf;
     var inativo = appState.inativos.find(function(i){ return normNome(i.nome) === key; });
     if(inativo && inativo.cpf) return inativo.cpf;
+    return null;
+  }
+
+  // Busca a Data de Nascimento de alguém a partir do cadastro (ativos primeiro,
+  // depois inativos) — usado para preencher esse dado em relatórios/exportações
+  // que hoje não têm essa informação diretamente (ex: TurnOver).
+  function getDataNascimentoPorNome(nome){
+    var key = normNome(nome);
+    var ativo = appState.ativos.find(function(a){ return normNome(a.nome) === key; });
+    if(ativo && ativo.dataNascimento) return ativo.dataNascimento;
+    var inativo = appState.inativos.find(function(i){ return normNome(i.nome) === key; });
+    if(inativo && inativo.dataNascimento) return inativo.dataNascimento;
     return null;
   }
 
@@ -4115,7 +4128,7 @@
     if(filtradas.length === 0){ tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
     emptyEl.style.display = 'none';
     tbody.innerHTML = filtradas.map(function(e){
-      return '<tr>' +
+      return '<tr data-nome="'+e.nome+'" class="row-clickable" title="Clique para ver o relatório do colaborador">' +
         '<td>'+e.nome+'</td>' +
         '<td class="mono">'+formatCPF(getCpfPorNome(e.nome))+'</td>' +
         '<td><span class="pill amber">'+(e.posto||'—')+'</span></td>' +
@@ -4125,6 +4138,11 @@
         '<td>'+(e.supervisor||'—')+'</td>' +
       '</tr>';
     }).join('');
+    tbody.querySelectorAll('tr[data-nome]').forEach(function(tr){
+      tr.addEventListener('click', function(){
+        abrirPerfilAbsColaborador(tr.getAttribute('data-nome'), 'ANO');
+      });
+    });
   }
 
   document.getElementById('ocor-search').addEventListener('input', aplicarFiltrosOcorrencias);
@@ -4597,6 +4615,7 @@
         'Posto': e.posto,
         'Cargo': e.cargo,
         'Tipo': e.tipo,
+        'Data de Nascimento': (function(){ var dn = getDataNascimentoPorNome(e.nome); return dn ? formatDateBR(dn) : ''; })(),
         'Data de Admissão': e.admissao ? formatDateBR(e.admissao) : '',
         'Data de Demissão': e.demissao ? formatDateBR(e.demissao) : '',
         'Motivo da Saída': e.motivoSaida || '',
