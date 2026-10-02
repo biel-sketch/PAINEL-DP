@@ -699,7 +699,7 @@
         <select id="to-filter-contrato-top" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;">
           <option value="">Todos os Contratos</option>
           <option value="DETERMINADO">Determinado</option>
-          <option value="INDETERMINADO">Indeterminado</option>
+          <option value="INDETERMINADO" selected>Indeterminado</option>
         </select>
         <label for="to-periodo-select" style="font-size:11.5px;color:var(--text-dim);margin-left:6px;">Período:</label>
         <select id="to-periodo-select" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"></select>
@@ -3655,7 +3655,7 @@
     appState.ferias = IMPORT_FERIAS_2026_09.map(function(f){ return Object.assign({}, f); });
     appState.desligamentosAndamento = [];
 
-    cloudPut(appState).then(function(){
+    cloudPutReplace(appState, ['ativos','inativos','absenteismo','turnover','ferias','desligamentosAndamento']).then(function(){
       alert('Base de dados atualizada com sucesso!');
     }).catch(function(err){
       console.error('Erro ao atualizar base de dados:', err);
@@ -3685,7 +3685,7 @@
     appState.absenteismo = IMPORT_ABSENTEISMO_2026_09.map(function(e){ return Object.assign({}, e); });
     appState.turnover = IMPORT_TURNOVER_2026_09.map(function(e){ return Object.assign({}, e); });
 
-    cloudPut(appState).then(function(){
+    cloudPutReplace(appState, ['absenteismo','turnover']).then(function(){
       alert('Absenteísmo e TurnOver corrigidos com sucesso!');
     }).catch(function(err){
       console.error('Erro ao corrigir Absenteísmo e TurnOver:', err);
@@ -3708,7 +3708,7 @@
 
     appState.turnover = IMPORT_TURNOVER_2026_09.map(function(e){ return Object.assign({}, e); });
 
-    cloudPut(appState).then(function(){
+    cloudPutReplace(appState, ['turnover']).then(function(){
       alert('TurnOver corrigido com sucesso!');
     }).catch(function(err){
       console.error('Erro ao corrigir TurnOver:', err);
@@ -6168,13 +6168,12 @@
     });
     var admissoes = eventosMes.filter(function(e){ return e.tipo === 'Admissão'; }).length;
     var demissoes = eventosMes.filter(function(e){ return e.tipo === 'Demissão'; }).length;
-    // O % de TurnOver oficial (igual à planilha) considera só contratos INDETERMINADO
-    // (efetivos) no numerador — contratos DETERMINADO (temporários) entram nos totais
-    // de admissões/demissões acima, mas não no índice de turnover.
-    var admissoesIndet = eventosMes.filter(function(e){ return e.tipo === 'Admissão' && e.contrato === 'INDETERMINADO'; }).length;
-    var demissoesIndet = eventosMes.filter(function(e){ return e.tipo === 'Demissão' && e.contrato === 'INDETERMINADO'; }).length;
     var headcount = supervisorFiltro ? computeHeadcountPorSupervisor(supervisorFiltro) : getHeadcountRef(mes).headcount;
-    var pct = headcount > 0 ? ((admissoesIndet + demissoesIndet) / 2) / headcount : null;
+    // O % de TurnOver é calculado sobre o que estiver selecionado no filtro "Contrato"
+    // no topo da aba (eventosMes já vem filtrado por ele via getTurnoverBase()). O índice
+    // OFICIAL da empresa (igual à planilha) é o que aparece com o filtro em "Indeterminado"
+    // — por isso esse filtro já abre selecionado em "Indeterminado" por padrão.
+    var pct = headcount > 0 ? ((admissoes + demissoes) / 2) / headcount : null;
     var custoTotal = eventosMes.reduce(function(s, e){ return s + (Number(e.custoTotal) || 0); }, 0);
     var custoAdmissaoTotal = eventosMes.reduce(function(s, e){ return s + (Number(e.custoAdmissao) || 0); }, 0);
     var custoRescisaoTotal = eventosMes.reduce(function(s, e){ return s + (Number(e.custoRescisao) || 0); }, 0);
@@ -6691,6 +6690,34 @@
       var servidor = snap.val();
       if(servidor){
         COLECOES_APPSTATE.forEach(function(col){
+          if(!Array.isArray(servidor[col]) || !servidor[col].length) return;
+          if(!Array.isArray(state[col])) state[col] = [];
+          var idsLocais = {};
+          state[col].forEach(function(item){ if(item && item.id) idsLocais[item.id] = true; });
+          servidor[col].forEach(function(item){
+            if(item && item.id && !idsLocais[item.id]) state[col].push(item);
+          });
+        });
+      }
+      return dbRef.set(state);
+    }).catch(function(err){
+      console.error('Erro ao mesclar com o servidor antes de salvar — gravando mesmo assim:', err);
+      return dbRef.set(state);
+    });
+  }
+
+  // Igual ao cloudPut, mas para os botões de "substituição total" (Corrigir Abs/TO,
+  // Corrigir só TurnOver, Atualizar Base): nas coleções listadas em colecoesSubstituidas
+  // NÃO mescla de volta o que estava no servidor — senão registros antigos (com IDs
+  // diferentes dos novos) voltariam a aparecer juntos com os novos, misturando dados
+  // velhos e corrigidos. Nas demais coleções, continua mesclando normalmente para não
+  // perder o trabalho de outras pessoas feito em paralelo.
+  function cloudPutReplace(state, colecoesSubstituidas){
+    return dbRef.once('value').then(function(snap){
+      var servidor = snap.val();
+      if(servidor){
+        COLECOES_APPSTATE.forEach(function(col){
+          if(colecoesSubstituidas.indexOf(col) !== -1) return;
           if(!Array.isArray(servidor[col]) || !servidor[col].length) return;
           if(!Array.isArray(state[col])) state[col] = [];
           var idsLocais = {};
