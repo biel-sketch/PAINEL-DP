@@ -2100,7 +2100,6 @@
     {user:'debora', email:'debora@loginserv.com.br', name:'Debora', role:'administrador'},
     {user:'carol', email:'carol@loginserv.com.br', name:'Carol', role:'administrador'},
     {user:'gabriel', email:'gabriel@loginserv.com.br', name:'Gabriel', role:'administrador'},
-    {user:'joao', email:'joaovitor@loginserv.com.br', name:'Joao', role:'administrador'},
     {user:'mariana', email:'mariana@loginserv.com.br', name:'Mariana', role:'administrador'},
     {user:'simone', email:'simone@loginserv.com.br', name:'Simone', role:'operacional'},
     {user:'elaine', email:'elaine@loginserv.com.br', name:'Elaine', role:'supervisor'},
@@ -6620,8 +6619,39 @@
     document.getElementById('sync-label').textContent = label;
   }
 
+  // Coleções da appState que são listas de registros com "id" — usadas pelo
+  // merge de segurança abaixo antes de cada gravação.
+  var COLECOES_APPSTATE = ['ativos','inativos','absenteismo','turnover','ferias','ocorrencias','cat','desligamentosAndamento','clientes'];
+
+  // Salva o estado no Firebase. Como o painel é usado por várias pessoas ao
+  // mesmo tempo e cada salvamento regrava o banco inteiro (não registro por
+  // registro), duas pessoas salvando quase ao mesmo tempo podiam fazer uma
+  // sobrescrever silenciosamente um registro que a outra acabou de criar
+  // (ex: um novo colaborador que não gerava o registro correspondente no
+  // TurnOver, porque o salvamento de outra pessoa chegou por cima logo depois).
+  // Para reduzir esse risco: antes de gravar, busca a versão mais atual do
+  // servidor e adiciona ao estado local qualquer registro (por id) que exista
+  // lá mas ainda não exista localmente — assim, a gravação nunca apaga algo
+  // que outra pessoa acabou de adicionar em paralelo.
   function cloudPut(state){
-    return dbRef.set(state);
+    return dbRef.once('value').then(function(snap){
+      var servidor = snap.val();
+      if(servidor){
+        COLECOES_APPSTATE.forEach(function(col){
+          if(!Array.isArray(servidor[col]) || !servidor[col].length) return;
+          if(!Array.isArray(state[col])) state[col] = [];
+          var idsLocais = {};
+          state[col].forEach(function(item){ if(item && item.id) idsLocais[item.id] = true; });
+          servidor[col].forEach(function(item){
+            if(item && item.id && !idsLocais[item.id]) state[col].push(item);
+          });
+        });
+      }
+      return dbRef.set(state);
+    }).catch(function(err){
+      console.error('Erro ao mesclar com o servidor antes de salvar — gravando mesmo assim:', err);
+      return dbRef.set(state);
+    });
   }
 
   function processarSnapshot(cloud){
