@@ -6786,30 +6786,15 @@
     if((!appState.turnover || appState.turnover.length === 0) && SEED_TURNOVER.length){
       appState.turnover = SEED_TURNOVER;
       cloudPut(appState).catch(function(err){ console.error('Erro ao gravar seed turnover:', err); });
-    } else if(appState.turnover && appState.turnover.length && SEED_TURNOVER.length){
-      // PATCH: uma versão anterior tinha um bug que classificava TODOS os
-      // eventos como "Demissão" (as Admissões sumiam dos indicadores).
-      // Corrige o campo "tipo" cruzando pelo id, sem tocar em lançamentos manuais.
-      var seedByIdTo = {};
-      SEED_TURNOVER.forEach(function(s){ seedByIdTo[s.id] = s; });
-      var precisouPatchTo = false;
-      appState.turnover.forEach(function(e){
-        var s = seedByIdTo[e.id];
-        if(s && e.tipo !== s.tipo){
-          e.tipo = s.tipo;
-          precisouPatchTo = true;
-        }
-      });
-      if(precisouPatchTo){
-        // Recalcula inativos, já que a correção pode revelar novos desligados
-        var inativosCorrigidos = dedupByName(buildInativosFromTurnoverSeed());
-        var ativosSetTmp = {};
-        appState.ativos.forEach(function(a){ ativosSetTmp[normNome(a.nome)] = true; });
-        inativosCorrigidos = inativosCorrigidos.filter(function(i){ return !ativosSetTmp[normNome(i.nome)]; });
-        if(inativosCorrigidos.length) appState.inativos = dedupByName((appState.inativos || []).concat(inativosCorrigidos));
-        cloudPut(appState).catch(function(err){ console.error('Erro ao aplicar patch de tipo (admissão/demissão):', err); });
-      }
     }
+    // OBS: existiu aqui um PATCH antigo que corrigia o campo "tipo" dos eventos de
+    // TurnOver cruzando por id com SEED_TURNOVER (um array de 504 registros de uma
+    // importação muito antiga, ids "to0000".."to0503"). Esse patch foi REMOVIDO porque
+    // as importações atuais (IMPORT_TURNOVER_2026_09) reaproveitam a mesma faixa de ids
+    // ("to0001".."toNNNN"), e o patch estava sobrescrevendo o "tipo" de centenas de
+    // registros corretos e recém-importados com o valor (errado, desatualizado) do
+    // SEED_TURNOVER antigo — nunca reative esse cruzamento por id entre arrays de
+    // importações diferentes.
     if(!appState.inativos || appState.inativos.length === 0){
       var inativosSeed = dedupByName(buildInativosFromTurnoverSeed());
       if(inativosSeed.length){
