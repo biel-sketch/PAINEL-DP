@@ -2110,7 +2110,8 @@
     {user:'daniela', email:'rh.2@loginserv.com.br', name:'Daniela', role:'analista'},
     {user:'marcela', email:'rh.1@loginserv.com.br', name:'Marcela', role:'assistente'},
     {user:'leonardo', email:'dp.2@loginserv.com.br', name:'Leonardo', role:'dp'},
-    {user:'renata', email:'rh.3@loginserv.com.br', name:'Renata', role:'assistente'}
+    {user:'renata', email:'rh.3@loginserv.com.br', name:'Renata', role:'assistente'},
+    {user:'joao', email:'joaovitor@loginserv.com.br', name:'Joao', role:'administrador'}
   ];
 
   function findUserRoleByUsername(username){
@@ -2296,14 +2297,28 @@
     return p[2] + '/' + p[1] + '/' + p[0];
   }
 
+  // Reconstrói as opções de um <select> de filtro sem perder a seleção atual
+  // do usuário, contanto que o valor escolhido ainda exista entre as novas
+  // opções. Sem isso, qualquer atualização dos dados — inclusive a
+  // sincronização em tempo real disparada pela ação de QUALQUER outro usuário
+  // do painel — reconstrói o <select> e reseta o filtro de volta para "Todos"
+  // no meio do uso, dando a impressão de que o filtro simplesmente não funciona.
+  function popularSelectFiltro(sel, valores, labelPadrao){
+    var valorAtual = sel.value;
+    sel.innerHTML = '<option value="">'+labelPadrao+'</option>' + valores.map(function(v){
+      return '<option value="'+v+'">'+v+'</option>';
+    }).join('');
+    if(valorAtual && valores.indexOf(valorAtual) !== -1) sel.value = valorAtual;
+  }
+
   function populateAtivosFilters(){
     var postoSel = document.getElementById('ativos-filter-posto');
     var empresaSel = document.getElementById('ativos-filter-empresa');
     var postos = Array.from(new Set(appState.ativos.map(function(c){ return c.posto; }))).sort();
     var empresas = Array.from(new Set(appState.ativos.map(function(c){ return c.empresa; }))).sort();
 
-    postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
-    empresaSel.innerHTML = '<option value="">Todas as empresas</option>' + empresas.map(function(e){ return '<option value="'+e+'">'+e+'</option>'; }).join('');
+    popularSelectFiltro(postoSel, postos, 'Todos os postos');
+    popularSelectFiltro(empresaSel, empresas, 'Todas as empresas');
   }
 
   function renderAtivosStats(list){
@@ -2476,16 +2491,13 @@
   function populateExperienciaFiltros(){
     ['exp-filtro-empresa','exp-an-filtro-empresa'].forEach(function(id){
       var sel = document.getElementById(id);
-      if(!sel.options.length || sel.getAttribute('data-populated') !== 'true'){
-        var empresas = Array.from(new Set(appState.ativos.map(function(a){ return a.empresa; }).filter(Boolean))).sort();
-        sel.innerHTML = '<option value="">Todas as Empresas</option>' + empresas.map(function(e){ return '<option value="'+e+'">'+e+'</option>'; }).join('');
-        sel.setAttribute('data-populated', 'true');
-      }
+      var empresas = Array.from(new Set(appState.ativos.map(function(a){ return a.empresa; }).filter(Boolean))).sort();
+      popularSelectFiltro(sel, empresas, 'Todas as Empresas');
     });
     ['exp-filtro-posto','exp-an-filtro-posto'].forEach(function(id){
       var sel = document.getElementById(id);
       var postos = Array.from(new Set(getAtivosComExperiencia().map(function(a){ return a.posto; }).filter(Boolean))).sort();
-      sel.innerHTML = '<option value="">Todos os Postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+      popularSelectFiltro(sel, postos, 'Todos os Postos');
     });
   }
 
@@ -2952,7 +2964,7 @@
   function populateInativosFilters(){
     var postoSel = document.getElementById('inativos-filter-posto');
     var postos = Array.from(new Set(appState.inativos.map(function(c){ return c.posto; }))).sort();
-    postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+    popularSelectFiltro(postoSel, postos, 'Todos os postos');
   }
 
   function renderInativosStats(list){
@@ -3225,12 +3237,12 @@
     ['ferias-filtro-empresa','ferias-an-filtro-empresa'].forEach(function(id){
       var sel = document.getElementById(id);
       var empresas = Array.from(new Set(appState.ativos.map(function(a){ return a.empresa; }).filter(Boolean))).sort();
-      sel.innerHTML = '<option value="">Todas as Empresas</option>' + empresas.map(function(e){ return '<option value="'+e+'">'+e+'</option>'; }).join('');
+      popularSelectFiltro(sel, empresas, 'Todas as Empresas');
     });
     ['ferias-filtro-posto','ferias-an-filtro-posto'].forEach(function(id){
       var sel = document.getElementById(id);
       var postos = Array.from(new Set(appState.ativos.map(function(a){ return a.posto; }).filter(Boolean))).sort();
-      sel.innerHTML = '<option value="">Todos os Postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+      popularSelectFiltro(sel, postos, 'Todos os Postos');
     });
   }
 
@@ -3502,11 +3514,11 @@
     var mesSel = document.getElementById('ocor-filtro-mes');
     var meses = Array.from(new Set(todas.map(function(e){ return e.mes; })));
     meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
-    mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+    popularSelectFiltro(mesSel, meses, 'Todos os meses');
 
     var postoSel = document.getElementById('ocor-filtro-posto');
     var postos = Array.from(new Set(todas.map(function(e){ return e.posto; }).filter(Boolean))).sort();
-    postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+    popularSelectFiltro(postoSel, postos, 'Todos os postos');
   }
 
   // ============================================================
@@ -3812,12 +3824,12 @@
       var sel = document.getElementById(id);
       var meses = Array.from(new Set(todas.map(function(e){ return e.mes; })));
       meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
-      sel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
+      popularSelectFiltro(sel, meses, 'Todos os meses');
     });
     ['cat-filtro-posto','cat-an-filtro-posto'].forEach(function(id){
       var sel = document.getElementById(id);
       var postos = Array.from(new Set(todas.map(function(e){ return e.posto; }).filter(Boolean))).sort();
-      sel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
+      popularSelectFiltro(sel, postos, 'Todos os postos');
     });
   }
 
@@ -5359,9 +5371,9 @@
     meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
     var postos = Array.from(new Set(appState.absenteismo.map(function(e){ return e.posto; }))).sort();
     var supervisores = Array.from(new Set(appState.absenteismo.map(function(e){ return (e.supervisor||'').trim(); }).filter(Boolean))).sort();
-    mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
-    postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
-    supervisorSel.innerHTML = '<option value="">Todos os supervisores</option>' + supervisores.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+    popularSelectFiltro(mesSel, meses, 'Todos os meses');
+    popularSelectFiltro(postoSel, postos, 'Todos os postos');
+    popularSelectFiltro(supervisorSel, supervisores, 'Todos os supervisores');
   }
 
   var SELECTED_ABS_PERIODO = MES_ATUAL;
@@ -6220,9 +6232,9 @@
     meses.sort(function(a,b){ return MESES_ORDEM.indexOf(a) - MESES_ORDEM.indexOf(b); });
     var postos = Array.from(new Set(appState.turnover.map(function(e){ return e.posto; }))).sort();
     var supervisores = Array.from(new Set(appState.turnover.map(function(e){ return (e.supervisor||'').trim(); }).filter(Boolean))).sort();
-    mesSel.innerHTML = '<option value="">Todos os meses</option>' + meses.map(function(m){ return '<option value="'+m+'">'+m+'</option>'; }).join('');
-    postoSel.innerHTML = '<option value="">Todos os postos</option>' + postos.map(function(p){ return '<option value="'+p+'">'+p+'</option>'; }).join('');
-    supervisorSel.innerHTML = '<option value="">Todos os supervisores</option>' + supervisores.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+    popularSelectFiltro(mesSel, meses, 'Todos os meses');
+    popularSelectFiltro(postoSel, postos, 'Todos os postos');
+    popularSelectFiltro(supervisorSel, supervisores, 'Todos os supervisores');
   }
 
   var SELECTED_TO_PERIODO = MES_ATUAL;
