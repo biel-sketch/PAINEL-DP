@@ -268,7 +268,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-05-05</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-05-06</div>
     </div>
   </aside>
 
@@ -2491,6 +2491,36 @@
     renderAtivosTable(filtered);
     renderAtivosStats(filtered);
   }
+
+  // Máscara do campo Turno: digitando só números vira "09:00–18:30".
+  function formatarTurno(digitos){
+    var d = digitos.slice(0, 8), s = '';
+    for(var i = 0; i < d.length; i++){
+      if(i === 2 || i === 6) s += ':';
+      if(i === 4) s += '\u2013';
+      s += d[i];
+    }
+    return s;
+  }
+  function aplicarMascaraTurno(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.setAttribute('maxlength', '11');
+    el.setAttribute('inputmode', 'numeric');
+    el.dataset.anterior = el.value || '';
+    el.addEventListener('input', function(ev){
+      var digitos = el.value.replace(/\D/g, '');
+      var novo = formatarTurno(digitos);
+      // Apagando um separador (":" ou "–"): remove também o dígito anterior, senão a máscara o recoloca.
+      if(ev.inputType && ev.inputType.indexOf('delete') === 0 && novo === el.dataset.anterior && digitos.length){
+        novo = formatarTurno(digitos.slice(0, -1));
+      }
+      el.value = novo;
+      el.dataset.anterior = novo;
+    });
+  }
+  aplicarMascaraTurno('edt-turno');
+  aplicarMascaraTurno('nat-turno');
 
   function refreshAtivosView(){
     var precisaSalvar = false;
@@ -5130,6 +5160,7 @@
     document.getElementById('edt-salario').value = pessoa.salario || '';
     document.getElementById('edt-jornada').value = pessoa.jornada || '';
     document.getElementById('edt-turno').value = pessoa.turno || '';
+    document.getElementById('edt-turno').dataset.anterior = pessoa.turno || '';
     document.getElementById('edt-empresa').value = pessoa.empresa || 'LOGIN SERV';
     document.getElementById('edt-admissao').value = pessoa.admissao || '';
     document.getElementById('edt-inicio-posto').value = pessoa.dataInicioPosto || '';
