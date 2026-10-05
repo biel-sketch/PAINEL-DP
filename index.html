@@ -268,7 +268,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-05-03</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-05-04</div>
     </div>
   </aside>
 
@@ -5483,6 +5483,7 @@
     sel.addEventListener('change', function(){
       SELECTED_ABS_PERIODO = this.value;
       renderAbsStatsCards();
+      refreshAbsenteismoCharts();
     });
   }
 
@@ -5659,10 +5660,15 @@
     document.getElementById(containerId).innerHTML = items.length ? html : '<div class="empty-state" style="padding:20px;">Sem dados suficientes.</div>';
   }
 
+  // Base dos gráficos: respeita o filtro de Responsável e o "Selecionar mês" do topo.
+  function getAbsBasePeriodo(){
+    return getAbsenteismoBase().filter(function(e){ return e.mes === SELECTED_ABS_PERIODO; });
+  }
+
   // ---- Absenteísmo: Maiores motivos de ausência ----
   function computeTopMotivos(){
     var counts = {};
-    getAbsenteismoBase().filter(function(e){ return e.tipo === 'Atestado'; }).forEach(function(e){
+    getAbsBasePeriodo().filter(function(e){ return e.tipo === 'Atestado'; }).forEach(function(e){
       var m = (e.motivo || '').trim().toUpperCase();
       if(!m) return;
       counts[m] = (counts[m] || 0) + 1;
@@ -5674,7 +5680,7 @@
 
   // ---- Absenteísmo: TOP 5 postos por % do total de ocorrências ----
   function computeTopPostosAbs(){
-    var base = getAbsenteismoBase();
+    var base = getAbsBasePeriodo();
     var total = base.length;
     if(!total) return [];
     var counts = {};
@@ -5746,9 +5752,9 @@
       labelPorCargo[k] = a.cargo; // prioriza o nome como aparece em Ativos
     });
 
-    var totalHoras = getAbsenteismoBase().reduce(function(s,e){ return s + (Number(e.horasPerdidas)||0); }, 0);
+    var totalHoras = getAbsBasePeriodo().reduce(function(s,e){ return s + (Number(e.horasPerdidas)||0); }, 0);
     var horasPorCargo = {};
-    getAbsenteismoBase().forEach(function(e){
+    getAbsBasePeriodo().forEach(function(e){
       var k = normCargo(e.cargo);
       horasPorCargo[k] = (horasPorCargo[k] || 0) + (Number(e.horasPerdidas)||0);
       if(!labelPorCargo[k]) labelPorCargo[k] = e.cargo;
@@ -5767,7 +5773,7 @@
   // ---- Participação por faixa etária (% pessoas ativas vs % ocorrências) ----
   var FAIXA_IDADE_LABELS = {1:'18 a 25 anos', 2:'26 a 35 anos', 3:'36 a 45 anos', 4:'>46 anos'};
   function computeFaixaEtariaAbsenteismo(){
-    var baseFiltrada = getAbsenteismoBase();
+    var baseFiltrada = getAbsBasePeriodo();
     // % de ocorrências por faixa
     var totalEventos = baseFiltrada.length;
     var eventosPorFaixa = {};
@@ -5798,7 +5804,7 @@
 
   // ---- % Advertência aplicada nas faltas ----
   function computePctAdvertenciaFaltas(){
-    var faltas = getAbsenteismoBase().filter(function(e){ return e.tipo === 'Falta'; });
+    var faltas = getAbsBasePeriodo().filter(function(e){ return e.tipo === 'Falta'; });
     if(!faltas.length) return { aplicada:0, naoAplicada:100 };
     var aplicadas = faltas.filter(function(e){ return e.advertencia; }).length;
     var pct = aplicadas / faltas.length * 100;
