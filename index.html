@@ -268,7 +268,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-05-06</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-07-01</div>
     </div>
   </aside>
 
@@ -6809,6 +6809,25 @@
     } catch(e){ return false; }
   }
 
+  // Traz de volta registros que existem no servidor e não existem nesta aba (ex.: criados por
+  // outra pessoa nesse meio tempo) — MAS não ressuscita o que ESTA aba removeu de propósito
+  // (ex.: concluir um desligamento tira o registro de "Em Andamento"; cancelar/excluir também).
+  // Um id que já estava na última foto do servidor e agora sumiu localmente foi removido aqui.
+  function mesclarItensDoServidor(state, servidor, col){
+    var idsLocais = {};
+    state[col].forEach(function(item){ if(item && item.id) idsLocais[item.id] = true; });
+    var idsDaUltimaFoto = null;
+    if(ULTIMO_SNAPSHOT_SERVIDOR && Array.isArray(ULTIMO_SNAPSHOT_SERVIDOR[col])){
+      idsDaUltimaFoto = {};
+      ULTIMO_SNAPSHOT_SERVIDOR[col].forEach(function(item){ if(item && item.id) idsDaUltimaFoto[item.id] = true; });
+    }
+    servidor[col].forEach(function(item){
+      if(!item || !item.id || idsLocais[item.id]) return;
+      if(idsDaUltimaFoto && idsDaUltimaFoto[item.id]) return; // removido localmente de propósito
+      state[col].push(item);
+    });
+  }
+
   function cloudPut(state){
     return dbRef.once('value').then(function(snap){
       var servidor = snap.val();
@@ -6825,11 +6844,7 @@
           }
           if(!Array.isArray(servidor[col]) || !servidor[col].length) return;
           if(!Array.isArray(state[col])) state[col] = [];
-          var idsLocais = {};
-          state[col].forEach(function(item){ if(item && item.id) idsLocais[item.id] = true; });
-          servidor[col].forEach(function(item){
-            if(item && item.id && !idsLocais[item.id]) state[col].push(item);
-          });
+          mesclarItensDoServidor(state, servidor, col);
         });
       }
       return dbRef.set(state);
@@ -6857,11 +6872,7 @@
           }
           if(!Array.isArray(servidor[col]) || !servidor[col].length) return;
           if(!Array.isArray(state[col])) state[col] = [];
-          var idsLocais = {};
-          state[col].forEach(function(item){ if(item && item.id) idsLocais[item.id] = true; });
-          servidor[col].forEach(function(item){
-            if(item && item.id && !idsLocais[item.id]) state[col].push(item);
-          });
+          mesclarItensDoServidor(state, servidor, col);
         });
       }
       return dbRef.set(state);
