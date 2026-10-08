@@ -268,7 +268,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-07-01</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-08-02</div>
     </div>
   </aside>
 
@@ -283,7 +283,7 @@
           <div class="stat-value teal" id="ativos-total">0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Postos Atendidos</div>
+          <div class="stat-label">Clientes Atendidos</div>
           <div class="stat-value" id="ativos-postos">0</div>
         </div>
         <div class="stat-card">
@@ -310,6 +310,9 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <input type="text" id="ativos-search" placeholder="Buscar por nome ou cargo..." style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;min-width:200px;">
             <select id="ativos-filter-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
+              <option value="">Todos os clientes</option>
+            </select>
+            <select id="ativos-filter-posto-trabalho" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
               <option value="">Todos os postos</option>
             </select>
             <select id="ativos-filter-empresa" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
@@ -324,6 +327,7 @@
             <tr>
               <th>Nome</th>
               <th>Cargo</th>
+              <th>Cliente</th>
               <th>Posto</th>
               <th>Início no Posto</th>
               <th>Admissão</th>
@@ -1584,14 +1588,18 @@
             <datalist id="ativos-nome-datalist"></datalist>
           </div>
           <div class="modal-field">
-            <label>Posto</label>
+            <label>Cliente</label>
             <select id="nat-posto" required>
               <option value="">Selecione...</option>
             </select>
           </div>
           <div class="modal-field" id="nat-posto-novo-wrap" style="display:none;">
-            <label>Nome do Novo Cliente/Posto</label>
+            <label>Nome do Novo Cliente</label>
             <input type="text" id="nat-posto-novo" placeholder="Digite o nome do novo cliente">
+          </div>
+          <div class="modal-field">
+            <label>Posto</label>
+            <input type="text" id="nat-posto-trabalho" list="postos-trabalho-datalist" placeholder="Ex: Expedição, Portaria...">
           </div>
           <div class="modal-field">
             <label>Cargo</label>
@@ -1695,14 +1703,19 @@
         <div class="modal-grid">
           <div class="modal-field full"><label>Nome</label><input type="text" id="edt-nome" disabled style="opacity:0.7;"></div>
           <div class="modal-field">
-            <label>Posto</label>
+            <label>Cliente</label>
             <select id="edt-posto" required>
               <option value="">Selecione...</option>
             </select>
           </div>
           <div class="modal-field" id="edt-posto-novo-wrap" style="display:none;">
-            <label>Nome do Novo Cliente/Posto</label>
+            <label>Nome do Novo Cliente</label>
             <input type="text" id="edt-posto-novo" placeholder="Digite o nome do novo cliente">
+          </div>
+          <div class="modal-field">
+            <label>Posto</label>
+            <input type="text" id="edt-posto-trabalho" list="postos-trabalho-datalist" placeholder="Ex: Expedição, Portaria...">
+            <datalist id="postos-trabalho-datalist"></datalist>
           </div>
           <div class="modal-field">
             <label>Cargo</label>
@@ -2024,7 +2037,7 @@
             </select>
           </div>
           <div class="modal-field" id="to-f-posto-novo-wrap" style="display:none;">
-            <label>Nome do Novo Cliente/Posto</label>
+            <label>Nome do Novo Cliente</label>
             <input type="text" id="to-f-posto-novo" placeholder="Digite o nome do novo cliente">
           </div>
           <div class="modal-field">
@@ -2344,7 +2357,9 @@
     var postos = Array.from(new Set(appState.ativos.map(function(c){ return c.posto; }))).sort();
     var empresas = Array.from(new Set(appState.ativos.map(function(c){ return c.empresa; }))).sort();
 
-    popularSelectFiltro(postoSel, postos, 'Todos os postos');
+    popularSelectFiltro(postoSel, postos, 'Todos os clientes');
+    var postosTrab = Array.from(new Set(appState.ativos.map(function(c){ return (c.postoTrabalho || '').trim(); }).filter(Boolean))).sort();
+    popularSelectFiltro(document.getElementById('ativos-filter-posto-trabalho'), postosTrab, 'Todos os postos');
     popularSelectFiltro(empresaSel, empresas, 'Todas as empresas');
   }
 
@@ -2456,6 +2471,7 @@
         '<td>'+c.nome+(c.estabilidade ? ' <span class="pill amber">🔒 Estabilidade</span>' : '')+'</td>' +
         '<td>'+c.cargo+'</td>' +
         '<td><span class="pill teal">'+c.posto+'</span></td>' +
+        '<td>'+(c.postoTrabalho || '—')+'</td>' +
         '<td class="mono">'+(c.dataInicioPosto ? formatDateBR(c.dataInicioPosto) : '—')+'</td>' +
         '<td class="mono">'+formatDateBR(c.admissao)+'</td>' +
         '<td class="mono">'+formatCPF(c.cpf)+'</td>' +
@@ -2480,12 +2496,14 @@
     var search = document.getElementById('ativos-search').value.trim().toLowerCase();
     var posto = document.getElementById('ativos-filter-posto').value;
     var empresa = document.getElementById('ativos-filter-empresa').value;
+    var postoTrab = document.getElementById('ativos-filter-posto-trabalho').value;
 
     var filtered = appState.ativos.filter(function(c){
       var matchSearch = !search || c.nome.toLowerCase().indexOf(search) !== -1 || c.cargo.toLowerCase().indexOf(search) !== -1;
       var matchPosto = !posto || c.posto === posto;
       var matchEmpresa = !empresa || c.empresa === empresa;
-      return matchSearch && matchPosto && matchEmpresa;
+      var matchPostoTrab = !postoTrab || (c.postoTrabalho || '').trim() === postoTrab;
+      return matchSearch && matchPosto && matchPostoTrab && matchEmpresa;
     });
 
     renderAtivosTable(filtered);
@@ -2821,6 +2839,7 @@
       cpf: base.cpf || null,
       jornada: base.jornada || null,
       turno: base.turno || null,
+      postoTrabalho: base.postoTrabalho || null,
       dataNascimento: base.dataNascimento || null,
       admissao: base.admissao || dados.admissao || null,
       desligamento: dados.desligamento,
@@ -3011,6 +3030,7 @@
       salario: dados.salario || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].salario : 0) || 0,
       jornada: dados.jornada || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].jornada : '') || '',
       turno: dados.turno || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].turno : '') || '',
+      postoTrabalho: dados.postoTrabalho || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].postoTrabalho : '') || '',
       empresa: dados.empresa || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].empresa : '') || '',
       supervisor: dados.supervisor || (idxAtivoExistente >= 0 ? appState.ativos[idxAtivoExistente].supervisor : null) || null
     };
@@ -4117,6 +4137,12 @@
       if(valorAtual) sel.value = valorAtual;
     });
 
+    var dl = document.getElementById('postos-trabalho-datalist');
+    if(dl){
+      var postosTrab = Array.from(new Set(appState.ativos.map(function(a){ return (a.postoTrabalho || '').trim(); }).filter(Boolean))).sort();
+      dl.innerHTML = postosTrab.map(function(p){ return '<option value="'+p+'">'; }).join('');
+    }
+
     ['nat-cargo','edt-cargo','to-f-cargo'].forEach(function(id){
       var sel = document.getElementById(id);
       var valorAtual = sel.value;
@@ -4722,7 +4748,8 @@
       return {
         'Nome': a.nome,
         'Cargo': a.cargo,
-        'Posto': a.posto,
+        'Cliente': a.posto,
+        'Posto': a.postoTrabalho || '',
         'Início no Posto': a.dataInicioPosto ? formatDateBR(a.dataInicioPosto) : '',
         'Admissão': formatDateBR(a.admissao),
         'CPF': formatCPF(a.cpf),
@@ -4914,6 +4941,7 @@
 
   document.getElementById('ativos-search').addEventListener('input', applyAtivosFilters);
   document.getElementById('ativos-filter-posto').addEventListener('change', applyAtivosFilters);
+  document.getElementById('ativos-filter-posto-trabalho').addEventListener('change', applyAtivosFilters);
   document.getElementById('ativos-filter-empresa').addEventListener('change', applyAtivosFilters);
 
   document.getElementById('ativos-add-btn').addEventListener('click', function(){
@@ -4967,12 +4995,13 @@
     var posto = resolverPostoSelecionado('nat');
     var cargo = resolverCargoSelecionado('nat');
     if(!posto || !cargo){
-      alert('Selecione o Posto e o Cargo (ou preencha o nome, se for um novo cliente/cargo).');
+      alert('Selecione o Cliente e o Cargo (ou preencha o nome, se for um novo cliente/cargo).');
       return;
     }
     var admissao = document.getElementById('nat-admissao').value;
     var dados = {
       posto: posto,
+      postoTrabalho: document.getElementById('nat-posto-trabalho').value.trim(),
       cargo: cargo,
       admissao: admissao,
       cpf: document.getElementById('nat-cpf').value.trim(),
@@ -5136,6 +5165,7 @@
 
     // Posto: se o valor existente não estiver na lista padronizada, cai no
     // modo "Outro" com o texto original preenchido, sem perder o dado.
+    document.getElementById('edt-posto-trabalho').value = pessoa.postoTrabalho || '';
     var selPosto = document.getElementById('edt-posto');
     selPosto.value = pessoa.posto || '';
     if(selPosto.value !== (pessoa.posto || '')){
@@ -5209,10 +5239,11 @@
     var novoPosto = resolverPostoSelecionado('edt');
     var novoCargo = resolverCargoSelecionado('edt');
     if(!novoPosto || !novoCargo){
-      alert('Selecione o Posto e o Cargo (ou preencha o nome, se for um novo cliente/cargo).');
+      alert('Selecione o Cliente e o Cargo (ou preencha o nome, se for um novo cliente/cargo).');
       return;
     }
     pessoa.posto = novoPosto;
+    pessoa.postoTrabalho = document.getElementById('edt-posto-trabalho').value.trim();
     pessoa.cargo = novoCargo;
     pessoa.cpf = document.getElementById('edt-cpf').value.trim();
     pessoa.salario = parseFloat(document.getElementById('edt-salario').value) || 0;
@@ -6678,7 +6709,7 @@
     var posto = resolverPostoSelecionado('to-f');
     var cargo = resolverCargoSelecionado('to-f');
     if(!posto || !cargo){
-      alert('Selecione o Posto e o Cargo (ou preencha o nome, se for um novo cliente/cargo).');
+      alert('Selecione o Cliente e o Cargo (ou preencha o nome, se for um novo cliente/cargo).');
       return;
     }
     var contrato = document.getElementById('to-f-contrato').value;
