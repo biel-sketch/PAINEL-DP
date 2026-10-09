@@ -118,6 +118,10 @@
   .panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);}
   .panel-title{font-family:var(--font-display);font-weight:600;font-size:14px;}
   table{width:100%;border-collapse:collapse;font-size:13px;}
+  table thead th.sortable{cursor:pointer;user-select:none;}
+  table thead th.sortable:hover{color:var(--text);}
+  table thead th.sort-asc::after{content:' \25B2';font-size:9px;color:var(--teal);}
+  table thead th.sort-desc::after{content:' \25BC';font-size:9px;color:var(--teal);}
   th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);font-weight:500;padding:10px 18px;border-bottom:1px solid var(--line-strong);background:#0D1526;}
   td{padding:12px 18px;border-bottom:1px solid var(--line);color:var(--text);}
   tbody tr:last-child td{border-bottom:none;}
@@ -268,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-08-02</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-09-01</div>
     </div>
   </aside>
 
@@ -4432,6 +4436,14 @@
         '<div><div class="lbl">CPF</div>'+formatCPF(registro.cpf)+'</div>' +
         '<div><div class="lbl">Admissão</div>'+formatDateBR(registro.admissao)+'</div>' +
         '<div><div class="lbl">Desligamento</div>'+formatDateBR(registro.desligamento)+'</div>' +
+        '<div><div class="lbl">Desligamento por</div>' +
+          '<select data-field="motivoSaida" data-id="'+registro.id+'" class="desl-input" style="margin-top:2px;">' +
+            '<option value="">—</option>' +
+            '<option value="COLABORADOR"'+(registro.motivoSaida==='COLABORADOR'?' selected':'')+'>Pedido do Colaborador</option>' +
+            '<option value="EMPRESA"'+(registro.motivoSaida==='EMPRESA'?' selected':'')+'>Pedido da Empresa</option>' +
+            '<option value="ABANDONO"'+(registro.motivoSaida==='ABANDONO'?' selected':'')+'>Abandono</option>' +
+          '</select>' +
+        '</div>' +
       '</div>' +
 
       '<div class="desl-checklist">' +
@@ -4592,6 +4604,15 @@
 
         var isNumero = (field === 'valorUniforme' || field === 'valorTRCT' || field === 'valorFGTS');
         reg[field] = isNumero ? (parseFloat(this.value) || 0) : this.value;
+
+        if(field === 'motivoSaida'){
+          reg.motivoSaida = this.value || null;
+          // mantém o registro de Demissão no TurnOver igual ao que foi escolhido aqui
+          if(reg.turnoverId){
+            var regTO = appState.turnover.find(function(x){ return x.id === reg.turnoverId; });
+            if(regTO){ regTO.motivoSaida = reg.motivoSaida; refreshTurnoverView(); }
+          }
+        }
 
         if(field === 'uniformeDevolvido'){
           var campoValor = container.querySelector('[data-field="valorUniforme"][data-id="'+idAtual+'"]');
@@ -7074,6 +7095,89 @@
     var d = new Date();
     var formatted = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'long', year:'numeric'});
     document.querySelectorAll('.page-date').forEach(function(el){ el.textContent = formatted; });
+  })();
+
+  // ============================================================
+  // ORDENAR TABELAS: clique no cabeçalho de qualquer coluna (1º clique crescente, 2º decrescente).
+  // A ordem escolhida é reaplicada automaticamente quando a tabela é redesenhada.
+  // ============================================================
+  (function(){
+    try {
+      var SEM_ORDENACAO = { 'abs-trend-tbody':1, 'to-trend-tbody':1 }; // têm linha de total no fim
+      var collator = new Intl.Collator('pt-BR', { numeric:true, sensitivity:'base' });
+
+      function parseCelula(td){
+        var s = (td.getAttribute('data-sort') || td.textContent || '').replace(/\s+/g, ' ').trim();
+        if(!s || s === '—' || s === '-') return { t:'vazio' };
+        var m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+        if(m) return { t:'num', v:Number(m[3] + m[2] + m[1]), s:s };
+        var c = s.replace(/^R\$\s?/, '').replace(/%$/, '').trim();
+        if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(c) || /^-?\d+,\d+$/.test(c)) return { t:'num', v:parseFloat(c.replace(/\./g, '').replace(',', '.')), s:s };
+        if(/^-?\d+(\.\d+)?$/.test(c)) return { t:'num', v:parseFloat(c), s:s };
+        var lead = c.match(/^(-?\d+(?:,\d+)?)\s+\D/);
+        if(lead) return { t:'num', v:parseFloat(lead[1].replace(',', '.')), s:s };
+        return { t:'txt', s:s };
+      }
+
+      function ordenar(table){
+        var st = table._sort;
+        var tbody = table.tBodies[0];
+        if(!st || !tbody) return;
+        var rows = Array.prototype.slice.call(tbody.rows);
+        if(rows.length < 2 || rows.some(function(r){ return r.cells.length <= st.idx; })) return;
+        var itens = rows.map(function(r, i){ return { r:r, i:i, k:parseCelula(r.cells[st.idx]) }; });
+        var dir = st.dir === 'asc' ? 1 : -1;
+        itens.sort(function(a, b){
+          if(a.k.t === 'vazio' || b.k.t === 'vazio'){
+            if(a.k.t === b.k.t) return a.i - b.i;
+            return a.k.t === 'vazio' ? 1 : -1; // vazios sempre no fim
+          }
+          var cmp;
+          if(a.k.t === 'num' && b.k.t === 'num') cmp = a.k.v - b.k.v;
+          else cmp = collator.compare(a.k.s, b.k.s);
+          return cmp !== 0 ? cmp * dir : a.i - b.i;
+        });
+        itens.forEach(function(x){ tbody.appendChild(x.r); });
+        observer.takeRecords(); // descarta as mutações causadas por esta própria ordenação
+      }
+
+      function marcarCabecalho(table){
+        var ths = table.querySelectorAll('thead th');
+        Array.prototype.forEach.call(ths, function(th, i){
+          th.classList.remove('sort-asc', 'sort-desc');
+          if(table._sort && table._sort.idx === i) th.classList.add(table._sort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+        });
+      }
+
+      var observer = new MutationObserver(function(muts){
+        var tabelas = [];
+        muts.forEach(function(m){
+          if(m.target.tagName !== 'TBODY') return;
+          var table = m.target.closest('table');
+          if(table && table._sort && tabelas.indexOf(table) === -1) tabelas.push(table);
+        });
+        tabelas.forEach(ordenar);
+      });
+      observer.observe(document.body, { childList:true, subtree:true });
+
+      document.querySelectorAll('table thead th').forEach(function(th){
+        var tbody = th.closest('table').tBodies[0];
+        if(!th.textContent.trim() || !tbody || SEM_ORDENACAO[tbody.id]) return;
+        th.classList.add('sortable');
+        th.title = 'Clique para ordenar';
+      });
+
+      document.addEventListener('click', function(e){
+        var th = e.target.closest ? e.target.closest('thead th.sortable') : null;
+        if(!th) return;
+        var table = th.closest('table');
+        var idx = th.cellIndex;
+        var dir = (table._sort && table._sort.idx === idx && table._sort.dir === 'asc') ? 'desc' : 'asc';
+        table._sort = { idx:idx, dir:dir };
+        marcarCabecalho(table);
+        ordenar(table);
+      });
+    } catch(err){ console.error('Erro ao ativar a ordenação das tabelas:', err); }
   })();
 </script>
 </body>
