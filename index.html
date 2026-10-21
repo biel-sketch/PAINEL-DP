@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-04</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-05</div>
     </div>
   </aside>
 
@@ -5388,6 +5388,15 @@
   }
 
   // Conta dias úteis (segunda a sexta) de um mês de 2026.
+  // Feriados nacionais de 2026 (só os que caem em dia de semana importam). Descontados dos dias úteis.
+  var FERIADOS_2026 = ['2026-01-01','2026-04-03','2026-04-21','2026-05-01','2026-09-07','2026-10-12','2026-11-02','2026-11-15','2026-11-20','2026-12-25'];
+  function ehDiaUtil(d){
+    var dow = d.getDay();
+    if(dow < 1 || dow > 5) return false;
+    var iso = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    return FERIADOS_2026.indexOf(iso) === -1;
+  }
+
   function computeDiasUteisMes(mesNome){
     var mesIdx = MESES_ORDEM.indexOf(mesNome);
     if(mesIdx < 0) return 22;
@@ -5395,8 +5404,7 @@
     var d = new Date(ano, mesIdx, 1);
     var count = 0;
     while(d.getMonth() === mesIdx){
-      var dow = d.getDay(); // 0=domingo, 6=sábado
-      if(dow >= 1 && dow <= 5) count++;
+      if(ehDiaUtil(d)) count++;
       d.setDate(d.getDate() + 1);
     }
     return count;
@@ -5431,8 +5439,7 @@
       var diasUteisAteSaida = 0;
       var d = new Date(ano, mesIdx, 1);
       while(d <= dtDeslig){
-        var dow = d.getDay();
-        if(dow >= 1 && dow <= 5) diasUteisAteSaida++;
+        if(ehDiaUtil(d)) diasUteisAteSaida++;
         d.setDate(d.getDate() + 1);
       }
       totalHoras += horasDia * diasUteisAteSaida;
