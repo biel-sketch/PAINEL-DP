@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-03</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-04</div>
     </div>
   </aside>
 
@@ -3295,26 +3295,31 @@
       .filter(function(f){ return normNome(f.nome) === normNome(pessoa.nome); })
       .sort(function(a,b){ return (a.dataInicial||'').localeCompare(b.dataInicial||''); });
 
-    var dataBase = pessoa.admissao;
+    // O ciclo SEMPRE segue a data-base da admissão (dia/mês do aniversário de admissão):
+    // ciclo 0 = admissão → 1º aniversário; ao completar os 30 dias do ciclo, passa para o
+    // próximo aniversário. A data em que as férias foram gozadas NÃO desloca o vencimento.
     var hoje = new Date().toISOString().slice(0,10);
+    var ciclosConcluidos = 0;
     var diasTirados = 0; // dias já tirados dentro do ciclo atual (ainda em aberto)
 
     feriasDoColaborador.forEach(function(f){
-      if(f.dataInicial < dataBase) return; // já pertence a um ciclo anterior, já fechado
+      if(f.dataInicial < pessoa.admissao) return; // anterior à admissão atual: não conta
       var diasDesseTrecho = diffDias(f.dataInicial, f.dataFinal) + 1; // inclusive
       diasTirados += diasDesseTrecho;
-      // só fecha o ciclo (e abre um novo, zerado) quando completar os 30 dias de direito —
+      // só fecha o ciclo (e abre o próximo, zerado) quando completar os 30 dias de direito —
       // até lá, os dias tirados vão só se somando dentro do mesmo ciclo em aberto.
       if(diasTirados >= FERIAS_DIAS_POR_CICLO){
-        dataBase = f.dataFinal;
+        ciclosConcluidos++;
         diasTirados = 0;
       }
     });
 
+    var dataBase = addMeses(pessoa.admissao, FERIAS_CICLO_MESES * ciclosConcluidos);
+
     var mesesDesdeBase = diffMeses(dataBase, hoje);
     var vencida = mesesDesdeBase >= FERIAS_CICLO_MESES;
     var proximoVencimento = addMeses(dataBase, FERIAS_CICLO_MESES);
-    var vencimento1 = addMeses(dataBase, FERIAS_CICLO_MESES);
+    var vencimento1 = proximoVencimento;
     // Limite de gozo: 10 meses após o vencimento das férias (1º período).
     var limiteGozo = addMeses(vencimento1, 10);
     var diasParaVencer = diffDias(hoje, vencimento1);
