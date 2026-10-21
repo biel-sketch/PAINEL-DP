@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-09-01</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-01</div>
     </div>
   </aside>
 
@@ -920,7 +920,7 @@
         <div class="panel">
           <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Dias Tirados</th><th>Dias Restantes</th><th>Vencimento 1º Período</th><th>Vencimento 2º Período</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Dias Tirados</th><th>Dias Restantes</th><th>Vencimento 1º Período</th><th>Vencimento 2º Período</th><th>Limite de Gozo</th></tr></thead>
               <tbody id="ferias-analitico-tbody"></tbody>
             </table>
           </div>
@@ -3271,6 +3271,20 @@
     return d.toISOString().slice(0,10);
   }
 
+  // Primeiro aniversário da data de admissão (dia/mês da admissão) que cai DEPOIS da data informada.
+  function proximoAniversarioAdmissao(admissaoISO, apartirDeISO){
+    if(!admissaoISO || !apartirDeISO) return null;
+    var mm = admissaoISO.slice(5, 7), dd = admissaoISO.slice(8, 10);
+    var ano = parseInt(apartirDeISO.slice(0, 4), 10);
+    for(var a = ano; a <= ano + 2; a++){
+      var dia = dd;
+      if(mm === '02' && dd === '29' && !((a % 4 === 0 && a % 100 !== 0) || a % 400 === 0)) dia = '28';
+      var cand = a + '-' + mm + '-' + dia;
+      if(cand > apartirDeISO) return cand;
+    }
+    return null;
+  }
+
   // Calcula o status de férias de um colaborador ativo:
   // a cada ciclo de 12 meses sem registrar férias, o período vence.
   var FERIAS_DIAS_POR_CICLO = 30;
@@ -3301,12 +3315,15 @@
     var vencida = mesesDesdeBase >= FERIAS_CICLO_MESES;
     var proximoVencimento = addMeses(dataBase, FERIAS_CICLO_MESES);
     var vencimento1 = addMeses(dataBase, FERIAS_CICLO_MESES);
-    var vencimento2 = addMeses(dataBase, FERIAS_CICLO_MESES * 2);
+    // 2º período: sempre a data-base do mês de admissão (aniversário da admissão logo após o 1º vencimento).
+    var vencimento2 = proximoAniversarioAdmissao(pessoa.admissao, vencimento1) || addMeses(dataBase, FERIAS_CICLO_MESES * 2);
+    // Limite de gozo: 10 meses após o vencimento das férias (1º período).
+    var limiteGozo = addMeses(vencimento1, 10);
     var diasParaVencer = diffDias(hoje, vencimento1);
     var diasRestantes = Math.max(FERIAS_DIAS_POR_CICLO - diasTirados, 0);
 
     return { aplicavel:true, vencida:vencida, dataBase:dataBase, proximoVencimento:proximoVencimento,
-             vencimento1:vencimento1, vencimento2:vencimento2, mesesDesdeBase:mesesDesdeBase, diasParaVencer:diasParaVencer,
+             vencimento1:vencimento1, vencimento2:vencimento2, limiteGozo:limiteGozo, mesesDesdeBase:mesesDesdeBase, diasParaVencer:diasParaVencer,
              diasTirados:diasTirados, diasRestantes:diasRestantes };
   }
 
@@ -3557,6 +3574,8 @@
       var venceu2 = a.feriasStatus.vencimento2 <= hoje;
       var cor1 = venceu1 ? 'red' : 'teal';
       var cor2 = venceu2 ? 'red' : 'teal';
+      var lim = a.feriasStatus.limiteGozo || '';
+      var corLimite = !lim ? 'teal' : (lim <= hoje ? 'red' : (diffDias(hoje, lim) <= 90 ? 'amber' : 'teal'));
       var corDiasRestantes = a.feriasStatus.diasRestantes <= 10 ? 'amber' : 'teal';
       return '<tr data-nome-ferias="'+a.nome+'" class="row-clickable" title="Clique para editar as férias">' +
         '<td>'+a.nome+'</td>' +
@@ -3568,6 +3587,7 @@
         '<td class="mono"><span class="pill '+corDiasRestantes+'">'+a.feriasStatus.diasRestantes+' dias</span></td>' +
         '<td class="mono"><span class="pill '+cor1+'">'+formatDateBR(a.feriasStatus.vencimento1)+'</span></td>' +
         '<td class="mono"><span class="pill '+cor2+'">'+formatDateBR(a.feriasStatus.vencimento2)+'</span></td>' +
+        '<td class="mono"><span class="pill '+corLimite+'">'+formatDateBR(a.feriasStatus.limiteGozo)+'</span></td>' +
       '</tr>';
     }).join('');
     tbody.querySelectorAll('tr[data-nome-ferias]').forEach(function(tr){
@@ -4848,6 +4868,7 @@
         'Dias Restantes no Ciclo Atual': a.feriasStatus.diasRestantes,
         'Vencimento 1º Período': formatDateBR(a.feriasStatus.vencimento1),
         'Vencimento 2º Período': formatDateBR(a.feriasStatus.vencimento2),
+        'Limite de Gozo': formatDateBR(a.feriasStatus.limiteGozo),
         'Status': a.feriasStatus.vencida ? 'Férias Vencidas' : 'À Vencer'
       };
     });
