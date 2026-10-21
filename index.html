@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-01</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-02</div>
     </div>
   </aside>
 
@@ -855,10 +855,10 @@
         </div>
 
         <div class="panel" style="margin-bottom:20px;">
-          <div class="panel-head"><span class="panel-title">Vencimentos <span style="color:var(--text-faint);font-weight:400;font-size:11px;">(vencidas + próximos 30 dias)</span></span></div>
+          <div class="panel-head"><span class="panel-title">Limite de Gozo <span style="color:var(--text-faint);font-weight:400;font-size:11px;">(vencidos + próximos 30 dias)</span></span></div>
           <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>Posto</th><th>Admissão</th><th>Vencimento</th><th>Situação</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>Posto</th><th>Admissão</th><th>Limite de Gozo</th><th>Situação</th></tr></thead>
               <tbody id="ferias-vencendo-tbody"></tbody>
             </table>
             <div class="empty-state" id="ferias-vencendo-empty" style="display:none;padding:30px;">Nenhum vencimento próximo ou pendente.</div>
@@ -3381,11 +3381,18 @@
     document.getElementById('ferias-total-vencendo').textContent = vencendoEm30.length;
 
     // Tabela de vencimentos (vencidas + vencendo em 30 dias, do mais urgente pro menos urgente)
+    // Usa o LIMITE DE GOZO (10 meses após o vencimento): limite já vencido (de 2026 em diante)
+    // ou que vence nos próximos 30 dias.
+    var hojeISO = new Date().toISOString().slice(0,10);
+    function diasParaLimite(a){ return diffDias(hojeISO, a.feriasStatus.limiteGozo); }
     var relevantesVencimento = filtrados.filter(function(a){
-      return vencidaRelevante(a) || (!a.feriasStatus.vencida && a.feriasStatus.diasParaVencer <= 30);
+      var lim = a.feriasStatus.limiteGozo;
+      if(!lim) return false;
+      var d = diasParaLimite(a);
+      return d <= 30 && lim >= '2026-01-01';
     });
     var ordenadosPorVencer = relevantesVencimento.slice().sort(function(a,b){
-      return a.feriasStatus.diasParaVencer - b.feriasStatus.diasParaVencer;
+      return diasParaLimite(a) - diasParaLimite(b);
     });
     var tbodyVenc = document.getElementById('ferias-vencendo-tbody');
     var emptyVenc = document.getElementById('ferias-vencendo-empty');
@@ -3394,16 +3401,16 @@
     } else {
       emptyVenc.style.display = 'none';
       tbodyVenc.innerHTML = ordenadosPorVencer.map(function(a){
-        var dias = a.feriasStatus.diasParaVencer;
+        var dias = diasParaLimite(a);
         var situacao;
-        if(a.feriasStatus.vencida){
-          situacao = '<span class="pill red">Vencida há '+Math.abs(dias)+' dias</span>';
+        if(dias < 0){
+          situacao = '<span class="pill red">Vencido há '+Math.abs(dias)+' dias</span>';
         } else {
           var cor = dias <= 7 ? 'red' : 'amber';
           situacao = '<span class="pill '+cor+'">'+dias+' dias</span>';
         }
         return '<tr data-nome-ferias="'+a.nome+'" class="row-clickable" title="Clique para editar as férias">' +
-          '<td>'+a.nome+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td class="mono">'+formatDateBR(a.admissao)+'</td><td class="mono">'+formatDateBR(a.feriasStatus.vencimento1)+'</td><td class="mono">'+situacao+'</td></tr>';
+          '<td>'+a.nome+'</td><td><span class="pill teal">'+(a.posto||'—')+'</span></td><td class="mono">'+formatDateBR(a.admissao)+'</td><td class="mono">'+formatDateBR(a.feriasStatus.limiteGozo)+'</td><td class="mono">'+situacao+'</td></tr>';
       }).join('');
       tbodyVenc.querySelectorAll('tr[data-nome-ferias]').forEach(function(tr){
         tr.addEventListener('click', function(){ abrirEdicaoFeriasColaborador(tr.getAttribute('data-nome-ferias')); });
