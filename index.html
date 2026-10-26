@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-21-05</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-26-01</div>
     </div>
   </aside>
 
@@ -607,6 +607,11 @@
           <div class="stat-label">Atestados</div>
           <div class="stat-value teal" id="abs-total-atestado">0</div>
         </div>
+        <div class="stat-card" style="border-color:var(--amber-soft);">
+          <div class="stat-label" id="abs-proj-label">Projeção até o fim do mês</div>
+          <div class="stat-value" id="abs-proj-pct">—</div>
+          <div class="stat-sub" id="abs-proj-sub">—</div>
+        </div>
       </div>
 
       <div class="panel" style="margin-bottom:20px;">
@@ -739,6 +744,11 @@
           <div class="stat-label">Desligamentos na Experiência</div>
           <div class="stat-value red" id="to-pct-desligamento-experiencia">0,0%</div>
           <div class="stat-sub" id="to-desligamento-experiencia-sub">0 de 0 demissões</div>
+        </div>
+        <div class="stat-card" style="border-color:var(--amber-soft);">
+          <div class="stat-label" id="to-proj-label">Projeção até o fim do mês</div>
+          <div class="stat-value" id="to-proj-pct">—</div>
+          <div class="stat-sub" id="to-proj-sub">—</div>
         </div>
       </div>
 
@@ -5653,6 +5663,88 @@
     return (emExperiencia.length / comDadoValido.length) * 100;
   }
 
+  // ============================================================
+  // PROJEÇÃO ATÉ O FIM DO MÊS (cards de Absenteísmo e TurnOver)
+  // Mantém o ritmo observado desde o dia 1 até hoje e estende para o mês inteiro.
+  // ============================================================
+  function computeProgressoMes(mes){
+    var hoje = new Date();
+    var mesIdx = MESES_ORDEM.indexOf(mes);
+    if(mesIdx < 0) return null;
+    var ano = 2026;
+    var diasNoMes = new Date(ano, mesIdx + 1, 0).getDate();
+    var atual = (hoje.getFullYear() === ano && hoje.getMonth() === mesIdx);
+    var encerrado = (hoje.getFullYear() > ano) || (hoje.getFullYear() === ano && hoje.getMonth() > mesIdx);
+    var diaAtual = atual ? hoje.getDate() : (encerrado ? diasNoMes : 0);
+    var uteisDecorridos = 0, uteisTotal = 0;
+    for(var dia = 1; dia <= diasNoMes; dia++){
+      var d = new Date(ano, mesIdx, dia);
+      if(ehDiaUtil(d)){
+        uteisTotal++;
+        if(dia <= diaAtual) uteisDecorridos++;
+      }
+    }
+    return { atual:atual, encerrado:encerrado, diaAtual:diaAtual, diasNoMes:diasNoMes, uteisDecorridos:uteisDecorridos, uteisTotal:uteisTotal };
+  }
+
+  function numBR(v, casas){ return Number(v).toLocaleString('pt-BR', {minimumFractionDigits:casas||0, maximumFractionDigits:casas||0}); }
+
+  function renderAbsProjecao(periodo){
+    var elPct = document.getElementById('abs-proj-pct'), elSub = document.getElementById('abs-proj-sub'), elLabel = document.getElementById('abs-proj-label');
+    if(!elPct) return;
+    elPct.className = 'stat-value';
+    var p = (periodo && periodo !== 'ANO') ? computeProgressoMes(periodo) : null;
+    if(!p){ elLabel.textContent = 'Projeção até o fim do mês'; elPct.textContent = '—'; elSub.textContent = 'Selecione um mês'; return; }
+    var s = computeAbsMonthStats(periodo);
+    if(p.encerrado){
+      elLabel.textContent = 'Fechamento de ' + periodo;
+      elPct.textContent = pctFmt(s.pct);
+      elPct.className = 'stat-value ' + (s.pct !== null && s.pct > s.meta ? 'red' : 'teal');
+      elSub.textContent = 'Mês encerrado — valor final';
+      return;
+    }
+    if(!p.atual || p.uteisDecorridos === 0 || !(s.horasTotais > 0)){
+      elLabel.textContent = 'Projeção até o fim do mês';
+      elPct.textContent = '—'; elSub.textContent = p.atual ? 'Aguardando o primeiro dia útil do mês' : 'Mês ainda não começou';
+      return;
+    }
+    var ritmo = s.horasPerdidas / p.uteisDecorridos;           // horas perdidas por dia útil
+    var horasProj = ritmo * p.uteisTotal;
+    var pctProj = horasProj / s.horasTotais;
+    elLabel.textContent = 'Projeção — fim de ' + periodo;
+    elPct.textContent = pctFmt(pctProj);
+    elPct.className = 'stat-value ' + (pctProj > s.meta ? 'red' : 'teal');
+    elSub.textContent = 'Hoje ' + pctFmt(s.pct) + ' • ' + numBR(ritmo, 1) + ' h/dia útil × ' + p.uteisTotal + ' dias úteis = ' + numBR(horasProj, 0) + ' h • ' + p.uteisDecorridos + ' de ' + p.uteisTotal + ' dias úteis' + ' • meta ' + pctFmt(s.meta);
+  }
+
+  function renderToProjecao(periodo){
+    var elPct = document.getElementById('to-proj-pct'), elSub = document.getElementById('to-proj-sub'), elLabel = document.getElementById('to-proj-label');
+    if(!elPct) return;
+    elPct.className = 'stat-value';
+    var p = (periodo && periodo !== 'ANO') ? computeProgressoMes(periodo) : null;
+    if(!p){ elLabel.textContent = 'Projeção até o fim do mês'; elPct.textContent = '—'; elSub.textContent = 'Selecione um mês'; return; }
+    var s = computeTurnoverMonthStats(periodo);
+    if(p.encerrado){
+      elLabel.textContent = 'Fechamento de ' + periodo;
+      elPct.textContent = pctFmt(s.pct);
+      elPct.className = 'stat-value ' + (s.pct !== null && s.pct > s.meta ? 'red' : 'teal');
+      elSub.textContent = 'Mês encerrado — valor final';
+      return;
+    }
+    if(!p.atual || p.diaAtual === 0 || !(s.headcount > 0)){
+      elLabel.textContent = 'Projeção até o fim do mês';
+      elPct.textContent = '—'; elSub.textContent = 'Mês ainda não começou';
+      return;
+    }
+    var fator = p.diasNoMes / p.diaAtual;                       // eventos seguem o calendário
+    var admProj = s.admissoes * fator, demProj = s.demissoes * fator;
+    var pctProj = ((admProj + demProj) / 2) / s.headcount;
+    elLabel.textContent = 'Projeção — fim de ' + periodo;
+    elPct.textContent = pctFmt(pctProj);
+    elPct.className = 'stat-value ' + (pctProj > s.meta ? 'red' : 'teal');
+    elSub.textContent = 'Hoje ' + pctFmt(s.pct) + ' • ' + s.admissoes + ' adm + ' + s.demissoes + ' dem em ' + p.diaAtual + ' de ' + p.diasNoMes + ' dias → ~' + numBR(admProj, 0) + ' adm e ~' + numBR(demProj, 0) + ' dem • meta ' + pctFmt(s.meta);
+  }
+
   function renderAbsAnoCards(){
     var s = computeAbsPeriodStats('ANO');
     document.getElementById('abs-ano-pct').textContent = pctFmt(s.pct);
@@ -5687,6 +5779,7 @@
     var eventosPeriodo = eventosDoPeriodo(periodo);
     document.getElementById('abs-total-falta').textContent = eventosPeriodo.filter(function(e){ return e.tipo === 'Falta'; }).length;
     document.getElementById('abs-total-atestado').textContent = eventosPeriodo.filter(function(e){ return e.tipo === 'Atestado'; }).length;
+    renderAbsProjecao(periodo);
   }
 
   function renderAbsTable(list){
@@ -6532,6 +6625,7 @@
     var pctExperiencia = demissoesPeriodo.length > 0 ? (naExperiencia.length / demissoesPeriodo.length) : null;
     document.getElementById('to-pct-desligamento-experiencia').textContent = pctExperiencia !== null ? pctFmt(pctExperiencia) : '—';
     document.getElementById('to-desligamento-experiencia-sub').textContent = naExperiencia.length + ' de ' + demissoesPeriodo.length + ' demissões';
+    renderToProjecao(periodo);
   }
 
   function renderToTable(list){
