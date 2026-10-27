@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-27-02</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-27-03</div>
     </div>
   </aside>
 
@@ -5437,9 +5437,9 @@
   // em vez de um headcount × horas/dia genérico da empresa toda.
   // Quem foi desligado DENTRO do mês tem as horas "travadas": só conta os
   // dias úteis até a data de desligamento, não o mês inteiro.
-  // Área: "ADMINISTRATIVO" = cliente/posto que começa com "ADMINISTRATIVO"
-  // (ADMINISTRATIVO, - LIMPEZA, - BACKUP, - FERISTA, - RESIDENCIA). O restante é OPERACIONAL.
-  function ehPostoAdministrativo(posto){ return String(posto || '').trim().toUpperCase().indexOf('ADMINISTRATIVO') === 0; }
+  // Área: "ADMINISTRATIVO" = somente o cliente/posto exatamente "ADMINISTRATIVO".
+  // As variações (- LIMPEZA, - BACKUP, - FERISTA, - RESIDENCIA) e todo o restante são OPERACIONAL.
+  function ehPostoAdministrativo(posto){ return String(posto || '').trim().toUpperCase() === 'ADMINISTRATIVO'; }
   function pertenceArea(posto, area){
     if(!area) return true;
     var adm = ehPostoAdministrativo(posto);
