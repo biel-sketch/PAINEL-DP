@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-27-01</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-27-02</div>
     </div>
   </aside>
 
@@ -716,7 +716,13 @@
       <div class="topbar"><div class="page-title">TurnOver</div><div class="page-date"></div></div>
 
       <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-        <label for="to-filter-contrato-top" style="font-size:11.5px;color:var(--text-dim);">Contrato:</label>
+        <label for="to-filter-area" style="font-size:11.5px;color:var(--text-dim);">Área:</label>
+        <select id="to-filter-area" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;">
+          <option value="" selected>Todas (Operacional + Administrativo)</option>
+          <option value="OPERACIONAL">Somente Operacional</option>
+          <option value="ADMINISTRATIVO">Somente Administrativo</option>
+        </select>
+        <label for="to-filter-contrato-top" style="font-size:11.5px;color:var(--text-dim);margin-left:6px;">Contrato:</label>
         <select id="to-filter-contrato-top" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;">
           <option value="">Todos os Contratos</option>
           <option value="DETERMINADO">Determinado</option>
@@ -6492,8 +6498,12 @@
   function getTurnoverBase(){
     var contratoSel = document.getElementById('to-filter-contrato-top');
     var contrato = contratoSel ? contratoSel.value : '';
-    if(!contrato) return appState.turnover;
-    return appState.turnover.filter(function(e){ return (e.contrato||'').trim().toUpperCase() === contrato; });
+    var areaSel = document.getElementById('to-filter-area');
+    var area = areaSel ? areaSel.value : '';
+    if(!contrato && !area) return appState.turnover;
+    return appState.turnover.filter(function(e){
+      return (!contrato || (e.contrato||'').trim().toUpperCase() === contrato) && pertenceArea(e.posto, area);
+    });
   }
 
   function computeTurnoverMonthStats(mes, supervisorFiltro){
@@ -6502,7 +6512,21 @@
     });
     var admissoes = eventosMes.filter(function(e){ return e.tipo === 'Admissão'; }).length;
     var demissoes = eventosMes.filter(function(e){ return e.tipo === 'Demissão'; }).length;
-    var headcount = supervisorFiltro ? computeHeadcountPorSupervisor(supervisorFiltro) : getHeadcountRef(mes).headcount;
+    var areaSelTo = document.getElementById('to-filter-area');
+    var areaTo = areaSelTo ? areaSelTo.value : '';
+    var headcount;
+    if(supervisorFiltro){
+      headcount = appState.ativos.filter(function(a){
+        return (a.supervisor||'').trim() === supervisorFiltro && pertenceArea(a.posto, areaTo);
+      }).length;
+    } else if(!HEADCOUNT_MENSAL.some(function(h){ return h.mes === mes; })){
+      headcount = appState.ativos.filter(function(a){ return pertenceArea(a.posto, areaTo); }).length;
+    } else {
+      headcount = getHeadcountRef(mes).headcount;
+      // Administrativo reconstruído por admissão/desligamento; Operacional = total da planilha − Administrativo.
+      if(areaTo === 'ADMINISTRATIVO') headcount = computeHeadcountAdministrativoMes(mes);
+      else if(areaTo === 'OPERACIONAL') headcount = Math.max(0, headcount - computeHeadcountAdministrativoMes(mes));
+    }
     // O % de TurnOver é calculado sobre o que estiver selecionado no filtro "Contrato"
     // no topo da aba (eventosMes já vem filtrado por ele via getTurnoverBase()). O índice
     // OFICIAL da empresa (igual à planilha) é o que aparece com o filtro em "Indeterminado"
@@ -6713,8 +6737,9 @@
     var supervisor = document.getElementById('to-filter-supervisor').value;
     var tipo = document.getElementById('to-filter-tipo').value;
     var contrato = document.getElementById('to-filter-contrato-top').value;
+    var areaFiltroTo = document.getElementById('to-filter-area').value;
     var filtered = appState.turnover.filter(function(e){
-      return (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
+      return pertenceArea(e.posto, areaFiltroTo) && (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
              (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
              (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo) &&
              (!contrato || (e.contrato||'').trim().toUpperCase() === contrato);
@@ -6793,11 +6818,13 @@
   ['to-search'].forEach(function(id){ document.getElementById(id).addEventListener('input', applyToFilters); });
   ['to-filter-mes','to-filter-posto','to-filter-supervisor','to-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyToFilters); });
   // O filtro de Contrato é global da aba: além da tabela, recalcula cards, gráficos, tendência e comparativo.
-  document.getElementById('to-filter-contrato-top').addEventListener('change', function(){
-    renderToStatsCards();
-    refreshTurnoverCharts();
-    renderToTrend();
-    applyToFilters();
+  ['to-filter-contrato-top','to-filter-area'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(){
+      renderToStatsCards();
+      refreshTurnoverCharts();
+      renderToTrend();
+      applyToFilters();
+    });
   });
 
   // ============================================================
