@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-26-01</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-27-01</div>
     </div>
   </aside>
 
@@ -537,7 +537,13 @@
       <div class="topbar"><div class="page-title">Absenteísmo</div><div class="page-date"></div></div>
 
       <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:14px;">
-        <label for="abs-filter-inss-top" style="font-size:11.5px;color:var(--text-dim);">Responsável:</label>
+        <label for="abs-filter-area" style="font-size:11.5px;color:var(--text-dim);">Área:</label>
+        <select id="abs-filter-area" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;">
+          <option value="" selected>Todas (Operacional + Administrativo)</option>
+          <option value="OPERACIONAL">Somente Operacional</option>
+          <option value="ADMINISTRATIVO">Somente Administrativo</option>
+        </select>
+        <label for="abs-filter-inss-top" style="font-size:11.5px;color:var(--text-dim);margin-left:10px;">Responsável:</label>
         <select id="abs-filter-inss-top" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;">
           <option value="">Empresa e INSS</option>
           <option value="EMPRESA" selected>Empresa</option>
@@ -5425,7 +5431,39 @@
   // em vez de um headcount × horas/dia genérico da empresa toda.
   // Quem foi desligado DENTRO do mês tem as horas "travadas": só conta os
   // dias úteis até a data de desligamento, não o mês inteiro.
-  function computeHorasPrevistasAtivosMes(mesNome, supervisorFiltro){
+  // Área: "ADMINISTRATIVO" = cliente/posto que começa com "ADMINISTRATIVO"
+  // (ADMINISTRATIVO, - LIMPEZA, - BACKUP, - FERISTA, - RESIDENCIA). O restante é OPERACIONAL.
+  function ehPostoAdministrativo(posto){ return String(posto || '').trim().toUpperCase().indexOf('ADMINISTRATIVO') === 0; }
+  function pertenceArea(posto, area){
+    if(!area) return true;
+    var adm = ehPostoAdministrativo(posto);
+    return area === 'ADMINISTRATIVO' ? adm : !adm;
+  }
+  function getAbsArea(){
+    var sel = document.getElementById('abs-filter-area');
+    return sel ? sel.value : '';
+  }
+  // Headcount administrativo reconstruído mês a mês (admissão <= fim do mês e sem desligamento
+  // antes do início do mês), a partir de ativos + inativos. O Operacional é o headcount da
+  // planilha menos o Administrativo, assim "Todas" continua igual à planilha.
+  function computeHeadcountAdministrativoMes(mesNome){
+    var mesIdx = MESES_ORDEM.indexOf(mesNome);
+    if(mesIdx < 0) return 0;
+    var ano = 2026;
+    var ini = ano + '-' + String(mesIdx + 1).padStart(2, '0') + '-01';
+    var fimDia = new Date(ano, mesIdx + 1, 0).getDate();
+    var fim = ano + '-' + String(mesIdx + 1).padStart(2, '0') + '-' + String(fimDia).padStart(2, '0');
+    var n = 0;
+    appState.ativos.concat(appState.inativos).forEach(function(p){
+      if(!ehPostoAdministrativo(p.posto)) return;
+      if(!p.admissao || p.admissao > fim) return;
+      if(p.desligamento && p.desligamento < ini) return;
+      n++;
+    });
+    return n;
+  }
+
+  function computeHorasPrevistasAtivosMes(mesNome, supervisorFiltro, areaFiltro){
     var mesIdx = MESES_ORDEM.indexOf(mesNome);
     if(mesIdx < 0) return 0;
     var ano = 2026;
@@ -5433,6 +5471,7 @@
 
     appState.ativos.forEach(function(a){
       if(supervisorFiltro && (a.supervisor||'').trim() !== supervisorFiltro) return;
+      if(!pertenceArea(a.posto, areaFiltro)) return;
       var horasDia = horasPorJornada(a.jornada);
       if(horasDia === null) horasDia = 7.2; // fallback se a jornada não for reconhecida
       totalHoras += horasDia * computeDiasUteisMes(mesNome);
@@ -5440,6 +5479,7 @@
 
     appState.inativos.forEach(function(i){
       if(supervisorFiltro && (i.supervisor||'').trim() !== supervisorFiltro) return;
+      if(!pertenceArea(i.posto, areaFiltro)) return;
       if(!i.desligamento) return;
       var dtDeslig = new Date(i.desligamento + 'T00:00:00');
       if(dtDeslig.getFullYear() !== ano || dtDeslig.getMonth() !== mesIdx) return; // só quem saiu NESTE mês
@@ -5484,8 +5524,11 @@
   function getAbsenteismoBase(){
     var sel = document.getElementById('abs-filter-inss-top');
     var valor = sel ? sel.value : '';
-    if(!valor) return appState.absenteismo;
-    return appState.absenteismo.filter(function(e){ return (e.inss ? 'INSS' : 'EMPRESA') === valor; });
+    var area = getAbsArea();
+    if(!valor && !area) return appState.absenteismo;
+    return appState.absenteismo.filter(function(e){
+      return (!valor || (e.inss ? 'INSS' : 'EMPRESA') === valor) && pertenceArea(e.posto, area);
+    });
   }
 
   function computeAbsMonthStats(mes, supervisorFiltro){
@@ -5496,15 +5539,21 @@
     var refHistorico = ABS_HORAS_TOTAIS_MENSAL.find(function(h){ return h.mes === mes; });
     if(refHistorico){
       // Mesma fórmula da planilha (Cadastros): headcount x horas/dia x dias úteis.
+      var area = getAbsArea();
       if(supervisorFiltro){
-        var headcountSupervisor = computeHeadcountPorSupervisor(supervisorFiltro);
+        var headcountSupervisor = appState.ativos.filter(function(a){
+          return (a.supervisor||'').trim() === supervisorFiltro && pertenceArea(a.posto, area);
+        }).length;
         horasTotais = headcountSupervisor * refHistorico.diasUteis * refHistorico.horasDia;
       } else {
-        horasTotais = refHistorico.headcount * refHistorico.diasUteis * refHistorico.horasDia;
+        var hcBase = refHistorico.headcount;
+        if(area === 'ADMINISTRATIVO') hcBase = computeHeadcountAdministrativoMes(mes);
+        else if(area === 'OPERACIONAL') hcBase = Math.max(0, refHistorico.headcount - computeHeadcountAdministrativoMes(mes));
+        horasTotais = hcBase * refHistorico.diasUteis * refHistorico.horasDia;
       }
     } else {
       // Mês sem linha em ABS_HORAS_TOTAIS_MENSAL — soma a jornada real dos ativos.
-      horasTotais = computeHorasPrevistasAtivosMes(mes, supervisorFiltro || null);
+      horasTotais = computeHorasPrevistasAtivosMes(mes, supervisorFiltro || null, getAbsArea());
     }
     var horasPerdidas = eventosMes.reduce(function(s, e){ return s + (Number(e.horasPerdidas) || 0); }, 0);
     var custoTotal = eventosMes.reduce(function(s, e){ return s + calcCustoEvento(e, mes); }, 0);
@@ -5820,9 +5869,10 @@
     var supervisor = document.getElementById('abs-filter-supervisor').value;
     var tipo = document.getElementById('abs-filter-tipo').value;
     var inssFiltro = document.getElementById('abs-filter-inss-top').value;
+    var areaFiltro = getAbsArea();
     var filtered = appState.absenteismo.filter(function(e){
       var responsavel = e.inss ? 'INSS' : 'EMPRESA';
-      return (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
+      return pertenceArea(e.posto, areaFiltro) && (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
              (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
              (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo) &&
              (!inssFiltro || responsavel === inssFiltro);
@@ -6189,11 +6239,13 @@
   ['abs-filter-mes','abs-filter-posto','abs-filter-supervisor','abs-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyAbsFilters); });
   // O filtro de Responsável (Empresa/INSS) é global da aba: além da tabela,
   // recalcula cards, gráficos e tendência mensal.
-  document.getElementById('abs-filter-inss-top').addEventListener('change', function(){
-    renderAbsStatsCards();
-    renderAbsTrend();
-    refreshAbsenteismoCharts();
-    applyAbsFilters();
+  ['abs-filter-inss-top','abs-filter-area'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(){
+      renderAbsStatsCards();
+      renderAbsTrend();
+      refreshAbsenteismoCharts();
+      applyAbsFilters();
+    });
   });
 
   // ============================================================
