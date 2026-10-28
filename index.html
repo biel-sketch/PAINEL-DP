@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-04</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-06</div>
     </div>
   </aside>
 
@@ -2772,6 +2772,18 @@
     return d.toISOString().slice(0,10);
   }
 
+  // Soma N dias ÚTEIS a partir do dia seguinte à data: não conta sábado, domingo nem feriado nacional.
+  function addDiasUteis(dataISO, n){
+    var d = new Date(dataISO + 'T00:00:00');
+    if(isNaN(d.getTime())) return dataISO;
+    var contados = 0;
+    while(contados < n){
+      d.setDate(d.getDate() + 1);
+      if(ehDiaUtil(d)) contados++;
+    }
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
   // Retorna {etapa, vencimento, diasRestantes, vencida} para quem está em contrato de experiência
   function computeExperienciaInfo(pessoa){
     if(pessoa.contratoTipo !== 'EXPERIENCIA' || !pessoa.admissao || !pessoa.experienciaDuracaoDias) return null;
@@ -2973,7 +2985,7 @@
       posto: dados.posto || base.posto || '',
       admissao: base.admissao || dados.admissao || null,
       desligamento: desligamento,
-      prazoHomologacao: ajustarParaDiaUtil(addDias(desligamento, 8)),
+      prazoHomologacao: addDiasUteis(desligamento, 8),
       motivoSaida: dados.motivoSaida || null,
       contrato: dados.contrato || null,
       supervisor: dados.supervisor || null,
@@ -2993,7 +3005,7 @@
       financeiroData: null,
       valorTRCT: 0,
       valorFGTS: 0,
-      homologacaoData: null,
+      homologacaoData: addDiasUteis(desligamento, 8),
       homologacaoStatus: '',
     };
     if(idxAtivo >= 0) appState.ativos.splice(idxAtivo, 1);
@@ -4432,11 +4444,22 @@
     return (Number(registro.valorTRCT) || 0) + (Number(registro.valorFGTS) || 0);
   }
 
-  // Prazo de homologação: desligamento + 8 dias (ajustado para dia útil). Se o aviso foi TRABALHADO,
-  // a contagem só começa quando o aviso termina: término do aviso + 8 dias.
+  // Prazo de homologação (gerado automaticamente): 8 DIAS ÚTEIS (sem sábado, domingo e feriado).
+  //  • Sem aviso trabalhado: contados a partir da data de desligamento.
+  //  • Com aviso trabalhado: o aviso dura 30 dias a partir do início informado; quando ele termina
+  //    (início + 30 dias) começa a contagem dos 8 dias úteis.
+  function calcularFimAviso(registro){
+    return (registro.avisoTrabalhado === 'Sim' && registro.avisoData) ? addDias(registro.avisoData, 30) : null;
+  }
   function calcularPrazoHomologacao(registro){
-    var base = (registro.avisoTrabalhado === 'Sim' && registro.avisoData) ? registro.avisoData : registro.desligamento;
-    return ajustarParaDiaUtil(addDias(base, 8));
+    var base = calcularFimAviso(registro) || registro.desligamento;
+    return addDiasUteis(base, 8);
+  }
+  // Mantém prazo e "Data Homologação" sempre iguais à regra (nada é digitado à mão).
+  function sincronizarHomologacao(registro){
+    registro.prazoHomologacao = calcularPrazoHomologacao(registro);
+    registro.homologacaoData = registro.prazoHomologacao;
+    return registro;
   }
 
   function computePrazoHomologacaoInfo(registro){
@@ -4475,7 +4498,7 @@
       pendencias.push('Exame');
     }
 
-    if(registro.avisoTrabalhado === 'Sim' && !registro.avisoData) pendencias.push('Término do Aviso Trabalhado');
+    if(registro.avisoTrabalhado === 'Sim' && !registro.avisoData) pendencias.push('Início do Aviso Trabalhado');
 
     if(!registro.pontoData) pendencias.push('Envio do Ponto');
     if(registro.pontoStatus !== 'OK' && registro.pontoStatus !== 'NOK') pendencias.push('Status do Ponto');
@@ -4489,13 +4512,13 @@
     // custo ilusório na tela. Eles são lançados depois, em Inativos, na
     // Rescisão Complementar.
 
-    if(!registro.homologacaoData) pendencias.push('Data Homologação');
     if(registro.homologacaoStatus !== 'OK' && registro.homologacaoStatus !== 'NOK') pendencias.push('Status Homologação');
 
     return pendencias;
   }
 
   function renderDesligamentoCard(registro){
+    sincronizarHomologacao(registro);
     var prazoInfo = computePrazoHomologacaoInfo(registro);
     var prazoCor = prazoInfo.aguardando ? 'var(--amber)' : (prazoInfo.vencido ? 'var(--red)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber)' : 'var(--teal)'));
     var prazoCorBg = prazoInfo.aguardando ? 'var(--amber-soft)' : (prazoInfo.vencido ? 'var(--red-soft)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber-soft)' : 'var(--teal-soft)'));
@@ -4606,13 +4629,13 @@
               '<option value="Não"'+(registro.avisoTrabalhado==='Não'?' selected':'')+'>Não</option>' +
             '</select>' +
           '</div>' +
-          '<div><label>Término do Aviso</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
-          '<div></div>' +
+          '<div><label>Início do Aviso</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
+          '<div><label>Término do Aviso (30 dias)</label><input type="text" data-aviso-fim="'+registro.id+'" class="desl-input-auto" value="'+(calcularFimAviso(registro) ? formatDateBR(calcularFimAviso(registro)) : '—')+'" disabled style="opacity:0.7;"></div>' +
         '</div>' +
-        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 Com aviso trabalhado, a contagem de 8 dias da homologação começa no término do aviso.</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias úteis (sem sábado, domingo e feriado) após o desligamento — ou, se houver aviso trabalhado, após os 30 dias de aviso.</div>' +
 
         '<div class="desl-check-row">' +
-          '<div><label>Data Homologação</label><input type="date" data-field="homologacaoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.homologacaoData||'')+'"></div>' +
+          '<div><label>Data Homologação (automática)</label><input type="text" data-homolog-data="'+registro.id+'" class="desl-input-auto" value="'+formatDateBR(registro.homologacaoData)+'" disabled style="opacity:0.85;"></div>' +
           '<div><label>Status Homologação</label>' +
             '<select data-field="homologacaoStatus" data-id="'+registro.id+'" class="desl-input">' +
               '<option value="">—</option>' +
@@ -4646,6 +4669,7 @@
 
   function refreshDesligamentosView(){
     var lista = appState.desligamentosAndamento || [];
+    lista.forEach(sincronizarHomologacao); // prazo e data da homologação sempre pela regra atual
     document.getElementById('desl-total').textContent = lista.length;
     var tbody = document.getElementById('desl-tbody');
     var emptyEl = document.getElementById('desl-empty');
@@ -4718,10 +4742,25 @@
 
         if(field === 'avisoTrabalhado' || field === 'avisoData'){
           if(field === 'avisoTrabalhado' && this.value !== 'Sim') reg.avisoData = '';
-          reg.prazoHomologacao = calcularPrazoHomologacao(reg);
+          sincronizarHomologacao(reg);
           cloudPut(appState).catch(function(err){ console.error('Erro ao salvar aviso trabalhado:', err); });
           refreshDesligamentosView();
-          abrirChecklistDesligamento(idAtual);
+          if(field === 'avisoTrabalhado'){
+            abrirChecklistDesligamento(idAtual);
+          } else {
+            // Só a data mudou: atualiza o selo do prazo sem recriar o formulário (não perde o foco).
+            var fimEl = container.querySelector('[data-aviso-fim="'+idAtual+'"]');
+            if(fimEl) fimEl.value = calcularFimAviso(reg) ? formatDateBR(calcularFimAviso(reg)) : '—';
+            var homEl = container.querySelector('[data-homolog-data="'+idAtual+'"]');
+            if(homEl) homEl.value = formatDateBR(reg.homologacaoData);
+            var badge = container.querySelector('.desl-prazo-badge');
+            if(badge){
+              var info = computePrazoHomologacaoInfo(reg);
+              badge.textContent = info.aguardando ? 'Aguardando o fim do aviso trabalhado'
+                : (info.vencido ? 'Prazo vencido — ' + formatDateBR(reg.prazoHomologacao)
+                : 'Homologar até ' + formatDateBR(reg.prazoHomologacao) + ' (' + info.diasRestantes + (info.diasRestantes === 1 ? ' dia' : ' dias') + ')');
+            }
+          }
           return;
         }
 
@@ -5539,7 +5578,7 @@
 
   // Conta dias úteis (segunda a sexta) de um mês de 2026.
   // Feriados nacionais de 2026 (só os que caem em dia de semana importam). Descontados dos dias úteis.
-  var FERIADOS_2026 = ['2026-01-01','2026-04-03','2026-04-21','2026-05-01','2026-09-07','2026-10-12','2026-11-02','2026-11-15','2026-11-20','2026-12-25'];
+  var FERIADOS_2026 = ['2026-01-01','2026-04-03','2026-04-21','2026-05-01','2026-09-07','2026-10-12','2026-11-02','2026-11-15','2026-11-20','2026-12-25','2027-01-01'];
   function ehDiaUtil(d){
     var dow = d.getDay();
     if(dow < 1 || dow > 5) return false;
@@ -7506,6 +7545,41 @@
         ordenar(table);
       });
     } catch(err){ console.error('Erro ao ativar a ordenação das tabelas:', err); }
+  })();
+
+  // ============================================================
+  // CAMPOS DE DATA — digitação correta em todo o painel
+  // O navegador dispara "change" assim que a data fica válida, ainda com o ano incompleto
+  // (digitar "2026" passa por 0002, 0020, 0202). Isso salvava/recalculava datas erradas e
+  // recriava telas no meio da digitação. Aqui: (1) o ano fica limitado a 4 dígitos; (2) eventos
+  // com ano fora de 1900–2100 são descartados até a data estar completa.
+  // ============================================================
+  (function(){
+    function ajustar(el){
+      if(el.getAttribute('data-data-ok')) return;
+      el.setAttribute('data-data-ok', '1');
+      if(!el.min) el.min = '1900-01-01';
+      if(!el.max) el.max = '2100-12-31';
+    }
+    function varrer(raiz){
+      if(raiz.matches && raiz.matches('input[type="date"]')) ajustar(raiz);
+      if(raiz.querySelectorAll) raiz.querySelectorAll('input[type="date"]').forEach(ajustar);
+    }
+    varrer(document);
+    new MutationObserver(function(muts){
+      muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n.nodeType === 1) varrer(n); }); });
+    }).observe(document.body, { childList:true, subtree:true });
+
+    function anoIncompleto(el){
+      if(!el || el.tagName !== 'INPUT' || el.type !== 'date' || !el.value) return false;
+      var ano = parseInt(el.value.slice(0, 4), 10);
+      return isNaN(ano) || ano < 1900 || ano > 2100;
+    }
+    ['input', 'change'].forEach(function(tipo){
+      document.addEventListener(tipo, function(e){
+        if(anoIncompleto(e.target)) e.stopImmediatePropagation();
+      }, true);
+    });
   })();
 </script>
 </body>
