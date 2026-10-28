@@ -194,6 +194,7 @@
         Entrar
       </button>
     </form>
+    <div id="login-build" style="text-align:center;font-size:10px;color:var(--text-faint);margin-top:14px;opacity:0.7;"></div>
   </div>
 </div>
 
@@ -272,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-10</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-12</div>
     </div>
   </aside>
 
@@ -2163,6 +2164,10 @@
     measurementId: "G-PRR0EXCPCR"
   };
   firebase.initializeApp(firebaseConfig);
+  (function(){
+    var el = document.getElementById('login-build');
+    if(el) el.textContent = 'build 2026-10-28-12 • banco: ' + firebaseConfig.projectId;
+  })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
 
@@ -2273,7 +2278,7 @@
       else if(code === 'auth/too-many-requests') msg = 'Muitas tentativas de login. Aguarde alguns minutos e tente de novo.';
       else if(code === 'auth/configuration-not-found') msg = 'O Firebase Authentication ainda não foi iniciado neste projeto (Authentication → Começar).';
       else if(code && code !== 'auth/invalid-credential' && code !== 'auth/wrong-password' && code !== 'auth/user-not-found' && code !== 'auth/invalid-login-credentials') msg = 'Erro de login (' + code + ').';
-      errorEl.textContent = msg;
+      errorEl.textContent = msg + (code && msg.indexOf(code) === -1 ? ' [' + code + ']' : '');
       errorEl.style.display = 'block';
     });
   });
@@ -4454,16 +4459,21 @@
     return (Number(registro.valorTRCT) || 0) + (Number(registro.valorFGTS) || 0);
   }
 
-  // Prazo de homologação (gerado automaticamente): 8 DIAS ÚTEIS (sem sábado, domingo e feriado).
-  //  • Sem aviso trabalhado: contados a partir da data de desligamento.
-  //  • Com aviso trabalhado: o aviso dura 30 dias a partir do início informado; quando ele termina
-  //    (início + 30 dias) começa a contagem dos 8 dias úteis.
-  function calcularFimAviso(registro){
-    return (registro.avisoTrabalhado === 'Sim' && registro.avisoData) ? addDias(registro.avisoData, 30) : null;
+  // Prazo de homologação (gerado automaticamente):
+  //  • COM aviso trabalhado: 8 dias (corridos) após a data do aviso. Se cair em sábado, domingo
+  //    ou feriado, volta para o dia útil mais próximo (anterior).
+  //  • SEM aviso: 8 dias ÚTEIS (sem sábado, domingo e feriado) a partir da data de desligamento.
+  function voltarParaDiaUtil(dataISO){
+    var d = new Date(dataISO + 'T00:00:00');
+    if(isNaN(d.getTime())) return dataISO;
+    while(!ehDiaUtil(d)) d.setDate(d.getDate() - 1);
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
   function calcularPrazoHomologacao(registro){
-    var base = calcularFimAviso(registro) || registro.desligamento;
-    return addDiasUteis(base, 8);
+    if(registro.avisoTrabalhado === 'Sim' && registro.avisoData){
+      return voltarParaDiaUtil(addDias(registro.avisoData, 8));
+    }
+    return addDiasUteis(registro.desligamento, 8);
   }
   // Mantém prazo e "Data Homologação" sempre iguais à regra (nada é digitado à mão).
   function sincronizarHomologacao(registro){
@@ -4508,7 +4518,7 @@
       pendencias.push('Exame');
     }
 
-    if(registro.avisoTrabalhado === 'Sim' && !registro.avisoData) pendencias.push('Início do Aviso Trabalhado');
+    if(registro.avisoTrabalhado === 'Sim' && !registro.avisoData) pendencias.push('Data do Aviso Trabalhado');
 
     if(!registro.pontoData) pendencias.push('Envio do Ponto');
     if(registro.pontoStatus !== 'OK' && registro.pontoStatus !== 'NOK') pendencias.push('Status do Ponto');
@@ -4639,10 +4649,10 @@
               '<option value="Não"'+(registro.avisoTrabalhado==='Não'?' selected':'')+'>Não</option>' +
             '</select>' +
           '</div>' +
-          '<div><label>Início do Aviso</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
-          '<div><label>Término do Aviso (30 dias)</label><input type="text" data-aviso-fim="'+registro.id+'" class="desl-input-auto" value="'+(calcularFimAviso(registro) ? formatDateBR(calcularFimAviso(registro)) : '—')+'" disabled style="opacity:0.7;"></div>' +
+          '<div><label>Data do Aviso</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
+          '<div></div>' +
         '</div>' +
-        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias úteis (sem sábado, domingo e feriado) após o desligamento — ou, se houver aviso trabalhado, após os 30 dias de aviso.</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: com aviso trabalhado, 8 dias após a data do aviso (se cair em fim de semana ou feriado, volta para o dia útil anterior); sem aviso, 8 dias úteis após o desligamento.</div>' +
 
         '<div class="desl-check-row">' +
           '<div><label>Data Homologação (automática)</label><input type="text" data-homolog-data="'+registro.id+'" class="desl-input-auto" value="'+formatDateBR(registro.homologacaoData)+'" disabled style="opacity:0.85;"></div>' +
@@ -4759,8 +4769,6 @@
             abrirChecklistDesligamento(idAtual);
           } else {
             // Só a data mudou: atualiza o selo do prazo sem recriar o formulário (não perde o foco).
-            var fimEl = container.querySelector('[data-aviso-fim="'+idAtual+'"]');
-            if(fimEl) fimEl.value = calcularFimAviso(reg) ? formatDateBR(calcularFimAviso(reg)) : '—';
             var homEl = container.querySelector('[data-homolog-data="'+idAtual+'"]');
             if(homEl) homEl.value = formatDateBR(reg.homologacaoData);
             var badge = container.querySelector('.desl-prazo-badge');
