@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-02</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-04</div>
     </div>
   </aside>
 
@@ -521,7 +521,7 @@
         <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>Nome</th><th>CPF</th><th>Cargo</th><th>Posto</th><th>Admissão</th><th>Desligamento</th><th>Motivo</th><th>Contrato</th><th>Supervisor</th><th>Faltas</th><th>Advertências</th></tr>
+            <tr><th>Nome</th><th>CPF</th><th>Cargo</th><th>Posto</th><th>Admissão</th><th>Desligamento</th><th>Motivo</th><th>Contrato</th><th>Supervisor</th><th>Salário</th><th>Faltas</th><th>Advertências</th><th>Entrevista</th></tr>
           </thead>
           <tbody id="inativos-tbody"></tbody>
         </table>
@@ -1243,6 +1243,18 @@
             Exportar (.xlsx)
           </button>
         </div>
+
+        <div class="panel" style="padding:22px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+            <span class="panel-title" style="font-size:15px;">Entrevistas de Desligamento</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;" id="export-entrevistas-count">0 entrevistas</div>
+          <button class="btn" id="btn-export-entrevistas" style="background:var(--teal);color:#052622;border:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar (.xlsx)
+          </button>
+        </div>
       </div>
     </div>
   </main>
@@ -1307,6 +1319,7 @@
         <div><div style="font-size:11px;color:var(--text-dim);">Desligamento</div><div id="perfil-desligamento" class="mono" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Motivo da Saída</div><div id="perfil-motivo" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Supervisor</div><div id="perfil-supervisor" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Salário</div><div id="perfil-salario" class="mono" style="font-size:13.5px;"></div></div>
       </div>
 
       <div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:16px;">
@@ -1351,6 +1364,17 @@
         </div>
         <div class="empty-state" id="perfil-rescisao-complementar-empty" style="display:none;padding:16px;font-size:12px;">Nenhuma rescisão complementar lançada ainda.</div>
         <div style="text-align:right;font-size:12px;color:var(--text-dim);margin-top:6px;">Total: <strong id="perfil-rescisao-complementar-total" class="mono" style="color:var(--amber);">R$ 0,00</strong></div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12.5px;font-weight:600;">Entrevista de Desligamento</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;align-items:end;">
+          <div class="modal-field" style="margin:0;">
+            <label>Realizada?</label>
+            <select id="perfil-entrevista-realizada"><option value="">—</option><option value="Sim">Sim</option><option value="Não">Não</option></select>
+          </div>
+          <button type="button" class="btn btn-ghost" id="btn-abrir-entrevista-inativo" style="font-size:11.5px;">📝 Preencher Entrevista</button>
+        </div>
       </div>
 
       <div class="modal-field full">
@@ -1478,6 +1502,7 @@
             <select id="edti-contrato"><option value="INDETERMINADO">Indeterminado</option><option value="DETERMINADO">Determinado</option></select>
           </div>
           <div class="modal-field"><label>Supervisor</label><input type="text" id="edti-supervisor"></div>
+          <div class="modal-field"><label>Salário (R$)</label><input type="number" step="0.01" id="edti-salario"></div>
           <div class="modal-field"><label>Valor TRCT (R$)</label><input type="number" step="0.01" id="edti-trct"></div>
           <div class="modal-field"><label>Valor FGTS (R$)</label><input type="number" step="0.01" id="edti-fgts"></div>
           <div class="modal-field"><label>Valor Uniforme (R$)</label><input type="number" step="0.01" id="edti-uniforme"></div>
@@ -2856,7 +2881,9 @@
   // Move uma pessoa de Ativos -> Inativos (chamado quando se registra uma Demissão)
   function moverParaInativos(nome, dados){
     var idxAtivo = findIndexByName(appState.ativos, nome);
-    var base = idxAtivo >= 0 ? appState.ativos[idxAtivo] : {};
+    // Quem vem de Desligamentos em Andamento já saiu de Ativos: usa a cópia (ativoOriginal)
+    // para não perder salário, jornada, turno, CPF etc.
+    var base = idxAtivo >= 0 ? appState.ativos[idxAtivo] : (dados.ativoOriginal || {});
     var registroInativo = {
       id: 'i' + Date.now(),
       nome: nome,
@@ -2867,6 +2894,7 @@
       turno: base.turno || null,
       postoTrabalho: base.postoTrabalho || null,
       dataNascimento: base.dataNascimento || null,
+      salario: Number(base.salario) || Number(dados.salario) || null,
       admissao: base.admissao || dados.admissao || null,
       desligamento: dados.desligamento,
       motivoSaida: dados.motivoSaida || null,
@@ -2879,7 +2907,11 @@
       valorFGTS: Number(dados.valorFGTS) || 0,
       valorUniforme: Number(dados.valorUniforme) || 0,
       uniformeDevolvido: dados.uniformeDevolvido || null,
-      rescisaoComplementar: []
+      rescisaoComplementar: [],
+      // Entrevista de Desligamento agora é preenchida no cadastro do inativo
+      // (se houver algo já preenchido no checklist antigo, é preservado).
+      entrevistaRealizada: dados.entrevistaRealizada || null,
+      entrevista: dados.entrevista || null
     };
     if(idxAtivo >= 0) appState.ativos.splice(idxAtivo, 1);
     var idxInativoExistente = findIndexByName(appState.inativos, nome);
@@ -2890,6 +2922,21 @@
   // Busca o CPF de alguém a partir do cadastro (ativos primeiro, depois
   // inativos) — usado para preencher CPF em relatórios que hoje não têm essa
   // informação (Absenteísmo, Ocorrências, Cat, Férias).
+  // Salário de quem foi desligado: o gravado no cadastro; senão a cópia de quando saiu de Ativos;
+  // senão o último salário informado em Absenteísmo para o mesmo nome. Sem nada disso → null.
+  function getSalarioDesligado(c){
+    var v = Number(c && c.salario);
+    if(v > 0) return v;
+    if(c && c.ativoOriginal && Number(c.ativoOriginal.salario) > 0) return Number(c.ativoOriginal.salario);
+    if(!c || !c.nome) return null;
+    var key = normNome(c.nome);
+    for(var k = 0; k < appState.absenteismo.length; k++){
+      var e = appState.absenteismo[k];
+      if(Number(e.salario) > 0 && normNome(e.nome) === key) return Number(e.salario);
+    }
+    return null;
+  }
+
   function getCpfPorNome(nome){
     var key = normNome(nome);
     var ativo = appState.ativos.find(function(a){ return normNome(a.nome) === key; });
@@ -2948,14 +2995,6 @@
       valorFGTS: 0,
       homologacaoData: null,
       homologacaoStatus: '',
-      // Entrevista de Desligamento
-      entrevistaRealizada: null,
-      entrevista: {
-        motivoSaida: '', orientacoesSuficientes: '', suporteAdministrativo: '',
-        colaboracaoEquipe: '', contribuicoesReconhecidas: '', beneficiosSuficientes: '',
-        sugestoesBeneficios: '', obstaculosOperacionais: '', pagamentoEmDia: '',
-        melhoriasExperiencia: '', recomendaEmpresa: '', algoMais: ''
-      }
     };
     if(idxAtivo >= 0) appState.ativos.splice(idxAtivo, 1);
     var idxExistente = findIndexByName(appState.desligamentosAndamento, nome);
@@ -2988,7 +3027,9 @@
       motivoSaida: registro.motivoSaida, contrato: registro.contrato,
       supervisor: registro.supervisor, observacao: registro.observacao,
       valorTRCT: registro.valorTRCT, valorFGTS: registro.valorFGTS,
-      valorUniforme: registro.valorUniforme, uniformeDevolvido: registro.uniformeDevolvido
+      valorUniforme: registro.valorUniforme, uniformeDevolvido: registro.uniformeDevolvido,
+      entrevistaRealizada: registro.entrevistaRealizada, entrevista: registro.entrevista,
+      ativoOriginal: registro.ativoOriginal, salario: registro.ativoOriginal && registro.ativoOriginal.salario
     });
     appState.desligamentosAndamento.splice(idx, 1);
   }
@@ -3112,8 +3153,10 @@
         '<td>'+(motivoLabel[c.motivoSaida] || c.motivoSaida || '—')+'</td>' +
         '<td>'+(c.contrato||'—')+'</td>' +
         '<td>'+(c.supervisor||'—')+'</td>' +
+        '<td class="mono">'+(getSalarioDesligado(c) ? formatMoney(getSalarioDesligado(c)) : '—')+'</td>' +
         '<td class="mono">'+contagem.faltas+'</td>' +
         '<td class="mono">'+contagem.advertencias+'</td>' +
+        '<td>'+(c.entrevistaRealizada==='Sim' ? '<span class="pill teal">Realizada</span>' : (c.entrevistaRealizada==='Não' ? '<span class="pill red">Não realizada</span>' : '—'))+'</td>' +
       '</tr>';
     }).join('');
 
@@ -3134,6 +3177,7 @@
     document.getElementById('perfil-desligamento').textContent = formatDateBR(c.desligamento);
     document.getElementById('perfil-motivo').textContent = motivoLabel[c.motivoSaida] || c.motivoSaida || '—';
     document.getElementById('perfil-supervisor').textContent = c.supervisor || '—';
+    document.getElementById('perfil-salario').textContent = getSalarioDesligado(c) ? formatMoney(getSalarioDesligado(c)) : '—';
     document.getElementById('perfil-valor-trct').textContent = formatMoney(c.valorTRCT || 0);
     document.getElementById('perfil-valor-fgts').textContent = formatMoney(c.valorFGTS || 0);
     document.getElementById('perfil-valor-uniforme').textContent = formatMoney(c.valorUniforme || 0);
@@ -3144,6 +3188,7 @@
     document.getElementById('perfil-observacao').setAttribute('data-id', c.id);
     document.getElementById('btn-add-rescisao-complementar').setAttribute('data-inativo-id', c.id);
     document.getElementById('btn-editar-inativo').setAttribute('data-inativo-id', c.id);
+    atualizarEntrevistaNoPerfil(c);
     renderRescisaoComplementar(c);
     openModal('modal-perfil-inativo');
   }
@@ -3164,6 +3209,7 @@
     document.getElementById('edti-motivo').value = c.motivoSaida || 'COLABORADOR';
     document.getElementById('edti-contrato').value = c.contrato || 'INDETERMINADO';
     document.getElementById('edti-supervisor').value = c.supervisor || '';
+    document.getElementById('edti-salario').value = getSalarioDesligado(c) || '';
     document.getElementById('edti-trct').value = c.valorTRCT || 0;
     document.getElementById('edti-fgts').value = c.valorFGTS || 0;
     document.getElementById('edti-uniforme').value = c.valorUniforme || 0;
@@ -3188,6 +3234,7 @@
     c.motivoSaida = document.getElementById('edti-motivo').value;
     c.contrato = document.getElementById('edti-contrato').value;
     c.supervisor = document.getElementById('edti-supervisor').value.trim();
+    c.salario = parseFloat(document.getElementById('edti-salario').value) || null;
     c.valorTRCT = parseFloat(document.getElementById('edti-trct').value) || 0;
     c.valorFGTS = parseFloat(document.getElementById('edti-fgts').value) || 0;
     c.valorUniforme = parseFloat(document.getElementById('edti-uniforme').value) || 0;
@@ -4385,10 +4432,18 @@
     return (Number(registro.valorTRCT) || 0) + (Number(registro.valorFGTS) || 0);
   }
 
+  // Prazo de homologação: desligamento + 8 dias (ajustado para dia útil). Se o aviso foi TRABALHADO,
+  // a contagem só começa quando o aviso termina: término do aviso + 8 dias.
+  function calcularPrazoHomologacao(registro){
+    var base = (registro.avisoTrabalhado === 'Sim' && registro.avisoData) ? registro.avisoData : registro.desligamento;
+    return ajustarParaDiaUtil(addDias(base, 8));
+  }
+
   function computePrazoHomologacaoInfo(registro){
     var hoje = new Date().toISOString().slice(0,10);
     var diasRestantes = diffDias(hoje, registro.prazoHomologacao);
-    return { vencido: diasRestantes < 0, diasRestantes: diasRestantes };
+    var aguardando = registro.avisoTrabalhado === 'Sim' && !registro.avisoData;
+    return { vencido: !aguardando && diasRestantes < 0, diasRestantes: diasRestantes, aguardando: aguardando };
   }
 
   // Regra: SOLUTIONS exige exame demissional acima de 90 dias trabalhados;
@@ -4420,6 +4475,8 @@
       pendencias.push('Exame');
     }
 
+    if(registro.avisoTrabalhado === 'Sim' && !registro.avisoData) pendencias.push('Término do Aviso Trabalhado');
+
     if(!registro.pontoData) pendencias.push('Envio do Ponto');
     if(registro.pontoStatus !== 'OK' && registro.pontoStatus !== 'NOK') pendencias.push('Status do Ponto');
 
@@ -4440,11 +4497,13 @@
 
   function renderDesligamentoCard(registro){
     var prazoInfo = computePrazoHomologacaoInfo(registro);
-    var prazoCor = prazoInfo.vencido ? 'var(--red)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber)' : 'var(--teal)');
-    var prazoCorBg = prazoInfo.vencido ? 'var(--red-soft)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber-soft)' : 'var(--teal-soft)');
-    var prazoTexto = prazoInfo.vencido
-      ? 'Prazo vencido — ' + formatDateBR(registro.prazoHomologacao)
-      : 'Homologar até ' + formatDateBR(registro.prazoHomologacao) + ' (' + prazoInfo.diasRestantes + (prazoInfo.diasRestantes === 1 ? ' dia' : ' dias') + ')';
+    var prazoCor = prazoInfo.aguardando ? 'var(--amber)' : (prazoInfo.vencido ? 'var(--red)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber)' : 'var(--teal)'));
+    var prazoCorBg = prazoInfo.aguardando ? 'var(--amber-soft)' : (prazoInfo.vencido ? 'var(--red-soft)' : (prazoInfo.diasRestantes <= 2 ? 'var(--amber-soft)' : 'var(--teal-soft)'));
+    var prazoTexto = prazoInfo.aguardando
+      ? 'Aguardando o fim do aviso trabalhado'
+      : (prazoInfo.vencido
+        ? 'Prazo vencido — ' + formatDateBR(registro.prazoHomologacao)
+        : 'Homologar até ' + formatDateBR(registro.prazoHomologacao) + ' (' + prazoInfo.diasRestantes + (prazoInfo.diasRestantes === 1 ? ' dia' : ' dias') + ')');
 
     var exameInfo = computeNecessidadeExame(registro);
     var exameBadgeHtml = '';
@@ -4476,6 +4535,7 @@
       '<div class="desl-info-grid">' +
         '<div><div class="lbl">Empresa</div>'+(registro.empresa||'—')+'</div>' +
         '<div><div class="lbl">CPF</div>'+formatCPF(registro.cpf)+'</div>' +
+        '<div><div class="lbl">Salário</div>'+(getSalarioDesligado(registro) ? formatMoney(getSalarioDesligado(registro)) : '—')+'</div>' +
         '<div><div class="lbl">Admissão</div>'+formatDateBR(registro.admissao)+'</div>' +
         '<div><div class="lbl">Desligamento</div>'+formatDateBR(registro.desligamento)+'</div>' +
         '<div><div class="lbl">Desligamento por</div>' +
@@ -4539,6 +4599,19 @@
         '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 Se ainda não souber os valores finais de TRCT/FGTS, deixe em branco — eles são lançados depois, em Inativos → Rescisão Complementar.</div>' +
 
         '<div class="desl-check-row">' +
+          '<div><label>Aviso Trabalhado?</label>' +
+            '<select data-field="avisoTrabalhado" data-id="'+registro.id+'" class="desl-input">' +
+              '<option value="">—</option>' +
+              '<option value="Sim"'+(registro.avisoTrabalhado==='Sim'?' selected':'')+'>Sim</option>' +
+              '<option value="Não"'+(registro.avisoTrabalhado==='Não'?' selected':'')+'>Não</option>' +
+            '</select>' +
+          '</div>' +
+          '<div><label>Término do Aviso</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
+          '<div></div>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 Com aviso trabalhado, a contagem de 8 dias da homologação começa no término do aviso.</div>' +
+
+        '<div class="desl-check-row">' +
           '<div><label>Data Homologação</label><input type="date" data-field="homologacaoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.homologacaoData||'')+'"></div>' +
           '<div><label>Status Homologação</label>' +
             '<select data-field="homologacaoStatus" data-id="'+registro.id+'" class="desl-input">' +
@@ -4550,21 +4623,6 @@
           '<div></div>' +
         '</div>' +
 
-        '<div class="desl-check-row">' +
-          '<div><label>Entrevista de Desligamento Realizada?</label>' +
-            '<select data-field="entrevistaRealizada" data-id="'+registro.id+'" class="desl-input">' +
-              '<option value="">—</option>' +
-              '<option value="Sim"'+(registro.entrevistaRealizada==='Sim'?' selected':'')+'>Sim</option>' +
-              '<option value="Não"'+(registro.entrevistaRealizada==='Não'?' selected':'')+'>Não</option>' +
-            '</select>' +
-          '</div>' +
-          '<div style="display:flex;align-items:flex-end;">' +
-            '<button type="button" class="btn btn-ghost" data-abrir-entrevista-id="'+registro.id+'" style="width:100%;font-size:11.5px;">' +
-              (temEntrevistaPreenchida(registro) ? '📝 Ver/Editar Entrevista' : '📝 Preencher Entrevista') +
-            '</button>' +
-          '</div>' +
-          '<div></div>' +
-        '</div>' +
       '</div>' +
 
       '<div class="desl-total-row">' +
@@ -4610,10 +4668,12 @@
     var ordenados = lista.slice().sort(function(a,b){ return a.prazoHomologacao.localeCompare(b.prazoHomologacao); });
     tbody.innerHTML = ordenados.map(function(registro){
       var prazoInfo = computePrazoHomologacaoInfo(registro);
-      var prazoCor = prazoInfo.vencido ? 'red' : (prazoInfo.diasRestantes <= 2 ? 'amber' : 'teal');
-      var prazoTexto = prazoInfo.vencido
-        ? 'Vencido — ' + formatDateBR(registro.prazoHomologacao)
-        : formatDateBR(registro.prazoHomologacao) + ' (' + prazoInfo.diasRestantes + 'd)';
+      var prazoCor = prazoInfo.aguardando ? 'amber' : (prazoInfo.vencido ? 'red' : (prazoInfo.diasRestantes <= 2 ? 'amber' : 'teal'));
+      var prazoTexto = prazoInfo.aguardando
+        ? 'Aguardando fim do aviso'
+        : (prazoInfo.vencido
+          ? 'Vencido — ' + formatDateBR(registro.prazoHomologacao)
+          : formatDateBR(registro.prazoHomologacao) + ' (' + prazoInfo.diasRestantes + 'd)');
       var pendencias = validarChecklistCompleto(registro);
       var checklistTexto = pendencias.length === 0 ? '<span class="pill teal">Completo</span>' : '<span class="pill amber">'+pendencias.length+' pendente'+(pendencias.length>1?'s':'')+'</span>';
       return '<tr data-id="'+registro.id+'" class="row-clickable" title="Clique para ver o checklist completo">' +
@@ -4654,6 +4714,15 @@
             var regTO = appState.turnover.find(function(x){ return x.id === reg.turnoverId; });
             if(regTO){ regTO.motivoSaida = reg.motivoSaida; refreshTurnoverView(); }
           }
+        }
+
+        if(field === 'avisoTrabalhado' || field === 'avisoData'){
+          if(field === 'avisoTrabalhado' && this.value !== 'Sim') reg.avisoData = '';
+          reg.prazoHomologacao = calcularPrazoHomologacao(reg);
+          cloudPut(appState).catch(function(err){ console.error('Erro ao salvar aviso trabalhado:', err); });
+          refreshDesligamentosView();
+          abrirChecklistDesligamento(idAtual);
+          return;
         }
 
         if(field === 'uniformeDevolvido'){
@@ -4707,12 +4776,6 @@
       });
     });
 
-    container.querySelectorAll('[data-abrir-entrevista-id]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        abrirModalEntrevista(this.getAttribute('data-abrir-entrevista-id'));
-      });
-    });
-
     container.querySelectorAll('[data-excluir-id]').forEach(function(btn){
       btn.addEventListener('click', function(){
         var idAtual = this.getAttribute('data-excluir-id');
@@ -4757,8 +4820,31 @@
     'contribuicoesReconhecidas','beneficiosSuficientes','sugestoesBeneficios','obstaculosOperacionais',
     'pagamentoEmDia','melhoriasExperiencia','recomendaEmpresa','algoMais'];
 
+  var ENTREVISTA_PERGUNTAS = {
+    motivoSaida: 'O que motivou sua decisão de sair da empresa?',
+    orientacoesSuficientes: 'Você recebeu orientações suficientes e construtivas durante sua permanência?',
+    suporteAdministrativo: 'Nosso time administrativo (RH/DP/Psicóloga/Supervisor) prestaram suporte quando solicitado?',
+    colaboracaoEquipe: 'Você sentiu que existia colaboração entre os membros da equipe?',
+    contribuicoesReconhecidas: 'Você sentia que suas contribuições eram reconhecidas?',
+    beneficiosSuficientes: 'Nossos benefícios foram suficientes? (Alimentação, refeição, odontologia, sest/senat)',
+    sugestoesBeneficios: 'Há sugestões de melhorias no pacote de benefícios?',
+    obstaculosOperacionais: 'Quais obstáculos operacionais você encontrou no dia a dia?',
+    pagamentoEmDia: 'O pagamento de salário e benefícios sempre foram pagos em dia?',
+    melhoriasExperiencia: 'O que você acha que poderíamos fazer para melhorar a experiência dos funcionários?',
+    recomendaEmpresa: 'Você recomendaria a nossa empresa a um amigo, familiar ou conhecido?',
+    algoMais: 'Há algo mais que gostaria de compartilhar que não foi perguntado?'
+  };
+
+  function atualizarEntrevistaNoPerfil(c){
+    document.getElementById('perfil-entrevista-realizada').value = c.entrevistaRealizada || '';
+    document.getElementById('perfil-entrevista-realizada').setAttribute('data-id', c.id);
+    var btn = document.getElementById('btn-abrir-entrevista-inativo');
+    btn.setAttribute('data-id', c.id);
+    btn.textContent = temEntrevistaPreenchida(c) ? '📝 Ver/Editar Entrevista' : '📝 Preencher Entrevista';
+  }
+
   function abrirModalEntrevista(id){
-    var registro = appState.desligamentosAndamento.find(function(d){ return d.id === id; });
+    var registro = appState.inativos.find(function(d){ return d.id === id; });
     if(!registro) return;
     if(!registro.entrevista) registro.entrevista = {};
     document.getElementById('entr-id').value = id;
@@ -4769,10 +4855,23 @@
     openModal('modal-entrevista');
   }
 
+  document.getElementById('btn-abrir-entrevista-inativo').addEventListener('click', function(){
+    abrirModalEntrevista(this.getAttribute('data-id'));
+  });
+
+  document.getElementById('perfil-entrevista-realizada').addEventListener('change', function(){
+    var registro = appState.inativos.find(function(d){ return d.id === document.getElementById('perfil-entrevista-realizada').getAttribute('data-id'); });
+    if(!registro) return;
+    registro.entrevistaRealizada = this.value || null;
+    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar entrevista de desligamento:', err); });
+    refreshInativosView();
+    if(typeof refreshExportacoesView === 'function') refreshExportacoesView();
+  });
+
   document.getElementById('form-entrevista').addEventListener('submit', function(e){
     e.preventDefault();
     var id = document.getElementById('entr-id').value;
-    var registro = appState.desligamentosAndamento.find(function(d){ return d.id === id; });
+    var registro = appState.inativos.find(function(d){ return d.id === id; });
     if(!registro) return;
     if(!registro.entrevista) registro.entrevista = {};
     ENTREVISTA_CAMPOS.forEach(function(campo){
@@ -4783,10 +4882,9 @@
       registro.entrevistaRealizada = 'Sim';
     }
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar entrevista de desligamento:', err); });
-    refreshDesligamentosView();
-    // Se o quadro do checklist estava aberto por trás, atualiza o botão da entrevista nele também.
-    var modalChecklist = document.getElementById('modal-desligamento-checklist');
-    if(modalChecklist.classList.contains('active')) abrirChecklistDesligamento(id);
+    atualizarEntrevistaNoPerfil(registro);
+    refreshInativosView();
+    if(typeof refreshExportacoesView === 'function') refreshExportacoesView();
     closeModal('modal-entrevista');
   });
 
@@ -4895,7 +4993,34 @@
     });
   }
 
+  // Entrevistas de desligamento: inativos com a entrevista marcada como realizada ou com respostas preenchidas.
+  function getInativosComEntrevista(){
+    return appState.inativos.filter(function(i){ return i.entrevistaRealizada === 'Sim' || temEntrevistaPreenchida(i); });
+  }
+  function prepararExportEntrevistas(){
+    var motivoLabel = {COLABORADOR:'Pedido do Colaborador', EMPRESA:'Pedido da Empresa', ABANDONO:'Abandono'};
+    return getInativosComEntrevista().map(function(i){
+      var linha = {
+        'Nome': i.nome,
+        'CPF': formatCPF(i.cpf || getCpfPorNome(i.nome)),
+        'Cargo': i.cargo || '',
+        'Cliente': i.posto || '',
+        'Admissão': i.admissao ? formatDateBR(i.admissao) : '',
+        'Desligamento': i.desligamento ? formatDateBR(i.desligamento) : '',
+        'Desligamento por': motivoLabel[i.motivoSaida] || i.motivoSaida || '',
+        'Contrato': i.contrato || '',
+        'Supervisor': i.supervisor || '',
+        'Entrevista Realizada': i.entrevistaRealizada || ''
+      };
+      ENTREVISTA_CAMPOS.forEach(function(campo){
+        linha[ENTREVISTA_PERGUNTAS[campo]] = (i.entrevista && i.entrevista[campo]) || '';
+      });
+      return linha;
+    });
+  }
+
   function refreshExportacoesView(){
+    document.getElementById('export-entrevistas-count').textContent = getInativosComEntrevista().length + ' entrevistas';
     document.getElementById('export-ativos-count').textContent = appState.ativos.length + ' colaboradores';
     document.getElementById('export-abs-count').textContent = appState.absenteismo.length + ' registros';
     document.getElementById('export-to-count').textContent = appState.turnover.length + ' registros';
@@ -4910,6 +5035,9 @@
   });
   document.getElementById('btn-export-to').addEventListener('click', function(){
     exportarExcel('turnover', 'TurnOver', prepararExportTurnover());
+  });
+  document.getElementById('btn-export-entrevistas').addEventListener('click', function(){
+    exportarExcel('entrevistas_desligamento', 'Entrevistas', prepararExportEntrevistas());
   });
   document.getElementById('btn-export-ferias').addEventListener('click', function(){
     exportarExcel('ferias', 'Férias', prepararExportFerias());
