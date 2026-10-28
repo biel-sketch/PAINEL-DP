@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-14</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-15</div>
     </div>
   </aside>
 
@@ -2166,7 +2166,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-28-14 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-10-28-15 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -4476,8 +4476,13 @@
   }
   // Mantém prazo e "Data Homologação" sempre iguais à regra (nada é digitado à mão).
   function sincronizarHomologacao(registro){
-    registro.prazoHomologacao = calcularPrazoHomologacao(registro);
-    registro.homologacaoData = registro.prazoHomologacao;
+    if(registro.homologacaoManual && registro.homologacaoData){
+      registro.prazoHomologacao = registro.homologacaoData; // data ajustada à mão vale como prazo
+    } else {
+      registro.homologacaoManual = false;
+      registro.prazoHomologacao = calcularPrazoHomologacao(registro);
+      registro.homologacaoData = registro.prazoHomologacao;
+    }
     return registro;
   }
 
@@ -4651,10 +4656,10 @@
           '<div><label>Início do Aviso (30 dias)</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
           '<div></div>' +
         '</div>' +
-        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias após o fim do aviso trabalhado (início + 30 dias) ou, sem aviso, 8 dias após o desligamento. Se cair em fim de semana ou feriado, volta para o dia útil anterior.</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias após o fim do aviso trabalhado (início + 30 dias) ou, sem aviso, 8 dias após o desligamento. Se cair em fim de semana ou feriado, volta para o dia útil anterior. Você pode alterar a data manualmente; para voltar à automática, apague o campo.</div>' +
 
         '<div class="desl-check-row">' +
-          '<div><label>Data Homologação (automática)</label><input type="text" data-homolog-data="'+registro.id+'" class="desl-input-auto" value="'+formatDateBR(registro.homologacaoData)+'" disabled style="opacity:0.85;"></div>' +
+          '<div><label>Data Homologação'+(registro.homologacaoManual?' (ajustada)':' (automática)')+'</label><input type="date" data-field="homologacaoData" data-id="'+registro.id+'" data-homolog-data="'+registro.id+'" class="desl-input" value="'+(registro.homologacaoData||'')+'"></div>' +
           '<div><label>Status Homologação</label>' +
             '<select data-field="homologacaoStatus" data-id="'+registro.id+'" class="desl-input">' +
               '<option value="">—</option>' +
@@ -4759,7 +4764,17 @@
           }
         }
 
+        if(field === 'homologacaoData'){
+          reg.homologacaoManual = !!this.value; // vazio = volta para a data automática
+          sincronizarHomologacao(reg);
+          cloudPut(appState).catch(function(err){ console.error('Erro ao salvar data de homologação:', err); });
+          refreshDesligamentosView();
+          abrirChecklistDesligamento(idAtual);
+          return;
+        }
+
         if(field === 'avisoTrabalhado' || field === 'avisoData'){
+          reg.homologacaoManual = false; // mudou o aviso: recalcula pela regra
           if(field === 'avisoTrabalhado' && this.value !== 'Sim') reg.avisoData = '';
           sincronizarHomologacao(reg);
           cloudPut(appState).catch(function(err){ console.error('Erro ao salvar aviso trabalhado:', err); });
