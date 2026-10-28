@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-12</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-13</div>
     </div>
   </aside>
 
@@ -2166,7 +2166,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-28-12 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-10-28-13 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -3000,7 +3000,7 @@
       posto: dados.posto || base.posto || '',
       admissao: base.admissao || dados.admissao || null,
       desligamento: desligamento,
-      prazoHomologacao: addDiasUteis(desligamento, 8),
+      prazoHomologacao: voltarParaDiaUtil(addDias(desligamento, 8)),
       motivoSaida: dados.motivoSaida || null,
       contrato: dados.contrato || null,
       supervisor: dados.supervisor || null,
@@ -3020,7 +3020,7 @@
       financeiroData: null,
       valorTRCT: 0,
       valorFGTS: 0,
-      homologacaoData: addDiasUteis(desligamento, 8),
+      homologacaoData: voltarParaDiaUtil(addDias(desligamento, 8)),
       homologacaoStatus: '',
     };
     if(idxAtivo >= 0) appState.ativos.splice(idxAtivo, 1);
@@ -4462,7 +4462,7 @@
   // Prazo de homologação (gerado automaticamente):
   //  • COM aviso trabalhado: 8 dias (corridos) após a data do aviso. Se cair em sábado, domingo
   //    ou feriado, volta para o dia útil mais próximo (anterior).
-  //  • SEM aviso: 8 dias ÚTEIS (sem sábado, domingo e feriado) a partir da data de desligamento.
+  //  • SEM aviso: 8 dias (corridos) após a data de desligamento, com o mesmo ajuste para dia útil.
   function voltarParaDiaUtil(dataISO){
     var d = new Date(dataISO + 'T00:00:00');
     if(isNaN(d.getTime())) return dataISO;
@@ -4470,10 +4470,8 @@
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
   function calcularPrazoHomologacao(registro){
-    if(registro.avisoTrabalhado === 'Sim' && registro.avisoData){
-      return voltarParaDiaUtil(addDias(registro.avisoData, 8));
-    }
-    return addDiasUteis(registro.desligamento, 8);
+    var base = (registro.avisoTrabalhado === 'Sim' && registro.avisoData) ? registro.avisoData : registro.desligamento;
+    return voltarParaDiaUtil(addDias(base, 8));
   }
   // Mantém prazo e "Data Homologação" sempre iguais à regra (nada é digitado à mão).
   function sincronizarHomologacao(registro){
@@ -4652,7 +4650,7 @@
           '<div><label>Data do Aviso</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
           '<div></div>' +
         '</div>' +
-        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: com aviso trabalhado, 8 dias após a data do aviso (se cair em fim de semana ou feriado, volta para o dia útil anterior); sem aviso, 8 dias úteis após o desligamento.</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias após a data do aviso trabalhado ou, sem aviso, 8 dias após o desligamento. Se cair em fim de semana ou feriado, volta para o dia útil anterior.</div>' +
 
         '<div class="desl-check-row">' +
           '<div><label>Data Homologação (automática)</label><input type="text" data-homolog-data="'+registro.id+'" class="desl-input-auto" value="'+formatDateBR(registro.homologacaoData)+'" disabled style="opacity:0.85;"></div>' +
