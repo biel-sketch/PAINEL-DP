@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-06</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-08</div>
     </div>
   </aside>
 
@@ -7247,63 +7247,90 @@
     });
   }
 
-  function cloudPut(state){
-    return dbRef.once('value').then(function(snap){
-      var servidor = snap.val();
-      if(servidor){
-        COLECOES_APPSTATE.forEach(function(col){
-          // Se esta aba não tocou nessa coleção desde a última sincronização, usa a
-          // versão mais recente do servidor em vez da cópia local — que pode estar
-          // desatualizada se outra pessoa corrigiu/alterou essa coleção nesse meio
-          // tempo (evita que uma aba parada apague uma correção alheia só porque
-          // salvou algo em OUTRA coleção).
-          if(Array.isArray(servidor[col]) && colecaoNaoFoiAlteradaLocalmente(state, col)){
-            state[col] = servidor[col];
-            return;
-          }
-          if(!Array.isArray(servidor[col]) || !servidor[col].length) return;
-          if(!Array.isArray(state[col])) state[col] = [];
-          mesclarItensDoServidor(state, servidor, col);
-        });
+  // ------------------------------------------------------------
+  // GRAVAÇÃO ECONÔMICA (menos downloads no Firebase)
+  // Antes: cada salvamento regravava o banco INTEIRO (~1 MB) e todas as telas abertas
+  // baixavam tudo de novo. Agora: só as coleções que ESTA aba realmente alterou são
+  // gravadas, e cada coleção tem o seu próprio "ouvinte" — as outras telas só baixam
+  // a coleção que mudou.
+  // ------------------------------------------------------------
+  // Texto (JSON) de cada coleção como veio do servidor na última sincronização.
+  var ULTIMA_STR = {};
+  // Última versão de cada coleção recebida do servidor (atualizada em tempo real).
+  var CLOUD_STR = {};
+
+  function gravarColecoes(state, colecoesSubstituidas){
+    var updates = {};
+    var alguma = false;
+    COLECOES_APPSTATE.forEach(function(col){
+      if(!Array.isArray(state[col])) state[col] = [];
+      var substituida = colecoesSubstituidas.indexOf(col) !== -1;
+      var localStr = JSON.stringify(state[col]);
+      // Esta aba não mexeu nessa coleção desde a última sincronização: não grava.
+      if(!substituida && ULTIMA_STR[col] !== undefined && localStr === ULTIMA_STR[col]) return;
+      // Alterada aqui: antes de gravar, traz de volta o que outra pessoa criou nesse meio
+      // tempo (mas não ressuscita o que esta aba removeu de propósito).
+      if(!substituida && CLOUD_STR[col] !== undefined){
+        try {
+          var servidor = {};
+          servidor[col] = JSON.parse(CLOUD_STR[col]);
+          if(Array.isArray(servidor[col]) && servidor[col].length) mesclarItensDoServidor(state, servidor, col);
+        } catch(err){ console.error('Erro ao mesclar ' + col + ' com o servidor:', err); }
       }
-      return dbRef.set(state);
-    }).catch(function(err){
-      console.error('Erro ao mesclar com o servidor antes de salvar — gravando mesmo assim:', err);
-      return dbRef.set(state);
+      // Alteração "no lugar" (mesmos registros, mesma ordem — ex.: editar um registro, marcar um
+      // item do checklist): grava SÓ os registros que mudaram, em vez da coleção inteira.
+      var gravouPorRegistro = false;
+      if(!substituida && CLOUD_STR[col] !== undefined){
+        try {
+          var base = JSON.parse(CLOUD_STR[col]);
+          var local = state[col];
+          if(Array.isArray(base) && base.length && base.length === local.length){
+            var mesmaOrdem = true, alterados = [];
+            for(var ix = 0; ix < local.length; ix++){
+              if(!base[ix] || !local[ix] || base[ix].id !== local[ix].id){ mesmaOrdem = false; break; }
+              if(JSON.stringify(base[ix]) !== JSON.stringify(local[ix])) alterados.push(ix);
+            }
+            if(mesmaOrdem && alterados.length <= local.length / 2){
+              alterados.forEach(function(ix){ updates[col + '/' + ix] = local[ix]; });
+              gravouPorRegistro = true;
+              if(alterados.length) alguma = true;
+            }
+          }
+        } catch(err){ gravouPorRegistro = false; }
+      }
+      if(gravouPorRegistro) return;
+      updates[col] = state[col].length ? state[col] : null;
+      alguma = true;
     });
+    if(!alguma) return Promise.resolve();
+    return dbRef.update(updates);
+  }
+
+  function cloudPut(state){
+    return gravarColecoes(state, []);
   }
 
   // Igual ao cloudPut, mas para os botões de "substituição total" (Corrigir Abs/TO,
-  // Corrigir só TurnOver, Atualizar Base): nas coleções listadas em colecoesSubstituidas
-  // NÃO mescla de volta o que estava no servidor — senão registros antigos (com IDs
-  // diferentes dos novos) voltariam a aparecer juntos com os novos, misturando dados
-  // velhos e corrigidos. Nas demais coleções, continua mesclando normalmente para não
-  // perder o trabalho de outras pessoas feito em paralelo.
+  // Corrigir só TurnOver, Atualizar Base): as coleções listadas em colecoesSubstituidas
+  // são gravadas exatamente como estão, sem trazer de volta registros antigos.
   function cloudPutReplace(state, colecoesSubstituidas){
-    return dbRef.once('value').then(function(snap){
-      var servidor = snap.val();
-      if(servidor){
-        COLECOES_APPSTATE.forEach(function(col){
-          if(colecoesSubstituidas.indexOf(col) !== -1) return;
-          if(Array.isArray(servidor[col]) && colecaoNaoFoiAlteradaLocalmente(state, col)){
-            state[col] = servidor[col];
-            return;
-          }
-          if(!Array.isArray(servidor[col]) || !servidor[col].length) return;
-          if(!Array.isArray(state[col])) state[col] = [];
-          mesclarItensDoServidor(state, servidor, col);
-        });
-      }
-      return dbRef.set(state);
-    }).catch(function(err){
-      console.error('Erro ao mesclar com o servidor antes de salvar — gravando mesmo assim:', err);
-      return dbRef.set(state);
-    });
+    return gravarColecoes(state, colecoesSubstituidas || []);
   }
 
   function processarSnapshot(cloud){
     var bannerInicial = document.getElementById('global-error-banner');
     if(bannerInicial){ bannerInicial.style.display = 'none'; bannerInicial.textContent = ''; }
+
+    // Foto "crua" do que o servidor mandou (antes de qualquer ajuste local): é a referência
+    // para saber, na hora de salvar, quais coleções esta aba realmente alterou.
+    ULTIMA_STR = Object.assign({}, CLOUD_STR);
+    try {
+      var fotoCrua = {};
+      COLECOES_APPSTATE.forEach(function(col){
+        if(CLOUD_STR[col] !== undefined) fotoCrua[col] = JSON.parse(CLOUD_STR[col]);
+      });
+      ULTIMO_SNAPSHOT_SERVIDOR = fotoCrua;
+    } catch(e){ ULTIMO_SNAPSHOT_SERVIDOR = null; }
 
     if(cloud) appState = cloud;
     else appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [], clientes: [] };
@@ -7410,7 +7437,7 @@
     // usamos a versão mais recente buscada direto do servidor. Isso evita que uma aba
     // parada/desatualizada apague, sem querer, uma correção feita por outra pessoa
     // em uma coleção que essa aba nem estava editando.
-    try { ULTIMO_SNAPSHOT_SERVIDOR = JSON.parse(JSON.stringify(appState)); } catch(e){ ULTIMO_SNAPSHOT_SERVIDOR = null; }
+    // (a foto de referência é tirada no início desta função, antes dos ajustes locais)
   }
 
   // ============================================================
@@ -7419,21 +7446,51 @@
   // mantemos uma conexão persistente: os dados chegam uma vez e depois
   // só as diferenças são transmitidas — muito mais leve e mais estável.
   // ============================================================
-  var valueListenerAtivo = null;
+  var valueListenersAtivos = {};
   var connectedListenerAtivo = null;
+  var processarTimer = null;
 
-  function startCloudSync(){
-    setSyncIndicator('syncing', 'Conectando...');
-    valueListenerAtivo = function(snapshot){
+  function colecoesProntas(){
+    return COLECOES_APPSTATE.every(function(col){ return CLOUD_STR[col] !== undefined; });
+  }
+
+  // Monta o estado a partir do que cada coleção recebeu (cópia nova a cada vez, para que
+  // as alterações locais nunca mexam na referência do servidor).
+  function montarEstadoDoServidor(){
+    var o = {};
+    COLECOES_APPSTATE.forEach(function(col){ o[col] = JSON.parse(CLOUD_STR[col]); });
+    return o;
+  }
+
+  function agendarProcessamento(){
+    if(!colecoesProntas()) return;
+    if(processarTimer) clearTimeout(processarTimer);
+    // pequena espera para juntar várias coleções que chegam quase juntas
+    processarTimer = setTimeout(function(){
+      processarTimer = null;
       try {
-        processarSnapshot(snapshot.val());
+        processarSnapshot(montarEstadoDoServidor());
       } catch(err){
         console.error('Erro ao processar dados do Firebase:', err);
       }
-    };
-    dbRef.on('value', valueListenerAtivo, function(err){
-      console.error('Erro de conexão com o Firebase:', err);
-      setSyncIndicator('err', 'Sem conexão');
+    }, 40);
+  }
+
+  function startCloudSync(){
+    setSyncIndicator('syncing', 'Conectando...');
+    // Um ouvinte por coleção: quando alguém altera só "Desligamentos em Andamento",
+    // as demais telas baixam apenas essa coleção — e não o banco inteiro.
+    COLECOES_APPSTATE.forEach(function(col){
+      var ref = dbRef.child(col);
+      var fn = function(snapshot){
+        CLOUD_STR[col] = JSON.stringify(snapshot.val() || []);
+        agendarProcessamento();
+      };
+      ref.on('value', fn, function(err){
+        console.error('Erro de conexão com o Firebase (' + col + '):', err);
+        setSyncIndicator('err', 'Sem conexão');
+      });
+      valueListenersAtivos[col] = { ref: ref, fn: fn };
     });
 
     // Monitora o estado real da conexão (fica "Sem conexão" se a internet cair,
@@ -7449,8 +7506,10 @@
   }
 
   function stopCloudSync(){
-    if(valueListenerAtivo) dbRef.off('value', valueListenerAtivo);
-    valueListenerAtivo = null;
+    Object.keys(valueListenersAtivos).forEach(function(col){
+      valueListenersAtivos[col].ref.off('value', valueListenersAtivos[col].fn);
+    });
+    valueListenersAtivos = {};
     if(connectedListenerAtivo) firebase.database().ref('.info/connected').off('value', connectedListenerAtivo);
     connectedListenerAtivo = null;
   }
