@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-13</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-14</div>
     </div>
   </aside>
 
@@ -2166,7 +2166,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-28-13 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-10-28-14 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -4470,7 +4470,8 @@
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
   function calcularPrazoHomologacao(registro){
-    var base = (registro.avisoTrabalhado === 'Sim' && registro.avisoData) ? registro.avisoData : registro.desligamento;
+    var base = registro.desligamento;
+    if(registro.avisoTrabalhado === 'Sim' && registro.avisoData) base = addDias(registro.avisoData, 30); // aviso de 30 dias: a data informada é o INÍCIO
     return voltarParaDiaUtil(addDias(base, 8));
   }
   // Mantém prazo e "Data Homologação" sempre iguais à regra (nada é digitado à mão).
@@ -4647,10 +4648,10 @@
               '<option value="Não"'+(registro.avisoTrabalhado==='Não'?' selected':'')+'>Não</option>' +
             '</select>' +
           '</div>' +
-          '<div><label>Data do Aviso</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
+          '<div><label>Início do Aviso (30 dias)</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
           '<div></div>' +
         '</div>' +
-        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias após a data do aviso trabalhado ou, sem aviso, 8 dias após o desligamento. Se cair em fim de semana ou feriado, volta para o dia útil anterior.</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias após o fim do aviso trabalhado (início + 30 dias) ou, sem aviso, 8 dias após o desligamento. Se cair em fim de semana ou feriado, volta para o dia útil anterior.</div>' +
 
         '<div class="desl-check-row">' +
           '<div><label>Data Homologação (automática)</label><input type="text" data-homolog-data="'+registro.id+'" class="desl-input-auto" value="'+formatDateBR(registro.homologacaoData)+'" disabled style="opacity:0.85;"></div>' +
