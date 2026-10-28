@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-15</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-16</div>
     </div>
   </aside>
 
@@ -2166,7 +2166,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-28-15 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-10-28-16 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -4469,13 +4469,19 @@
     while(!ehDiaUtil(d)) d.setDate(d.getDate() - 1);
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
+  // Fim do aviso: início + 30 dias (automático) ou a data ajustada à mão.
+  function getAvisoFim(registro){
+    if(registro.avisoFimManual && registro.avisoFim) return registro.avisoFim;
+    return registro.avisoData ? addDias(registro.avisoData, 30) : '';
+  }
   function calcularPrazoHomologacao(registro){
     var base = registro.desligamento;
-    if(registro.avisoTrabalhado === 'Sim' && registro.avisoData) base = addDias(registro.avisoData, 30); // aviso de 30 dias: a data informada é o INÍCIO
+    if(registro.avisoTrabalhado === 'Sim' && getAvisoFim(registro)) base = getAvisoFim(registro);
     return voltarParaDiaUtil(addDias(base, 8));
   }
   // Mantém prazo e "Data Homologação" sempre iguais à regra (nada é digitado à mão).
   function sincronizarHomologacao(registro){
+    if(!registro.avisoFimManual) registro.avisoFim = (registro.avisoTrabalhado === 'Sim') ? getAvisoFim(registro) : '';
     if(registro.homologacaoManual && registro.homologacaoData){
       registro.prazoHomologacao = registro.homologacaoData; // data ajustada à mão vale como prazo
     } else {
@@ -4489,7 +4495,7 @@
   function computePrazoHomologacaoInfo(registro){
     var hoje = new Date().toISOString().slice(0,10);
     var diasRestantes = diffDias(hoje, registro.prazoHomologacao);
-    var aguardando = registro.avisoTrabalhado === 'Sim' && !registro.avisoData;
+    var aguardando = registro.avisoTrabalhado === 'Sim' && !getAvisoFim(registro);
     return { vencido: !aguardando && diasRestantes < 0, diasRestantes: diasRestantes, aguardando: aguardando };
   }
 
@@ -4522,7 +4528,7 @@
       pendencias.push('Exame');
     }
 
-    if(registro.avisoTrabalhado === 'Sim' && !registro.avisoData) pendencias.push('Data do Aviso Trabalhado');
+    if(registro.avisoTrabalhado === 'Sim' && !getAvisoFim(registro)) pendencias.push('Data do Aviso Trabalhado');
 
     if(!registro.pontoData) pendencias.push('Envio do Ponto');
     if(registro.pontoStatus !== 'OK' && registro.pontoStatus !== 'NOK') pendencias.push('Status do Ponto');
@@ -4654,9 +4660,9 @@
             '</select>' +
           '</div>' +
           '<div><label>Início do Aviso (30 dias)</label><input type="date" data-field="avisoData" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoData||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
-          '<div></div>' +
+          '<div><label>Fim do Aviso'+(registro.avisoFimManual?' (ajustado)':' (automático)')+'</label><input type="date" data-field="avisoFim" data-id="'+registro.id+'" class="desl-input" value="'+(registro.avisoFim||'')+'" '+(registro.avisoTrabalhado!=='Sim'?'disabled style="opacity:0.5;"':'')+'></div>' +
         '</div>' +
-        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias após o fim do aviso trabalhado (início + 30 dias) ou, sem aviso, 8 dias após o desligamento. Se cair em fim de semana ou feriado, volta para o dia útil anterior. Você pode alterar a data manualmente; para voltar à automática, apague o campo.</div>' +
+        '<div style="font-size:11px;color:var(--text-faint);margin-top:-4px;">💡 A Data da Homologação é gerada sozinha: 8 dias após o fim do aviso trabalhado (início + 30 dias) ou, sem aviso, 8 dias após o desligamento. Se cair em fim de semana ou feriado, volta para o dia útil anterior. O Fim do Aviso e a Data da Homologação também podem ser alterados manualmente; para voltar ao automático, apague o campo.</div>' +
 
         '<div class="desl-check-row">' +
           '<div><label>Data Homologação'+(registro.homologacaoManual?' (ajustada)':' (automática)')+'</label><input type="date" data-field="homologacaoData" data-id="'+registro.id+'" data-homolog-data="'+registro.id+'" class="desl-input" value="'+(registro.homologacaoData||'')+'"></div>' +
@@ -4773,9 +4779,11 @@
           return;
         }
 
-        if(field === 'avisoTrabalhado' || field === 'avisoData'){
+        if(field === 'avisoTrabalhado' || field === 'avisoData' || field === 'avisoFim'){
           reg.homologacaoManual = false; // mudou o aviso: recalcula pela regra
-          if(field === 'avisoTrabalhado' && this.value !== 'Sim') reg.avisoData = '';
+          if(field === 'avisoFim'){ reg.avisoFimManual = !!this.value; }
+          else { reg.avisoFimManual = false; }
+          if(field === 'avisoTrabalhado' && this.value !== 'Sim'){ reg.avisoData = ''; reg.avisoFim = ''; }
           sincronizarHomologacao(reg);
           cloudPut(appState).catch(function(err){ console.error('Erro ao salvar aviso trabalhado:', err); });
           refreshDesligamentosView();
@@ -4783,6 +4791,8 @@
             abrirChecklistDesligamento(idAtual);
           } else {
             // Só a data mudou: atualiza o selo do prazo sem recriar o formulário (não perde o foco).
+            var fimEl = container.querySelector('[data-field="avisoFim"][data-id="'+idAtual+'"]');
+            if(fimEl && field === 'avisoData') fimEl.value = reg.avisoFim || '';
             var homEl = container.querySelector('[data-homolog-data="'+idAtual+'"]');
             if(homEl) homEl.value = formatDateBR(reg.homologacaoData);
             var badge = container.querySelector('.desl-prazo-badge');
