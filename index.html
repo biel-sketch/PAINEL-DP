@@ -272,7 +272,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-08 (banco novo)</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-10</div>
     </div>
   </aside>
 
@@ -2153,11 +2153,14 @@
   // (Firebase Console > Configurações do projeto > Seus apps > SDK setup).
   // ============================================================
   var firebaseConfig = {
-    apiKey: "COLE_AQUI_A_API_KEY",
+    apiKey: "AIzaSyBypQtozE8e_VlwWOlWxSFWKQY5YpUXnf4",
     authDomain: "departamentop.firebaseapp.com",
     databaseURL: "https://departamentop-default-rtdb.firebaseio.com",
     projectId: "departamentop",
-    appId: "COLE_AQUI_O_APP_ID"
+    storageBucket: "departamentop.firebasestorage.app",
+    messagingSenderId: "1056040364982",
+    appId: "1:1056040364982:web:6b8c77ebad97fc92a6af17",
+    measurementId: "G-PRR0EXCPCR"
   };
   firebase.initializeApp(firebaseConfig);
   var firebaseAuth = firebase.auth();
@@ -2260,7 +2263,17 @@
       console.error('Erro de login:', err);
       loginInProgress = false;
       submitBtn.disabled = false;
-      errorEl.textContent = 'Usuário ou senha inválidos.';
+      // Mostra o motivo real quando o problema NÃO é senha errada (ajuda a achar erro de configuração).
+      var code = (err && err.code) || '';
+      var msg = 'Usuário ou senha inválidos.';
+      if(code === 'auth/operation-not-allowed') msg = 'Login por e-mail/senha não está ativado no Firebase (Authentication → Método de login).';
+      else if(code === 'auth/unauthorized-domain') msg = 'Este endereço não está em "Domínios autorizados" do Firebase (Authentication → Configurações).';
+      else if(code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.' || code === 'auth/invalid-api-key') msg = 'A apiKey do firebaseConfig está errada ou não foi preenchida.';
+      else if(code === 'auth/network-request-failed') msg = 'Sem conexão com o Firebase. Verifique a internet.';
+      else if(code === 'auth/too-many-requests') msg = 'Muitas tentativas de login. Aguarde alguns minutos e tente de novo.';
+      else if(code === 'auth/configuration-not-found') msg = 'O Firebase Authentication ainda não foi iniciado neste projeto (Authentication → Começar).';
+      else if(code && code !== 'auth/invalid-credential' && code !== 'auth/wrong-password' && code !== 'auth/user-not-found' && code !== 'auth/invalid-login-credentials') msg = 'Erro de login (' + code + ').';
+      errorEl.textContent = msg;
       errorEl.style.display = 'block';
     });
   });
