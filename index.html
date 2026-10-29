@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-28-16</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-29-17</div>
     </div>
   </aside>
 
@@ -2166,7 +2166,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-28-16 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-10-29-17 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -4206,7 +4206,7 @@
 
   function computeTopColaboradoresAdvertencias(){
     var ativosSet = {};
-    appState.ativos.forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
+    getColaboradoresVigentes().forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
     var porPessoa = {};
     getAdvertenciasDeFalta().forEach(function(e){
       var key = normNome(e.nome);
@@ -6293,7 +6293,7 @@
   function computeTopColaboradoresAusencias(periodo){
     var eventos = eventosDoPeriodo(periodo);
     var ativosSet = {};
-    appState.ativos.forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
+    getColaboradoresVigentes().forEach(function(a){ ativosSet[normNome(a.nome)] = true; });
     var porPessoa = {};
     eventos.forEach(function(e){
       var key = normNome(e.nome);
@@ -6520,9 +6520,35 @@
     {c:'E11', d:'Diabetes tipo 2'}
   ];
 
+  // Quem está em "Desligamento em andamento" ainda é colaborador: pode ter atestado/falta.
+  // Só deixa de aparecer quando o desligamento é concluído (vira Inativo).
+  function getColaboradoresVigentes(){
+    var lista = appState.ativos.slice();
+    var vistos = {};
+    lista.forEach(function(a){ vistos[normNome(a.nome)] = true; });
+    (appState.desligamentosAndamento || []).forEach(function(d){
+      if(vistos[normNome(d.nome)]) return;
+      var o = d.ativoOriginal || {};
+      lista.push({
+        nome: d.nome,
+        posto: d.posto || o.posto || '',
+        cargo: d.cargo || o.cargo || '',
+        salario: d.salario || o.salario || 0,
+        jornada: d.jornada || o.jornada || '',
+        admissao: d.admissao || o.admissao || null,
+        supervisor: d.supervisor || o.supervisor || null
+      });
+    });
+    return lista;
+  }
+  function findVigentePorNome(nome){
+    var k = normNome(nome);
+    return getColaboradoresVigentes().find(function(a){ return normNome(a.nome) === k; }) || null;
+  }
+
   function populateAbsDatalists(){
     var nomeList = document.getElementById('abs-nome-datalist');
-    var nomes = Array.from(new Set(appState.ativos.map(function(a){ return a.nome; }))).sort();
+    var nomes = Array.from(new Set(getColaboradoresVigentes().map(function(a){ return a.nome; }))).sort();
     nomeList.innerHTML = nomes.map(function(n){ return '<option value="'+n+'">'; }).join('');
 
     var cidList = document.getElementById('abs-cid-datalist');
@@ -6530,9 +6556,8 @@
   }
 
   function aplicarDadosDoColaborador(nomeDigitado){
-    var idx = findIndexByName(appState.ativos, nomeDigitado);
-    if(idx < 0) return;
-    var pessoa = appState.ativos[idx];
+    var pessoa = findVigentePorNome(nomeDigitado);
+    if(!pessoa) return;
     document.getElementById('abs-f-posto').value = pessoa.posto || '';
     document.getElementById('abs-f-cargo').value = pessoa.cargo || '';
     document.getElementById('abs-f-salario').value = pessoa.salario || '';
@@ -6566,7 +6591,7 @@
   });
 
   document.getElementById('abs-f-nome').addEventListener('input', function(){
-    if(findIndexByName(appState.ativos, this.value) >= 0) aplicarDadosDoColaborador(this.value);
+    if(findVigentePorNome(this.value)) aplicarDadosDoColaborador(this.value);
   });
   document.getElementById('abs-f-nome').addEventListener('blur', function(){
     aplicarDadosDoColaborador(this.value);
