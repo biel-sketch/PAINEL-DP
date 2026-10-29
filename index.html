@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-29-17</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-29-18</div>
     </div>
   </aside>
 
@@ -1247,6 +1247,18 @@
 
         <div class="panel" style="padding:22px;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 11l2 2 4-4"/></svg>
+            <span class="panel-title" style="font-size:15px;">Desligamentos em Andamento</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;" id="export-desl-andamento-count">0 colaboradores</div>
+          <button class="btn" id="btn-export-desl-andamento" style="background:var(--teal);color:#052622;border:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar (.xlsx)
+          </button>
+        </div>
+
+        <div class="panel" style="padding:22px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
             <span class="panel-title" style="font-size:15px;">Entrevistas de Desligamento</span>
           </div>
@@ -2166,7 +2178,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-29-17 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-10-29-18 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -2513,7 +2525,11 @@
       return '<span class="pill '+pillClass+'">'+etapaLabel+' — '+textoVenc+'</span>';
     }
     if(tipo === 'DETERMINADO') return '<span class="pill amber">Determinado</span>';
-    if(tipo === 'INTERMITENTE') return '<span class="pill amber">Intermitente</span>';
+    if(tipo === 'INTERMITENTE'){
+      var infoI = computeExperienciaInfo(pessoa);
+      if(!infoI || infoI.vencida) return '<span class="pill amber">Intermitente</span>';
+      return '<span class="pill amber">Intermitente — '+(infoI.etapa === 1 ? '1ª Exp.' : '2ª Exp.')+' vence '+formatDateBR(infoI.vencimento)+'</span>';
+    }
     return '<span class="pill teal">Indeterminado</span>';
   }
 
@@ -2625,9 +2641,9 @@
   // ============================================================
   function getAtivosComExperiencia(){
     return appState.ativos
-      .filter(function(a){ return a.contratoTipo === 'EXPERIENCIA'; })
+      .filter(function(a){ return contratoTemExperiencia(a.contratoTipo); })
       .map(function(a){ return Object.assign({}, a, { expInfo: computeExperienciaInfo(a) }); })
-      .filter(function(a){ return a.expInfo; });
+      .filter(function(a){ return a.expInfo && !(a.contratoTipo === 'INTERMITENTE' && a.expInfo.vencida); }); // intermitente não vira efetivo: some do painel ao fim da experiência
   }
 
   function populateExperienciaFiltros(){
@@ -2800,8 +2816,9 @@
   }
 
   // Retorna {etapa, vencimento, diasRestantes, vencida} para quem está em contrato de experiência
+  function contratoTemExperiencia(tipo){ return tipo === 'EXPERIENCIA' || tipo === 'INTERMITENTE'; }
   function computeExperienciaInfo(pessoa){
-    if(pessoa.contratoTipo !== 'EXPERIENCIA' || !pessoa.admissao || !pessoa.experienciaDuracaoDias) return null;
+    if(!contratoTemExperiencia(pessoa.contratoTipo) || !pessoa.admissao || !pessoa.experienciaDuracaoDias) return null;
     var hoje = new Date().toISOString().slice(0,10);
     var fimExperiencia = addDias(pessoa.admissao, Number(pessoa.experienciaDuracaoDias) - 1);
     var prorrogacaoDias = Number(pessoa.experienciaProrrogacaoDias) || 0;
@@ -2829,8 +2846,8 @@
   function atualizarHintExperiencia(prefixo){
     var tipo = document.getElementById(prefixo+'-contrato-tipo').value;
     var wrapHint = document.getElementById(prefixo+'-experiencia-hint-wrap');
-    wrapHint.style.display = tipo === 'EXPERIENCIA' ? 'block' : 'none';
-    if(tipo !== 'EXPERIENCIA') return;
+    wrapHint.style.display = contratoTemExperiencia(tipo) ? 'block' : 'none';
+    if(!contratoTemExperiencia(tipo)) return;
 
     var admissaoInput = document.getElementById(prefixo === 'nat' ? 'nat-admissao' : 'edt-admissao');
     var admissao = admissaoInput.value;
@@ -5078,6 +5095,46 @@
   function getInativosComEntrevista(){
     return appState.inativos.filter(function(i){ return i.entrevistaRealizada === 'Sim' || temEntrevistaPreenchida(i); });
   }
+  function prepararExportDesligamentosAndamento(){
+    var motivoLabel = {COLABORADOR:'Pedido do Colaborador', EMPRESA:'Pedido da Empresa', ABANDONO:'Abandono'};
+    var fd = function(v){ return v ? formatDateBR(v) : ''; };
+    return (appState.desligamentosAndamento || []).map(function(d){
+      sincronizarHomologacao(d);
+      var info = computePrazoHomologacaoInfo(d);
+      return {
+        'Nome': d.nome,
+        'CPF': formatCPF(d.cpf || getCpfPorNome(d.nome)),
+        'Cargo': d.cargo || '',
+        'Cliente': d.posto || '',
+        'Empresa': d.empresa || '',
+        'Supervisor': d.supervisor || '',
+        'Contrato': d.contrato || '',
+        'Admissão': fd(d.admissao),
+        'Desligamento': fd(d.desligamento),
+        'Desligamento por': motivoLabel[d.motivoSaida] || d.motivoSaida || '',
+        'Salário': getSalarioDesligado(d) || '',
+        'Aviso Trabalhado': d.avisoTrabalhado || '',
+        'Início do Aviso': fd(d.avisoData),
+        'Fim do Aviso': fd(d.avisoTrabalhado === 'Sim' ? getAvisoFim(d) : ''),
+        'Data Homologação': fd(d.homologacaoData),
+        'Situação do Prazo': info.aguardando ? 'Aguardando fim do aviso' : (info.vencido ? 'Vencido' : 'No prazo (' + info.diasRestantes + ' dias)'),
+        'Status Homologação': d.homologacaoStatus || '',
+        'Uniforme Devolvido': d.uniformeDevolvido || '',
+        'Valor Uniforme': d.valorUniforme || 0,
+        'Exame Demissional': d.exameStatus || '',
+        'Ponto - Data': fd(d.pontoData),
+        'Ponto - Status': d.pontoStatus || '',
+        'Magnum - Data': fd(d.magnumData),
+        'Magnum - Status': d.magnumStatus || '',
+        'Financeiro - Data': fd(d.financeiroData),
+        'Valor TRCT': d.valorTRCT || 0,
+        'Valor FGTS': d.valorFGTS || 0,
+        'Valor Total': computeValorTotalDesligamento(d),
+        'Observação': d.observacao || ''
+      };
+    });
+  }
+
   function prepararExportEntrevistas(){
     var motivoLabel = {COLABORADOR:'Pedido do Colaborador', EMPRESA:'Pedido da Empresa', ABANDONO:'Abandono'};
     return getInativosComEntrevista().map(function(i){
@@ -5101,6 +5158,7 @@
   }
 
   function refreshExportacoesView(){
+    document.getElementById('export-desl-andamento-count').textContent = (appState.desligamentosAndamento || []).length + ' colaboradores';
     document.getElementById('export-entrevistas-count').textContent = getInativosComEntrevista().length + ' entrevistas';
     document.getElementById('export-ativos-count').textContent = appState.ativos.length + ' colaboradores';
     document.getElementById('export-abs-count').textContent = appState.absenteismo.length + ' registros';
@@ -5116,6 +5174,9 @@
   });
   document.getElementById('btn-export-to').addEventListener('click', function(){
     exportarExcel('turnover', 'TurnOver', prepararExportTurnover());
+  });
+  document.getElementById('btn-export-desl-andamento').addEventListener('click', function(){
+    exportarExcel('desligamentos_em_andamento', 'Desligamentos em Andamento', prepararExportDesligamentosAndamento());
   });
   document.getElementById('btn-export-entrevistas').addEventListener('click', function(){
     exportarExcel('entrevistas_desligamento', 'Entrevistas', prepararExportEntrevistas());
@@ -5293,8 +5354,8 @@
       pessoa.sexo = document.getElementById('nat-sexo').value || null;
       pessoa.supervisor = document.getElementById('nat-supervisor').value.trim() || null;
       pessoa.contratoTipo = document.getElementById('nat-contrato-tipo').value;
-      pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('nat-experiencia-duracao').value) : null;
-      pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
+      pessoa.experienciaDuracaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? Number(document.getElementById('nat-experiencia-duracao').value) : null;
+      pessoa.experienciaProrrogacaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
       pessoa.estabilidade = document.getElementById('nat-estabilidade').checked;
       pessoa.estabilidadeInicio = pessoa.estabilidade ? (document.getElementById('nat-estabilidade-inicio').value || null) : null;
       pessoa.estabilidadeFim = pessoa.estabilidade ? (document.getElementById('nat-estabilidade-fim').value || null) : null;
@@ -5534,8 +5595,8 @@
     pessoa.observacao = document.getElementById('edt-observacao').value.trim() || null;
     pessoa.status = document.getElementById('edt-status').value;
     pessoa.contratoTipo = document.getElementById('edt-contrato-tipo').value;
-    pessoa.experienciaDuracaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? Number(document.getElementById('edt-experiencia-duracao').value) : null;
-    pessoa.experienciaProrrogacaoDias = pessoa.contratoTipo === 'EXPERIENCIA' ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
+    pessoa.experienciaDuracaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? Number(document.getElementById('edt-experiencia-duracao').value) : null;
+    pessoa.experienciaProrrogacaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
 
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar colaborador:', err); });
     refreshAtivosView();
