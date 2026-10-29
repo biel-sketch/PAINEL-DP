@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-29-18</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-29-19</div>
     </div>
   </aside>
 
@@ -2178,7 +2178,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-29-18 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-10-29-19 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -4979,11 +4979,16 @@
     if(temEntrevistaPreenchida(registro) && !registro.entrevistaRealizada){
       registro.entrevistaRealizada = 'Sim';
     }
-    cloudPut(appState).catch(function(err){ console.error('Erro ao salvar entrevista de desligamento:', err); });
+    cloudPut(appState).then(function(){
+      closeModal('modal-entrevista');
+    }).catch(function(err){
+      // Falhou só em outra coleção (ex.: ajuste automático de Ativos)? A entrevista (Inativos) foi gravada.
+      if(err && err.falhas && !err.falhas.some(function(f){ return f.colecao === 'inativos'; })){ closeModal('modal-entrevista'); return; }
+      alert('A entrevista NÃO foi salva no banco: ' + ((err && (err.code || err.message)) || 'erro desconhecido') + '\n\nO texto continua na tela; tente novamente ou avise o suporte.');
+    });
     atualizarEntrevistaNoPerfil(registro);
     refreshInativosView();
     if(typeof refreshExportacoesView === 'function') refreshExportacoesView();
-    closeModal('modal-entrevista');
   });
 
   // EXPORTAÇÕES (.xlsx)
@@ -7431,7 +7436,38 @@
       alguma = true;
     });
     if(!alguma) return Promise.resolve();
-    return dbRef.update(updates);
+    // Uma gravação por coleção (em vez de uma só para tudo): se o servidor recusar uma delas,
+    // as outras continuam sendo salvas — e o erro aparece na tela (antes só ia para o console).
+    var porColecao = {};
+    Object.keys(updates).forEach(function(k){
+      var col = k.split('/')[0];
+      (porColecao[col] = porColecao[col] || {})[k] = updates[k];
+    });
+    var promessas = Object.keys(porColecao).map(function(col){
+      var p;
+      try { p = dbRef.update(porColecao[col]); } catch(err){ p = Promise.reject(err); }
+      return Promise.resolve(p).then(function(){ return null; }, function(err){ err = err || new Error('erro desconhecido'); err.colecao = col; return err; });
+    });
+    var todas = Promise.all(promessas).then(function(resultados){
+      var falhas = resultados.filter(Boolean);
+      if(falhas.length){
+        var e0 = falhas[0]; e0.falhas = falhas;
+        mostrarErroGravacao(e0);
+        throw e0;
+      }
+    });
+    return todas;
+  }
+
+  function mostrarErroGravacao(err){
+    console.error('Erro ao gravar no Firebase:', err);
+    var banner = document.getElementById('global-error-banner');
+    if(banner){
+      banner.textContent = '⚠️ NÃO FOI POSSÍVEL SALVAR no banco' + (err && err.colecao ? ' (' + err.colecao + ')' : '') + ': ' +
+        ((err && (err.code || err.message)) || 'erro desconhecido') + '. Sua última alteração NÃO foi gravada — avise o suporte com esta mensagem.';
+      banner.style.display = 'block';
+    }
+    try { setSyncIndicator('err', 'Erro ao salvar'); } catch(e){}
   }
 
   function cloudPut(state){
