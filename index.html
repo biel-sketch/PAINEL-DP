@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-10-29-20</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-03-21</div>
     </div>
   </aside>
 
@@ -319,6 +319,9 @@
             </select>
             <select id="ativos-filter-posto-trabalho" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
               <option value="">Todos os postos</option>
+            </select>
+            <select id="ativos-filter-supervisor" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
+              <option value="">Todos os supervisores</option>
             </select>
             <select id="ativos-filter-empresa" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;">
               <option value="">Todas as empresas</option>
@@ -2178,7 +2181,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-10-29-20 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-03-21 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -2438,6 +2441,8 @@
     popularSelectFiltro(postoSel, postos, 'Todos os clientes');
     var postosTrab = Array.from(new Set(appState.ativos.map(function(c){ return (c.postoTrabalho || '').trim(); }).filter(Boolean))).sort();
     popularSelectFiltro(document.getElementById('ativos-filter-posto-trabalho'), postosTrab, 'Todos os postos');
+    var supsAtivos = Array.from(new Set(appState.ativos.map(function(c){ return (c.supervisor || '').trim(); }).filter(Boolean))).sort();
+    popularSelectFiltro(document.getElementById('ativos-filter-supervisor'), supsAtivos, 'Todos os supervisores');
     popularSelectFiltro(empresaSel, empresas, 'Todas as empresas');
   }
 
@@ -2579,13 +2584,15 @@
     var posto = document.getElementById('ativos-filter-posto').value;
     var empresa = document.getElementById('ativos-filter-empresa').value;
     var postoTrab = document.getElementById('ativos-filter-posto-trabalho').value;
+    var supervisorSel = document.getElementById('ativos-filter-supervisor').value;
 
     var filtered = appState.ativos.filter(function(c){
       var matchSearch = !search || c.nome.toLowerCase().indexOf(search) !== -1 || c.cargo.toLowerCase().indexOf(search) !== -1;
       var matchPosto = !posto || c.posto === posto;
       var matchEmpresa = !empresa || c.empresa === empresa;
       var matchPostoTrab = !postoTrab || (c.postoTrabalho || '').trim() === postoTrab;
-      return matchSearch && matchPosto && matchPostoTrab && matchEmpresa;
+      var matchSupervisor = !supervisorSel || (c.supervisor || '').trim() === supervisorSel;
+      return matchSearch && matchPosto && matchPostoTrab && matchEmpresa && matchSupervisor;
     });
 
     renderAtivosTable(filtered);
@@ -5302,6 +5309,7 @@
   document.getElementById('ativos-filter-posto').addEventListener('change', applyAtivosFilters);
   document.getElementById('ativos-filter-posto-trabalho').addEventListener('change', applyAtivosFilters);
   document.getElementById('ativos-filter-empresa').addEventListener('change', applyAtivosFilters);
+  document.getElementById('ativos-filter-supervisor').addEventListener('change', applyAtivosFilters);
 
   document.getElementById('ativos-add-btn').addEventListener('click', function(){
     var nomeList = document.getElementById('ativos-nome-datalist');
