@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-28</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-29</div>
     </div>
   </aside>
 
@@ -2222,7 +2222,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-04-28 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-04-29 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -8511,7 +8511,7 @@
   // BENEFÍCIOS — INTERFACE
   // ============================================================
   var BEN_UI = { tab: 'resumo', vt: { escopo: 'TODOS', tipo: 'REGULAR' }, vv: {}, previaVT: null, previaVV: null, pedidoAberto: null };
-  var BEN_ABAS = [['resumo','Resumo'],['pedidoVT','Pedido VT'],['pedidoVV','Pedido VA/VR'],['pedidos','Pedidos'],['parametros','Parâmetros VA/VR'],['vt','Cadastro VT'],['saldos','Saldos dos cartões'],['intermitentes','Intermitentes'],['feriados','Feriados']];
+  var BEN_ABAS = [['resumo','Resumo'],['gastos','Gastos'],['pedidoVT','Pedido VT'],['pedidoVV','Pedido VA/VR'],['pedidos','Pedidos'],['parametros','Parâmetros VA/VR'],['vt','Cadastro VT'],['saldos','Saldos dos cartões'],['intermitentes','Intermitentes'],['feriados','Feriados']];
   var BEN_STATUS = { EM_ANDAMENTO: ['Em andamento','amber'], FINALIZADO: ['Finalizado','teal'], COMPRA_REALIZADA: ['Compra realizada','teal'], CANCELADO: ['Cancelado','red'] };
   var BEN_INP = 'padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;';
 
@@ -8559,7 +8559,7 @@
     document.getElementById('ben-tabs').innerHTML = BEN_ABAS.map(function(a){
       return '<button class="btn' + (BEN_UI.tab === a[0] ? '' : ' btn-ghost') + '" data-ben-tab="' + a[0] + '"' + (BEN_UI.tab === a[0] ? ' style="background:var(--teal);color:#052622;border:none;"' : '') + '>' + a[1] + '</button>';
     }).join('');
-    var fn = { resumo: benRenderResumo, pedidoVT: benRenderPedidoVT, pedidoVV: benRenderPedidoVV, pedidos: benRenderPedidos, parametros: benRenderParametros, vt: benRenderVT, saldos: benRenderSaldos, intermitentes: benRenderIntermitentes, feriados: benRenderFeriados }[BEN_UI.tab];
+    var fn = { resumo: benRenderResumo, gastos: benRenderGastos, pedidoVT: benRenderPedidoVT, pedidoVV: benRenderPedidoVV, pedidos: benRenderPedidos, parametros: benRenderParametros, vt: benRenderVT, saldos: benRenderSaldos, intermitentes: benRenderIntermitentes, feriados: benRenderFeriados }[BEN_UI.tab];
     host.innerHTML = fn();
   }
 
@@ -8633,6 +8633,78 @@
     return topo + '<div style="font-size:12px;color:var(--text-dim);margin:0 0 10px;">Clique em cada item para ver os nomes. Os números mostram o estado atual dos dados do painel.</div>' + s +
       benPainel('Visão por cliente', benTabela(['Cliente','Ativos','Com VT','Sem VT','Intermitentes','Com parâmetro','Sem parâmetro'], linhasCli), benBtn('res-xls', 'Exportar Excel', 'data-k="cliente"', true)) +
       '<div style="font-size:12px;color:var(--text-dim);line-height:1.6;">Os cálculos usam automaticamente: <b>Ativos</b>, <b>Absenteísmo</b> (faltas/atestados/INSS), <b>Férias</b>, <b>Desligamentos</b> e <b>Feriados</b>.</div>';
+  }
+
+  // ---------- Gastos ----------
+  function benItensDePedidos(){
+    var r = [];
+    appState.vtPedidos.forEach(function(p){ (p.itens || []).forEach(function(i){ r.push({ ped: p, tipo: 'VT', mes: (p.periodoInicial || '').slice(0, 7), cliente: i.posto || '(sem cliente)', empresa: i.empresaTransporte || '', valor: Number(i.valorFinal) || 0, desc: 0 }); }); });
+    appState.vavrPedidos.forEach(function(p){ (p.itens || []).forEach(function(i){
+      var v = i.valorAjustado != null ? Number(i.valorAjustado) : benValorFinalItemVAVR(i, p.tipo);
+      r.push({ ped: p, tipo: p.tipo, mes: p.competencia || (p.periodoInicial || '').slice(0, 7), cliente: i.posto || '(sem cliente)', empresa: '', valor: v, desc: p.tipo === 'VR' ? (Number(i.descontoFolha) || 0) : 0 });
+    }); });
+    return r.filter(function(x){ return x.ped.status !== 'CANCELADO'; });
+  }
+  function benSomaPor(itens, chave){ var o = {}; itens.forEach(function(x){ var k = chave(x); o[k] = (o[k] || 0) + x.valor; }); return o; }
+  function benRenderGastos(){
+    var todos = benItensDePedidos();
+    var meses = benUnicos(todos.map(function(x){ return x.mes; })).reverse();
+    var mes = BEN_UI.gMes === undefined ? '' : BEN_UI.gMes, tipo = BEN_UI.gTipo || '';
+    var itens = todos.filter(function(x){ return (!mes || x.mes === mes) && (!tipo || x.tipo === tipo); });
+    var st = { COMPRA_REALIZADA: 0, FINALIZADO: 0, EM_ANDAMENTO: 0 }, desc = 0;
+    itens.forEach(function(x){ st[x.ped.status] = (st[x.ped.status] || 0) + x.valor; desc += x.desc; });
+    var total = st.COMPRA_REALIZADA + st.FINALIZADO + st.EM_ANDAMENTO;
+    function card(t, v, sub, cor){ return '<div class="stat-card"><div class="stat-label">' + t + '</div><div class="stat-value ' + (cor || '') + '" style="font-size:22px;">' + benMoeda(v) + '</div>' + (sub ? '<div style="font-size:11px;color:var(--text-dim);margin-top:4px;">' + sub + '</div>' : '') + '</div>'; }
+    var topo = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"><select id="ben-g-mes" style="' + BEN_INP + '">' + benOptions(meses.map(function(m){ return [m, m.split('-').reverse().join('/')]; }), mes, 'Todos os meses') + '</select>' +
+      '<select id="ben-g-tipo" style="' + BEN_INP + '">' + benOptions([['VT','Vale-Transporte'],['VA','Vale-Alimentação'],['VR','Vale-Refeição']], tipo, 'Todos os benefícios') + '</select></div>' +
+      '<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:18px;">' +
+      card('Total dos pedidos', total, 'sem cancelados') + card('Compra realizada', st.COMPRA_REALIZADA, 'já gasto', 'teal') + card('Finalizado (a comprar)', st.FINALIZADO, 'aguardando compra', 'amber') + card('Em andamento', st.EM_ANDAMENTO, 'previsão não fechada') +
+      (tipo === 'VT' || tipo === 'VA' ? '' : card('Desconto de folha do VR', desc, 'recuperado do colaborador') + card('Custo líquido do VR', itens.filter(function(x){ return x.tipo === 'VR'; }).reduce(function(s, x){ return s + x.valor; }, 0) - desc, 'VR menos desconto')) + '</div>';
+
+    // mês x tipo
+    var mt = {}; todos.filter(function(x){ return !tipo || x.tipo === tipo; }).forEach(function(x){ var o = mt[x.mes] = mt[x.mes] || { VT: 0, VA: 0, VR: 0, real: 0 }; o[x.tipo] += x.valor; if(x.ped.status === 'COMPRA_REALIZADA') o.real += x.valor; });
+    var linhasMes = Object.keys(mt).sort().reverse().map(function(m){ var o = mt[m]; return [m.split('-').reverse().join('/'), benMoeda(o.VT), benMoeda(o.VA), benMoeda(o.VR), '<b>' + benMoeda(o.VT + o.VA + o.VR) + '</b>', benMoeda(o.real)]; });
+    BEN_RES.gMes = Object.keys(mt).sort().map(function(m){ var o = mt[m]; return { 'MES': m, 'VT': o.VT, 'VA': o.VA, 'VR': o.VR, 'TOTAL': o.VT + o.VA + o.VR, 'COMPRA REALIZADA': o.real }; });
+
+    // cliente
+    var cl = {}; itens.forEach(function(x){ var o = cl[x.cliente] = cl[x.cliente] || { VT: 0, VA: 0, VR: 0 }; o[x.tipo] += x.valor; });
+    var cls = Object.keys(cl).sort(function(a, b){ return (cl[b].VT + cl[b].VA + cl[b].VR) - (cl[a].VT + cl[a].VA + cl[a].VR); });
+    var linhasCli = cls.map(function(k){ var o = cl[k]; return [benEsc(k), benMoeda(o.VT), benMoeda(o.VA), benMoeda(o.VR), '<b>' + benMoeda(o.VT + o.VA + o.VR) + '</b>']; });
+    BEN_RES.gCli = cls.map(function(k){ var o = cl[k]; return { 'CLIENTE': k, 'VT': o.VT, 'VA': o.VA, 'VR': o.VR, 'TOTAL': o.VT + o.VA + o.VR }; });
+    // empresa de transporte
+    var em = benSomaPor(itens.filter(function(x){ return x.tipo === 'VT'; }), function(x){ return x.empresa || '(sem empresa)'; });
+    var linhasEmp = Object.keys(em).sort(function(a, b){ return em[b] - em[a]; }).map(function(k){ return [benEsc(k), benMoeda(em[k])]; });
+    BEN_RES.gEmp = Object.keys(em).map(function(k){ return { 'EMPRESA': k, 'VALOR': em[k] }; });
+
+    var proj = BEN_UI.proj ? benHtmlProjecao(BEN_UI.proj) : '';
+    return topo +
+      benPainel('Gasto por mês', benTabela(['Mês','VT','VA','VR','Total','Compra realizada'], linhasMes, 'Nenhum pedido salvo ainda.'), benBtn('res-xls', 'Exportar Excel', 'data-k="gMes"', true)) +
+      benPainel('Gasto por cliente', benTabela(['Cliente','VT','VA','VR','Total'], linhasCli, 'Nenhum pedido no filtro.'), benBtn('res-xls', 'Exportar Excel', 'data-k="gCli"', true)) +
+      benPainel('VT por empresa de transporte', benTabela(['Empresa','Valor'], linhasEmp, 'Nenhum pedido de VT no filtro.'), benBtn('res-xls', 'Exportar Excel', 'data-k="gEmp"', true)) +
+      benPainel('Projeção do custo mensal (sem ausências nem saldo)', proj || '<div style="padding:18px;color:var(--text-dim);font-size:13px;">Estima quanto custaria o mês com todos os ativos presentes: VA e VR pelos parâmetros, VT pelo cadastro. Serve para planejar antes de criar o pedido.</div>',
+        '<input type="month" id="ben-proj-mes" value="' + (BEN_UI.projMes || benMesSeguinte(benMesAtual())) + '" style="' + BEN_INP + '">' + benBtn('gas-proj', 'Calcular projeção'));
+  }
+  function benCalcularProjecao(ym){
+    var per = benPeriodoMes(ym), apur = benPeriodoMes(benMesAnterior(ym));
+    var base = { descontarAusencias: false, retroativo: false, calcularDesligados: false, abrangencia: 'GERAL', selecionados: [], competencia: ym };
+    var va = benCalcularPedidoVAVR(Object.assign({}, base, { tipo: 'VA', periodoInicial: apur.ini, periodoFinal: apur.fim, ausInicial: '', ausFinal: '' }));
+    var vr = benCalcularPedidoVAVR(Object.assign({}, base, { tipo: 'VR', periodoInicial: per.ini, periodoFinal: per.fim, ausInicial: '', ausFinal: '' }));
+    var vt = benCalcularPedidoVT({ tipo: 'PIX', periodoInicial: per.ini, periodoFinal: per.fim, ausInicial: '', ausFinal: '', naoDescontarAusencias: true, escopo: 'COLABORADOR', selecionados: appState.vtCadastros.filter(function(v){ return v.status !== 'INATIVO'; }).map(function(v){ return v.colaboradorId; }) });
+    var cli = {};
+    function add(c, k, v){ var o = cli[c || '(sem cliente)'] = cli[c || '(sem cliente)'] || { VT: 0, VA: 0, VR: 0, desc: 0 }; o[k] += v; }
+    va.linhas.forEach(function(l){ add(l.colab.posto, 'VA', Number(l.valorVa) || 0); });
+    vr.linhas.forEach(function(l){ add(l.colab.posto, 'VR', Number(l.valorVr) || 0); add(l.colab.posto, 'desc', Number(l.descontoFolha) || 0); });
+    vt.forEach(function(i){ add(i.posto, 'VT', Number(i.valorCalculado) || 0); });
+    return { mes: ym, cli: cli, semParamVA: va.semParametro.length };
+  }
+  function benHtmlProjecao(p){
+    var tot = { VT: 0, VA: 0, VR: 0, desc: 0 };
+    var ks = Object.keys(p.cli).sort(function(a, b){ var x = p.cli[a], y = p.cli[b]; return (y.VT + y.VA + y.VR) - (x.VT + x.VA + x.VR); });
+    var linhas = ks.map(function(k){ var o = p.cli[k]; ['VT','VA','VR','desc'].forEach(function(t){ tot[t] += o[t]; }); return [benEsc(k), benMoeda(o.VT), benMoeda(o.VA), benMoeda(o.VR), '<b>' + benMoeda(o.VT + o.VA + o.VR) + '</b>', benMoeda(o.desc)]; });
+    BEN_RES.gProj = ks.map(function(k){ var o = p.cli[k]; return { 'CLIENTE': k, 'VT': o.VT, 'VA': o.VA, 'VR': o.VR, 'TOTAL': o.VT + o.VA + o.VR, 'DESCONTO FOLHA VR': o.desc }; });
+    return '<div style="padding:14px 18px;font-size:13px;">Projeção de <b>' + p.mes.split('-').reverse().join('/') + '</b>: VT ' + benMoeda(tot.VT) + ' • VA ' + benMoeda(tot.VA) + ' • VR ' + benMoeda(tot.VR) + ' = <b>' + benMoeda(tot.VT + tot.VA + tot.VR) + '</b> (desconto de folha do VR ' + benMoeda(tot.desc) + '; custo líquido ' + benMoeda(tot.VT + tot.VA + tot.VR - tot.desc) + ').' +
+      (p.semParamVA ? ' <span style="color:var(--red);">' + p.semParamVA + ' sem parâmetro ficaram fora.</span>' : '') + ' ' + benBtn('res-xls', 'Exportar Excel', 'data-k="gProj"', true) + '</div>' +
+      benTabela(['Cliente','VT','VA','VR','Total','Desc. folha VR'], linhas);
   }
 
   // ---------- Parâmetros VA/VR ----------
@@ -9071,6 +9143,7 @@
           alert(ok + ' parâmetros importados.' + (ign.length ? '\nIgnorados: ' + ign.slice(0, 30).join(', ') : ''));
         }); break;
       case 'res-xls': exportarExcel('Beneficios_' + el.getAttribute('data-k'), 'Dados', BEN_RES[el.getAttribute('data-k')] || []); break;
+      case 'gas-proj': BEN_UI.projMes = document.getElementById('ben-proj-mes').value || benMesSeguinte(benMesAtual()); BEN_UI.proj = benCalcularProjecao(BEN_UI.projMes); refreshBeneficiosView(); break;
       case 'par-del': if(confirm('Excluir este parâmetro?')){ appState.vavrParametros = appState.vavrParametros.filter(function(p){ return p.id !== id; }); benSalvar(); refreshBeneficiosView(); } break;
       case 'emp-nova': var n = prompt('Nome da empresa de transporte:'); if(n && n.trim()){ benGarantirEmpresa(n); benSalvar(); refreshBeneficiosView(); } break;
       case 'emp-del': appState.vtEmpresas = appState.vtEmpresas.filter(function(e){ return e.id !== id; }); benSalvar(); refreshBeneficiosView(); break;
@@ -9170,6 +9243,8 @@
       else if(id === 'vv-tipo' || id === 'vv-abr'){ benLerFormVV(); BEN_UI.previaVV = null; refreshBeneficiosView(); }
       else if(id === 'vt-mes' && e.target.value){ var p = benPeriodoMes(e.target.value); document.getElementById('vt-pi').value = p.ini; document.getElementById('vt-pf').value = p.fim; }
       else if(id === 'vv-comp' && e.target.value){ var a = benPeriodoMes(benMesAnterior(e.target.value)); document.getElementById('vv-pi').value = a.ini; document.getElementById('vv-pf').value = a.fim; document.getElementById('vv-ai').value = a.ini; document.getElementById('vv-af').value = a.fim; }
+      else if(id === 'ben-g-mes'){ BEN_UI.gMes = e.target.value; refreshBeneficiosView(); }
+      else if(id === 'ben-g-tipo'){ BEN_UI.gTipo = e.target.value; refreshBeneficiosView(); }
       else if(id === 'ben-mes-inter'){ BEN_UI.mesInter = e.target.value; refreshBeneficiosView(); }
     });
     var modal = document.getElementById('modal-ben');
