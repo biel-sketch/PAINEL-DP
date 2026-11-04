@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-22</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-23</div>
     </div>
   </aside>
 
@@ -937,6 +937,7 @@
                 <option value="VENCIDA">Férias Vencidas</option>
                 <option value="VENCENDO">Vencendo em 30 dias</option>
                 <option value="A_VENCER">À Vencer</option>
+                <option value="GOZADA">Gozadas (período já fechado)</option>
               </select>
               <select id="ferias-an-filtro-posto" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;"><option value="">Todos os Postos</option></select>
               <input type="text" id="ferias-an-search" placeholder="Buscar por nome..." style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;min-width:180px;">
@@ -2204,7 +2205,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-04-22 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-04-23 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -3491,24 +3492,48 @@
     var diasParaVencer = diffDias(hoje, vencimento1);
     var diasRestantes = Math.max(FERIAS_DIAS_POR_CICLO - diasTirados - abonoDias, 0);
 
-    // Períodos para exibir: os do ciclo em aberto; se ainda não há nenhum, mostra os que já estão
-    // programados/em gozo do ciclo anterior (que fechou ao completar os 30 dias), com o rótulo dele.
-    var exibir = ciclos.aberto.periodos.map(function(f){ return { f:f, rotuloCiclo:'' }; });
-    if(!exibir.length && ciclos.fechados.length){
-      var ult = ciclos.fechados[ciclos.fechados.length - 1];
-      var rot = rotuloPeriodoAquisitivo(addMeses(pessoa.admissao, FERIAS_CICLO_MESES * (ciclos.fechados.length - 1)));
-      exibir = ult.periodos.filter(function(f){ return f.dataFinal >= hoje; }).map(function(f){ return { f:f, rotuloCiclo:rot }; });
+    function mapPeriodo(f){
+      return { id:f.id, inicio:f.dataInicial, fim:f.dataFinal, dias: diffDias(f.dataInicial, f.dataFinal) + 1,
+               situacao: situacaoPeriodoFerias(f, hoje), abonoDias: Number(f.abonoDias) || 0, antecipa13: !!f.antecipa13 };
     }
-    var periodosExibir = exibir.map(function(x){
-      return { id:x.f.id, inicio:x.f.dataInicial, fim:x.f.dataFinal, dias: diffDias(x.f.dataInicial, x.f.dataFinal) + 1,
-               situacao: situacaoPeriodoFerias(x.f, hoje), abonoDias: Number(x.f.abonoDias) || 0, antecipa13: !!x.f.antecipa13, rotuloCiclo: x.rotuloCiclo };
+    var periodosExibir = ciclos.aberto.periodos.map(mapPeriodo);
+
+    // Ciclos (períodos aquisitivos) JÁ FECHADOS que têm férias programadas ou em gozo: aparecem à parte,
+    // como "Gozada" — o ciclo seguinte é que segue "À Vencer"/"Vencida".
+    var ciclosGozados = [];
+    ciclos.fechados.forEach(function(c, k){
+      if(!c.periodos.some(function(f){ return f.dataFinal >= hoje; })) return;
+      var base = addMeses(pessoa.admissao, FERIAS_CICLO_MESES * k);
+      var venc = addMeses(base, FERIAS_CICLO_MESES);
+      var abonoC = c.abono;
+      ciclosGozados.push({
+        periodoAquisitivo: rotuloPeriodoAquisitivo(base), dataBase: base, vencimento1: venc, limiteGozo: addMeses(venc, 10),
+        diasTirados: c.tirados, abonoDias: abonoC, diasRestantes: Math.max(FERIAS_DIAS_POR_CICLO - c.tirados - abonoC, 0),
+        periodosExibir: c.periodos.map(mapPeriodo),
+        antecipa13: c.periodos.some(function(f){ return !!f.antecipa13; })
+      });
     });
 
     return { aplicavel:true, vencida:vencida, dataBase:dataBase, proximoVencimento:proximoVencimento,
              vencimento1:vencimento1, limiteGozo:limiteGozo, mesesDesdeBase:mesesDesdeBase, diasParaVencer:diasParaVencer,
              diasTirados:diasTirados, diasRestantes:diasRestantes, abonoDias:abonoDias,
              periodoAquisitivo: rotuloPeriodoAquisitivo(dataBase), periodosExibir: periodosExibir,
-             antecipa13: ciclos.aberto.periodos.some(function(f){ return !!f.antecipa13; }) || periodosExibir.some(function(p){ return p.antecipa13; }) };
+             antecipa13: ciclos.aberto.periodos.some(function(f){ return !!f.antecipa13; }),
+             ciclosGozados: ciclosGozados };
+  }
+
+  // Uma linha por período aquisitivo: os ciclos já gozados (com férias programadas/em gozo) e o ciclo em aberto.
+  // Quem tem mais de um período aparece com o nome repetido, uma linha para cada.
+  function linhasFeriasDoColaborador(a){
+    var st = a.feriasStatus;
+    var linhas = (st.ciclosGozados || []).map(function(c){
+      return { pessoa:a, statusKey:'GOZADA', statusLabel:'Gozada', c:c, vencida:false, diasParaVencer:null };
+    });
+    linhas.push({ pessoa:a, statusKey: st.vencida ? 'VENCIDA' : 'A_VENCER', statusLabel: st.vencida ? 'Férias Vencidas' : 'À Vencer',
+                  c:{ periodoAquisitivo:st.periodoAquisitivo, vencimento1:st.vencimento1, limiteGozo:st.limiteGozo, diasTirados:st.diasTirados,
+                      diasRestantes:st.diasRestantes, abonoDias:st.abonoDias, periodosExibir:st.periodosExibir, antecipa13:st.antecipa13 },
+                  vencida: st.vencida, diasParaVencer: st.diasParaVencer });
+    return linhas;
   }
 
   function getAtivosComStatusFerias(){
@@ -3531,9 +3556,9 @@
     });
   }
 
-  function aplicarFiltrosFerias(lista, prefixo){
+  function aplicarFiltrosFerias(lista, prefixo, ignorarStatus){
     var empresa = document.getElementById(prefixo+'-filtro-empresa').value;
-    var status = document.getElementById(prefixo+'-filtro-status').value;
+    var status = ignorarStatus ? '' : document.getElementById(prefixo+'-filtro-status').value;
     var posto = document.getElementById(prefixo+'-filtro-posto').value;
     return lista.filter(function(a){
       var matchEmpresa = !empresa || a.empresa === empresa;
@@ -3812,22 +3837,39 @@
 
   function renderFeriasAnalitico(){
     var todos = getAtivosComStatusFerias();
-    var filtrados = aplicarFiltrosFerias(todos, 'ferias-an');
+    var filtrados = aplicarFiltrosFerias(todos, 'ferias-an', true);
     var search = document.getElementById('ferias-an-search').value.trim().toLowerCase();
     if(search) filtrados = filtrados.filter(function(a){ return a.nome.toLowerCase().indexOf(search) !== -1; });
     filtrados.sort(function(a,b){ return a.nome.localeCompare(b.nome); });
+    var statusSel = document.getElementById('ferias-an-filtro-status').value;
+
+    // uma linha por período aquisitivo (nome repetido quando há mais de um)
+    var linhas = [];
+    filtrados.forEach(function(a){
+      linhasFeriasDoColaborador(a).forEach(function(l){
+        var ok = true;
+        if(statusSel === 'GOZADA') ok = l.statusKey === 'GOZADA';
+        else if(statusSel === 'VENCIDA') ok = l.statusKey !== 'GOZADA' && l.vencida;
+        else if(statusSel === 'VENCENDO') ok = l.statusKey !== 'GOZADA' && !l.vencida && l.diasParaVencer <= 30;
+        else if(statusSel === 'A_VENCER') ok = l.statusKey !== 'GOZADA' && !l.vencida;
+        if(ok) linhas.push(l);
+      });
+    });
 
     var tbody = document.getElementById('ferias-analitico-tbody');
     var emptyEl = document.getElementById('ferias-analitico-empty');
-    if(filtrados.length === 0){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
+    if(linhas.length === 0){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
     emptyEl.style.display = 'none';
-    tbody.innerHTML = filtrados.map(function(a){
-      var hoje = new Date().toISOString().slice(0,10);
-      var venceu1 = a.feriasStatus.vencimento1 <= hoje;
-      var cor1 = venceu1 ? 'red' : 'teal';
-      var lim = a.feriasStatus.limiteGozo || '';
-      var corLimite = !lim ? 'teal' : (lim <= hoje ? 'red' : (diffDias(hoje, lim) <= 90 ? 'amber' : 'teal'));
-      var corDiasRestantes = a.feriasStatus.diasRestantes <= 10 ? 'amber' : 'teal';
+    var hoje = new Date().toISOString().slice(0,10);
+    tbody.innerHTML = linhas.map(function(l){
+      var a = l.pessoa, c = l.c;
+      var gozada = l.statusKey === 'GOZADA';
+      var venceu1 = c.vencimento1 <= hoje;
+      var cor1 = gozada ? 'teal' : (venceu1 ? 'red' : 'teal');
+      var lim = c.limiteGozo || '';
+      var corLimite = gozada ? 'teal' : (!lim ? 'teal' : (lim <= hoje ? 'red' : (diffDias(hoje, lim) <= 90 ? 'amber' : 'teal')));
+      var corDiasRestantes = (!gozada && c.diasRestantes <= 10) ? 'amber' : 'teal';
+      var per = c.periodosExibir;
       return '<tr data-nome-ferias="'+a.nome+'" class="row-clickable" title="Clique para editar as férias">' +
         '<td>'+a.nome+'</td>' +
         '<td class="mono">'+formatCPF(a.cpf)+'</td>' +
@@ -3835,15 +3877,15 @@
         '<td><span class="pill amber">'+(a.posto||'—')+'</span></td>' +
         '<td>'+(a.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(a.admissao)+'</td>' +
-        '<td class="mono">'+a.feriasStatus.periodoAquisitivo+'</td>' +
-        '<td class="mono">'+(a.feriasStatus.periodosExibir.length ? a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.inicio) + (x.rotuloCiclo ? ' <span style="color:var(--text-faint);">(ciclo '+x.rotuloCiclo+')</span>' : '') + ' <span style="color:var(--text-faint);">'+x.situacao+'</span>'; }).join('<br>') : '—')+'</td>' +
-        '<td class="mono">'+(a.feriasStatus.periodosExibir.length ? a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.fim); }).join('<br>') : '—')+'</td>' +
-        '<td class="mono">'+a.feriasStatus.diasTirados+' de '+FERIAS_DIAS_POR_CICLO+'</td>' +
-        '<td class="mono"><span class="pill '+corDiasRestantes+'">'+a.feriasStatus.diasRestantes+' dias</span></td>' +
-        '<td class="mono">'+(a.feriasStatus.abonoDias ? a.feriasStatus.abonoDias + ' dias' : '—')+'</td>' +
-        '<td>'+(a.feriasStatus.antecipa13 ? '<span class="pill teal">Sim</span>' : '—')+'</td>' +
-        '<td class="mono"><span class="pill '+cor1+'">'+formatDateBR(a.feriasStatus.vencimento1)+'</span></td>' +
-        '<td class="mono"><span class="pill '+corLimite+'">'+formatDateBR(a.feriasStatus.limiteGozo)+'</span></td>' +
+        '<td class="mono">'+c.periodoAquisitivo+' <span class="pill '+(gozada ? 'teal' : (l.vencida ? 'red' : 'amber'))+'" style="margin-left:4px;">'+l.statusLabel+'</span></td>' +
+        '<td class="mono">'+(per.length ? per.map(function(x){ return formatDateBR(x.inicio) + ' <span style="color:var(--text-faint);">'+x.situacao+'</span>'; }).join('<br>') : '—')+'</td>' +
+        '<td class="mono">'+(per.length ? per.map(function(x){ return formatDateBR(x.fim); }).join('<br>') : '—')+'</td>' +
+        '<td class="mono">'+c.diasTirados+' de '+FERIAS_DIAS_POR_CICLO+'</td>' +
+        '<td class="mono"><span class="pill '+corDiasRestantes+'">'+c.diasRestantes+' dias</span></td>' +
+        '<td class="mono">'+(c.abonoDias ? c.abonoDias + ' dias' : '—')+'</td>' +
+        '<td>'+(c.antecipa13 ? '<span class="pill teal">Sim</span>' : '—')+'</td>' +
+        '<td class="mono"><span class="pill '+cor1+'">'+formatDateBR(c.vencimento1)+'</span></td>' +
+        '<td class="mono"><span class="pill '+corLimite+'">'+formatDateBR(c.limiteGozo)+'</span></td>' +
       '</tr>';
     }).join('');
     tbody.querySelectorAll('tr[data-nome-ferias]').forEach(function(tr){
@@ -5245,26 +5287,31 @@
   }
 
   function prepararExportFerias(){
-    return getAtivosComStatusFerias().map(function(a){
-      return {
-        'Nome': a.nome,
-        'Empresa': a.empresa || '',
-        'Posto': a.posto,
-        'Cargo': a.cargo,
-        'Admissão': formatDateBR(a.admissao),
-        'Período Aquisitivo': a.feriasStatus.periodoAquisitivo,
-        'Início das Férias': a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.inicio); }).join(' | '),
-        'Fim das Férias': a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.fim); }).join(' | '),
-        'Situação das Férias': a.feriasStatus.periodosExibir.map(function(x){ return x.situacao + (x.rotuloCiclo ? ' (ciclo ' + x.rotuloCiclo + ')' : ''); }).join(' | '),
-        'Dias Tirados no Ciclo Atual': a.feriasStatus.diasTirados,
-        'Dias Restantes no Ciclo Atual': a.feriasStatus.diasRestantes,
-        'Abono (dias vendidos)': a.feriasStatus.abonoDias || 0,
-        'Antecipação 13º': a.feriasStatus.antecipa13 ? 'Sim' : 'Não',
-        'Vencimento': formatDateBR(a.feriasStatus.vencimento1),
-        'Limite de Gozo': formatDateBR(a.feriasStatus.limiteGozo),
-        'Status': a.feriasStatus.vencida ? 'Férias Vencidas' : 'À Vencer'
-      };
+    var linhas = [];
+    getAtivosComStatusFerias().forEach(function(a){
+      linhasFeriasDoColaborador(a).forEach(function(l){
+        var c = l.c, per = c.periodosExibir;
+        linhas.push({
+          'Nome': a.nome,
+          'Empresa': a.empresa || '',
+          'Posto': a.posto,
+          'Cargo': a.cargo,
+          'Admissão': formatDateBR(a.admissao),
+          'Período Aquisitivo': c.periodoAquisitivo,
+          'Início das Férias': per.map(function(x){ return formatDateBR(x.inicio); }).join(' | '),
+          'Fim das Férias': per.map(function(x){ return formatDateBR(x.fim); }).join(' | '),
+          'Situação das Férias': per.map(function(x){ return x.situacao; }).join(' | '),
+          'Dias Tirados no Período': c.diasTirados,
+          'Dias Restantes no Período': c.diasRestantes,
+          'Abono (dias vendidos)': c.abonoDias || 0,
+          'Antecipação 13º': c.antecipa13 ? 'Sim' : 'Não',
+          'Vencimento': formatDateBR(c.vencimento1),
+          'Limite de Gozo': formatDateBR(c.limiteGozo),
+          'Status': l.statusLabel
+        });
+      });
     });
+    return linhas;
   }
 
   // Entrevistas de desligamento: inativos com a entrevista marcada como realizada ou com respostas preenchidas.
@@ -5339,7 +5386,7 @@
     document.getElementById('export-ativos-count').textContent = getAtivosParaRelatorio().length + ' colaboradores (' + appState.ativos.length + ' ativos + ' + (getAtivosParaRelatorio().length - appState.ativos.length) + ' em desligamento)';
     document.getElementById('export-abs-count').textContent = appState.absenteismo.length + ' registros';
     document.getElementById('export-to-count').textContent = appState.turnover.length + ' registros';
-    document.getElementById('export-ferias-count').textContent = getAtivosComStatusFerias().length + ' colaboradores';
+    document.getElementById('export-ferias-count').textContent = getAtivosComStatusFerias().length + ' colaboradores (uma linha por período aquisitivo)';
   }
 
   document.getElementById('btn-export-ativos').addEventListener('click', function(){
