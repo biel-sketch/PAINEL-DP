@@ -251,6 +251,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         <span class="nav-label">Clientes</span>
       </div>
+      <div class="nav-item" data-view="beneficios" data-somente-beneficios="true" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>
+        <span class="nav-label">Benefícios</span>
+      </div>
       <div class="nav-item" data-view="exportacoes">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
         <span class="nav-label">Exportações</span>
@@ -273,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-23</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-24</div>
     </div>
   </aside>
 
@@ -840,6 +844,12 @@
           <div>Nenhum registro encontrado com esse filtro.</div>
         </div>
       </div>
+    </div>
+
+    <div class="view" id="view-beneficios">
+      <div class="topbar"><div class="page-title">Benefícios — VT, VA e VR</div><div class="page-date"></div></div>
+      <div id="ben-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;"></div>
+      <div id="ben-content"></div>
     </div>
 
     <div class="view" id="view-ferias">
@@ -1912,6 +1922,13 @@
   </div>
 
   <!-- MODAL: Registrar Férias -->
+  <div class="modal-overlay" id="modal-ben">
+    <div class="modal-box" id="ben-modal-box">
+      <div class="modal-title" id="ben-modal-titulo"></div>
+      <div id="ben-modal-corpo"></div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-ferias">
     <div class="modal-box">
       <div class="modal-title">Registrar Férias</div>
@@ -2205,7 +2222,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-04-23 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-04-24 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -2271,6 +2288,11 @@
     // A aba "Clientes" só aparece para administradores.
     document.querySelectorAll('[data-somente-admin="true"]').forEach(function(el){
       el.style.display = (userRole.role === 'administrador') ? 'flex' : 'none';
+    });
+
+    benRoleNome = userRole.role;
+    document.querySelectorAll('[data-somente-beneficios="true"]').forEach(function(el){
+      el.style.display = (userRole.role === 'administrador' || userRole.role === 'dp' || userRole.role === 'analista') ? 'flex' : 'none';
     });
 
     startCloudSync();
@@ -2356,6 +2378,7 @@
         alert('Esta aba é restrita a administradores.');
         return;
       }
+      if(view === 'beneficios' && !benPodeUsar()){ alert('Esta aba é restrita ao DP e administradores.'); return; }
       document.querySelectorAll('.nav-item[data-view]').forEach(function(n){ n.classList.remove('active'); });
       item.classList.add('active');
       document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
@@ -2402,7 +2425,7 @@
   // absenteismo, turnover, ferias, ocorrencias, cat) vai gravar seus dados
   // dentro do mesmo objeto de estado, sincronizado em tempo real com o Firebase.
   // ============================================================
-  var appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [], clientes: [] };
+  var appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [], clientes: [], vtEmpresas: [], vtCadastros: [], vtSaldos: [], vtPedidos: [], vavrParametros: [], vavrPedidos: [], convocacoes: [], feriados: [] };
 
   // ============================================================
   // CARGA INICIAL — Colaboradores Ativos (planilha enviada)
@@ -7564,7 +7587,7 @@
 
   // Coleções da appState que são listas de registros com "id" — usadas pelo
   // merge de segurança abaixo antes de cada gravação.
-  var COLECOES_APPSTATE = ['ativos','inativos','absenteismo','turnover','ferias','ocorrencias','cat','desligamentosAndamento','clientes'];
+  var COLECOES_APPSTATE = ['ativos','inativos','absenteismo','turnover','ferias','ocorrencias','cat','desligamentosAndamento','clientes','vtEmpresas','vtCadastros','vtSaldos','vtPedidos','vavrParametros','vavrPedidos','convocacoes','feriados'];
   // Última "foto" do appState tal como recebida do servidor (ver processarSnapshot).
   // Usada por cloudPut/cloudPutReplace para saber se uma coleção foi ou não alterada
   // localmente desde a última sincronização.
@@ -7726,7 +7749,7 @@
     } catch(e){ ULTIMO_SNAPSHOT_SERVIDOR = null; }
 
     if(cloud) appState = cloud;
-    else appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [], clientes: [] };
+    else appState = { ativos: [], inativos: [], absenteismo: [], turnover: [], ferias: [], ocorrencias: [], cat: [], desligamentosAndamento: [], clientes: [], vtEmpresas: [], vtCadastros: [], vtSaldos: [], vtPedidos: [], vavrParametros: [], vavrPedidos: [], convocacoes: [], feriados: [] };
     // Garante que todos os campos essenciais existam como array, mesmo que o
     // Firebase esteja com alguma chave ausente (ex: dados salvos antes de uma
     // funcionalidade ter sido criada) — evita "Cannot read properties of undefined".
@@ -7738,6 +7761,7 @@
     if(!appState.ocorrencias) appState.ocorrencias = [];
     if(!appState.cat) appState.cat = [];
     if(!appState.clientes) appState.clientes = [];
+    ['vtEmpresas','vtCadastros','vtSaldos','vtPedidos','vavrParametros','vavrPedidos','convocacoes','feriados'].forEach(function(c){ if(!appState[c]) appState[c] = []; });
     if(!appState.desligamentosAndamento) appState.desligamentosAndamento = [];
 
     var needsSeed = !appState.ativos || appState.ativos.length === 0;
@@ -7820,6 +7844,7 @@
     executarComProtecao('Ocorrências', refreshOcorrenciasView);
     executarComProtecao('Cat', refreshCatView);
     executarComProtecao('Clientes', refreshClientesView);
+    executarComProtecao('Benefícios', refreshBeneficiosView);
     setSyncIndicator('ok', 'Sincronizado');
 
     // Guarda uma "foto" do que acabamos de receber do servidor. É usada pelo
@@ -7906,6 +7931,1194 @@
     if(connectedListenerAtivo) firebase.database().ref('.info/connected').off('value', connectedListenerAtivo);
     connectedListenerAtivo = null;
   }
+
+  // ============================================================
+  // BENEFÍCIOS — MOTOR DE CÁLCULO (VT, VA, VR)
+  // Regras portadas do sistema VT / VA-VR (App.tsx). Funções puras: recebem os dados
+  // por parâmetro (nada de acesso direto ao banco), por isso podem ser testadas à parte.
+  // ============================================================
+  function benParse(s){ var p = String(s).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2], 12, 0, 0); }
+  function benFmt(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function benAdd(d, n){ var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function benDiff(a, b){ return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000); }
+  function benAddISO(iso, n){ return benFmt(benAdd(benParse(iso), n)); }
+  function benRound2(v){ return Math.round((Number(v) || 0) * 100) / 100; }
+
+  var BEN_JORNADAS = ['SEG-SEX', 'SEG-SAB', '12X36', 'SEG-SEX (+1 NA QUARTA)', 'SAB/DOM/FER', 'SAB/DOM/FE'];
+
+  // Dias em que o colaborador usa VT dentro do período, segundo a jornada, a admissão e os feriados.
+  function benDiasPrevistos(periodoInicial, periodoFinal, admissao, jornadaOriginal, feriados){
+    if(!admissao) return { dias: [], erro: 'Colaborador sem data de admissão.' };
+    var jornada = String(jornadaOriginal == null ? '' : jornadaOriginal).trim().toUpperCase();
+    if(!jornada) return { dias: [], erro: 'Colaborador sem jornada cadastrada.' };
+    if(BEN_JORNADAS.indexOf(jornada) < 0) return { dias: [], erro: 'Jornada não reconhecida: ' + jornadaOriginal + '.' };
+    var inicio = benParse(periodoInicial), fim = benParse(periodoFinal), dataAdm = benParse(admissao);
+    if(dataAdm > fim) return { dias: [], erro: null };
+    if(dataAdm > inicio) inicio = dataAdm;
+    var dias = [];
+    for(var atual = new Date(inicio); atual <= fim; atual = benAdd(atual, 1)){
+      var txt = benFmt(atual), dow = atual.getDay(), feriado = feriados.has(txt);
+      var trabalha = false, idas = 1, voltas = 1;
+      if(jornada === 'SEG-SEX') trabalha = dow >= 1 && dow <= 5 && !feriado;
+      else if(jornada === 'SEG-SAB') trabalha = dow >= 1 && dow <= 6 && !feriado;
+      else if(jornada === '12X36') trabalha = benDiff(dataAdm, atual) % 2 === 0;
+      else if(jornada === 'SEG-SEX (+1 NA QUARTA)'){ trabalha = dow >= 1 && dow <= 5 && !feriado; if(trabalha && dow === 3) idas = 2; }
+      else trabalha = dow === 0 || dow === 6 || feriado; // SAB/DOM/FER
+      if(trabalha) dias.push({ data: txt, quantidadeIdas: idas, quantidadeVoltas: voltas });
+    }
+    return { dias: dias, erro: null };
+  }
+
+  function benEmIntervalos(data, intervalos){
+    for(var i = 0; i < intervalos.length; i++){ if(data >= intervalos[i].ini && data <= intervalos[i].fim) return true; }
+    return false;
+  }
+  function benSomaMov(movs, vIda, vVolta){
+    return movs.reduce(function(t, d){ return t + d.quantidadeIdas * vIda + d.quantidadeVoltas * vVolta; }, 0);
+  }
+
+  // Ausência "parece afastamento" (atestado / INSS) e dura mais de 15 dias → afastamento longo.
+  function benEhAfastamentoLongo(a){
+    if(a.descontaVt === false) return false;
+    var dias = benDiff(benParse(a.ini), benParse(a.fim)) + 1;
+    var tipo = String(a.tipo || '').toUpperCase(), desc = String(a.desc || '').toUpperCase();
+    var parece = tipo.indexOf('AFAST') >= 0 || tipo.indexOf('INSS') >= 0 || desc.indexOf('AFAST') >= 0 || desc.indexOf('INSS') >= 0 || tipo === 'ATESTADO' || a.inss === true;
+    return parece && dias > 15;
+  }
+
+  // ---------- VT ----------
+  // ctx: { periodoInicial, periodoFinal, ausInicial, ausFinal, tipo:'REGULAR'|'PIX', naoDescontarAusencias, feriados:Set }
+  // colab: {id,nome,cpf,posto,admissao,jornada}; cadastros: [{id,empresaTransporte,numeroCartao,valorIda,valorVolta}]
+  // ferias: [{ini,fim}]; ausencias: [{ini,fim,tipo,desc,descontaVt,inss}]; saldos: {cadastroId:{saldo,data,origem}}
+  function benCalcularVTColaborador(ctx, colab, cadastros, ferias, ausencias, saldos){
+    var calculo = benDiasPrevistos(ctx.periodoInicial, ctx.periodoFinal, colab.admissao || null, colab.jornada || null, ctx.feriados);
+    var longos = ausencias.filter(benEhAfastamentoLongo);
+    var ausDesconta = ausencias.filter(function(a){
+      return a.descontaVt !== false && ctx.ausInicial && ctx.ausFinal && a.ini <= ctx.ausFinal && a.fim >= ctx.ausInicial && longos.indexOf(a) < 0;
+    });
+
+    var vtsProj = cadastros.map(function(vt){
+      var s = saldos[vt.id];
+      var base = { vt: vt, valorIda: Number(vt.valorIda) || 0, valorVolta: Number(vt.valorVolta) || 0, saldoAtual: s ? Number(s.saldo) || 0 : null, dataSaldo: s ? s.data : null };
+      if(ctx.tipo === 'PIX' || base.saldoAtual == null || !base.dataSaldo) return Object.assign(base, { diasProjecao: 0, consumoProjetado: null, saldoProjetado: null });
+      var iniProj = benAddISO(base.dataSaldo, 1), fimProj = benAddISO(ctx.periodoInicial, -1);
+      if(iniProj > fimProj) return Object.assign(base, { diasProjecao: 0, consumoProjetado: 0, saldoProjetado: base.saldoAtual });
+      var cp = benDiasPrevistos(iniProj, fimProj, colab.admissao || null, colab.jornada || null, ctx.feriados);
+      var movs = cp.dias.filter(function(d){ return !benEmIntervalos(d.data, ferias) && !benEmIntervalos(d.data, longos); });
+      var consumo = benSomaMov(movs, base.valorIda, base.valorVolta);
+      return Object.assign(base, { diasProjecao: movs.length, consumoProjetado: consumo, saldoProjetado: Math.max(0, base.saldoAtual - consumo) });
+    });
+
+    var diasFerias = calculo.dias.filter(function(d){ return benEmIntervalos(d.data, ferias); });
+    var datasFerias = {}; diasFerias.forEach(function(d){ datasFerias[d.data] = true; });
+    var diasAposFerias = calculo.dias.filter(function(d){ return !datasFerias[d.data]; });
+
+    var calcAus = (ctx.ausInicial && ctx.ausFinal) ? benDiasPrevistos(ctx.ausInicial, ctx.ausFinal, colab.admissao || null, colab.jornada || null, ctx.feriados) : { dias: [], erro: null };
+    var datasAus = {};
+    calcAus.dias.forEach(function(d){
+      if(benEmIntervalos(d.data, ferias)) return;
+      if(benEmIntervalos(d.data, ausDesconta)) datasAus[d.data] = true;
+    });
+    if(ctx.tipo === 'REGULAR' && ctx.naoDescontarAusencias) datasAus = {};
+
+    var datasAfast = {};
+    diasAposFerias.forEach(function(d){ if(benEmIntervalos(d.data, longos)) datasAfast[d.data] = true; });
+    var qtdAus = Object.keys(datasAus).length;
+    var qtdAfast = Object.keys(datasAfast).filter(function(d){ return !datasAus[d]; }).length;
+    var diasFinais = Math.max(0, diasAposFerias.length - qtdAus - qtdAfast);
+    var movCompra = diasAposFerias.filter(function(d){ return !datasAfast[d.data]; });
+    var movDesc = calcAus.dias.filter(function(d){ return datasAus[d.data]; });
+
+    var linhas = vtsProj.map(function(p){
+      var vt = p.vt;
+      var valorMov = benSomaMov(movCompra, p.valorIda, p.valorVolta);
+      var valorDesc = benSomaMov(movDesc, p.valorIda, p.valorVolta);
+      var idasC = movCompra.reduce(function(t, d){ return t + d.quantidadeIdas; }, 0);
+      var voltasC = movCompra.reduce(function(t, d){ return t + d.quantidadeVoltas; }, 0);
+      var idasD = movDesc.reduce(function(t, d){ return t + d.quantidadeIdas; }, 0);
+      var voltasD = movDesc.reduce(function(t, d){ return t + d.quantidadeVoltas; }, 0);
+      var idas = Math.max(0, idasC - idasD), voltas = Math.max(0, voltasC - voltasD);
+      var necessario = Math.max(0, valorMov - valorDesc);
+      var pix = ctx.tipo === 'PIX';
+      var saldoProj = (pix || p.saldoProjetado == null) ? null : Number(p.saldoProjetado);
+      var compra = pix ? necessario : (saldoProj == null ? necessario : Math.max(0, necessario - saldoProj));
+      var alertas = [], erroFin = null;
+      var cartao = String(vt.numeroCartao || '').trim();
+      if(!pix && !cartao) alertas.push('Número do cartão não informado');
+      if(!pix && (p.saldoAtual == null || !p.dataSaldo)) alertas.push('Saldo não informado - valor da compra calculado sem abatimento de saldo');
+      if(!isFinite(p.valorIda) || !isFinite(p.valorVolta) || p.valorIda < 0 || p.valorVolta < 0 || p.valorIda + p.valorVolta <= 0) erroFin = 'Tarifa de VT inválida ou zerada';
+      return {
+        cadastroId: vt.id, empresaTransporte: vt.empresaTransporte || '', numeroCartao: cartao,
+        valorIda: p.valorIda, valorVolta: p.valorVolta, tarifaDiaria: benRound2(p.valorIda + p.valorVolta),
+        saldoAtual: p.saldoAtual, dataSaldo: p.dataSaldo, consumoProjetado: p.consumoProjetado, saldoProjetado: saldoProj,
+        valorNecessario: benRound2(necessario), valorCalculado: benRound2(compra),
+        idas: idas, voltas: voltas, qtdVT: idas + voltas, alertas: alertas, erroFinanceiro: erroFin
+      };
+    });
+    return {
+      erro: calculo.erro, diasPrevistos: calculo.dias.length, diasFerias: diasFerias.length,
+      diasAusencias: qtdAus, diasAfastamento: qtdAfast, diasFinais: diasFinais, cadastros: linhas
+    };
+  }
+
+  // ---------- VA / VR ----------
+  function benParametroValido(p, periodoInicial, periodoFinal){
+    if(p.ativo === false) return false;
+    if(!periodoInicial || !periodoFinal) return true;
+    if(p.vigenciaInicial && p.vigenciaInicial > periodoFinal) return false;
+    if(p.vigenciaFinal && p.vigenciaFinal < periodoInicial) return false;
+    return true;
+  }
+  // Prioridade: colaborador > função (cargo) > posto, dentro da vigência.
+  function benResolverParametro(colab, parametros, periodoInicial, periodoFinal){
+    var v = parametros.filter(function(p){ return benParametroValido(p, periodoInicial, periodoFinal); });
+    var ind = v.find(function(p){ return p.colaboradorId && p.colaboradorId === colab.id; });
+    if(ind) return { parametro: ind, origem: 'COLABORADOR' };
+    var cargo = String(colab.cargo || '').trim();
+    var porCargo = cargo ? v.find(function(p){ return !p.colaboradorId && String(p.cargo || '').trim() === cargo; }) : null;
+    if(porCargo) return { parametro: porCargo, origem: 'FUNCAO' };
+    var posto = String(colab.posto || '').trim();
+    var porPosto = posto ? v.find(function(p){ return !p.colaboradorId && !p.cargo && String(p.posto || '').trim() === posto; }) : null;
+    if(porPosto) return { parametro: porPosto, origem: 'POSTO' };
+    return { parametro: null, origem: null };
+  }
+
+  // Janela de desligados do VA: mês de apuração + mês da competência (competência = mês seguinte).
+  function benJanelaDesligadosVA(periodoInicial, competencia){
+    var ini = /^\d{4}-\d{2}-\d{2}$/.test(periodoInicial || '') ? periodoInicial.slice(0, 7) : '';
+    var comp = /^\d{4}-\d{2}$/.test(competencia || '') ? competencia : '';
+    if(!ini || !comp) return null;
+    var a = ini.split('-').map(Number);
+    var seguinte = new Date(Date.UTC(a[0], a[1], 1)).toISOString().slice(0, 7);
+    if(seguinte !== comp) return null;
+    var ultimo = new Date(Date.UTC(Number(comp.slice(0, 4)), Number(comp.slice(5, 7)), 0)).getUTCDate();
+    return { inicio: ini + '-01', fim: comp + '-' + ('0' + ultimo).slice(-2) };
+  }
+  function benDesligadoElegivelVA(item, janela, competencia){
+    if(!janela) return false;
+    var data = String(item.dataDesligamento || '');
+    if(data < janela.inicio || data > janela.fim) return false;
+    if(data.slice(0, 7) === competencia) return true;
+    var adm = String(item.dataAdmissao || '');
+    var fim30 = new Date(Date.UTC(Number(janela.inicio.slice(0, 4)), Number(janela.inicio.slice(5, 7)) - 1, 30)).toISOString().slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(adm) && adm <= janela.inicio && data >= fim30;
+  }
+
+  // ctx: { tipo:'VA'|'VR', periodoInicial, periodoFinal, ausInicial, ausFinal, descontarAusencias, retroativo, feriados:Set,
+  //        competencia, retroativosPagos:[{colaboradorId,ini,fim}] }
+  // linha de entrada: { colab, parametro, origem, dataDesligamento?, dataAdmissaoDesligado?, semCadastro? }
+  // dados: { ferias:[{ini,fim}], faltas:[{ini,fim}], afastamentos:[{ini,fim}], convocacoes:[datas], ausVR:[{ini,fim}] } (por colaborador)
+  function benCalcularVAVRLinha(ctx, linha, dados){
+    var colab = linha.colab, parametro = linha.parametro, tipoBen = ctx.tipo;
+    var dataDesl = tipoBen === 'VA' ? (linha.dataDesligamento || null) : null;
+    if(!parametro){
+      if(!dataDesl) return null;
+      return { colab: colab, parametro: null, origem: linha.origem, desligadoVa: true, dataDesligamentoVa: dataDesl, analiseDesligamentoVa: 'PENDENTE',
+        diasEfetivosVa: 0, elegivelVa: false, valorVaBase: 0, descontoVa: 0, valorVa: 0, valorVr: 0, descontoFolha: 0,
+        motivoVa: 'Análise manual: não há parametrização VA aplicável ao posto.', erro: null };
+    }
+    var admVa = dataDesl ? (linha.dataAdmissaoDesligado || colab.admissao) : colab.admissao;
+    var semCad = !!dataDesl && !!linha.semCadastro;
+    var tipoContrato = String(colab.contratoTipo || parametro.tipoContrato || '').toUpperCase();
+    var intermitente = tipoContrato.indexOf('INTERMIT') >= 0 || String(colab.posto || '').toUpperCase().indexOf('INTERMITENTE') >= 0;
+
+    if(intermitente){
+      var convs = (dados.convocacoes || []).filter(function(d){ return !dataDesl || d <= dataDesl; }).sort();
+      var qtd = convs.length;
+      var possuiVa = !!parametro.possuiVa;
+      var elegIntVa = !semCad && possuiVa && qtd >= 20;
+      var valorVaI = tipoBen === 'VA' && elegIntVa ? Number(parametro.valorVa) || 0 : 0;
+      var motivoI = null;
+      if(tipoBen === 'VA'){
+        if(!possuiVa) motivoI = 'Não possui VA na parametrização';
+        else if(qtd < 20) motivoI = 'Não elegível · ' + qtd + ' de 20 convocações no período';
+      }
+      var possuiVrI = !!parametro.possuiVr;
+      var diasVrI = tipoBen === 'VR' && possuiVrI ? qtd : 0;
+      return {
+        colab: colab, parametro: parametro, origem: linha.origem, desligadoVa: !!dataDesl, dataDesligamentoVa: dataDesl,
+        analiseDesligamentoVa: dataDesl ? 'PENDENTE' : 'NAO_APLICAVEL', intermitente: true, quantidadeConvocacoes: qtd, datasConvocacoes: convs,
+        diasEfetivosVa: 0, elegivelVa: elegIntVa, motivoVa: motivoI, faltasInjustificadasVa: 0, datasFaltasVa: [], diasAfastamentoContinuoVa: 0, afastamentoSuperior120Va: false,
+        valorVaBase: valorVaI, descontoVa: 0, valorVa: valorVaI,
+        diasPrevistos: qtd, diasFerias: 0, diasVrDescontados: 0, diasVrRegular: diasVrI, diasVrRetroativo: 0, diasVr: diasVrI,
+        valorVrRegular: tipoBen === 'VR' ? benRound2(diasVrI * (Number(parametro.valorVr) || 0)) : 0, valorVrRetroativo: 0,
+        valorVr: tipoBen === 'VR' ? benRound2(diasVrI * (Number(parametro.valorVr) || 0)) : 0,
+        descontoFolha: tipoBen === 'VR' ? benRound2(diasVrI * (Number(parametro.descontoVrPorDia) || 0)) : 0, erro: null
+      };
+    }
+
+    var motor = benDiasPrevistos(ctx.periodoInicial, ctx.periodoFinal, colab.admissao, colab.jornada, ctx.feriados);
+    var datasFerias = {};
+    (dados.ferias || []).forEach(function(f){
+      for(var a = benParse(f.ini), fim = benParse(f.fim); a <= fim; a = benAdd(a, 1)) datasFerias[benFmt(a)] = true;
+    });
+
+    // VA — dias corridos de vínculo dentro do período do benefício
+    var diasEfetivosVa = 0;
+    if(admVa && ctx.periodoInicial && ctx.periodoFinal){
+      var iniP = benParse(ctx.periodoInicial), fimOrig = benParse(ctx.periodoFinal);
+      var fimP = (dataDesl && benParse(dataDesl) < fimOrig) ? benParse(dataDesl) : fimOrig;
+      var adm = benParse(admVa);
+      var iniV = adm > iniP ? adm : iniP;
+      if(iniV <= fimP) diasEfetivosVa = Math.floor((fimP.getTime() - iniV.getTime()) / 86400000) + 1;
+    }
+    var possuiVaE = !!parametro.possuiVa;
+    var elegTempo = possuiVaE && diasEfetivosVa >= 30;
+
+    // VA — faltas injustificadas (só FALTA)
+    var faltas = dados.faltas || [];
+    var datasFaltas = Array.from(new Set(faltas.map(function(f){ return f.ini; }))).sort();
+    var temFalta = faltas.length > 0;
+
+    // VA — afastamento contínuo > 120 dias na data-base (fim das ausências + 1 dia)
+    var dataBase = (tipoBen === 'VA' && ctx.ausFinal) ? benAddISO(ctx.ausFinal, 1) : null;
+    var diasAfCont = 0, iniAfCont = null, afast120 = false;
+    if(tipoBen === 'VA' && dataBase){
+      var db = benParse(dataBase);
+      var per = (dados.afastamentos || []).map(function(a){ return { ini: benParse(a.ini), fim: benParse(a.fim) }; })
+        .filter(function(p){ return p.ini <= db && p.fim >= p.ini; }).sort(function(a, b){ return a.ini - b.ini; });
+      var cons = [];
+      per.forEach(function(p){
+        var u = cons[cons.length - 1];
+        if(!u){ cons.push({ ini: p.ini, fim: p.fim }); return; }
+        if(p.ini <= benAdd(u.fim, 1)){ if(p.fim > u.fim) u.fim = p.fim; } else cons.push({ ini: p.ini, fim: p.fim });
+      });
+      var vig = cons.find(function(p){ return p.ini <= db && p.fim >= db; });
+      if(vig){ iniAfCont = benFmt(vig.ini); diasAfCont = benDiff(vig.ini, db) + 1; afast120 = diasAfCont > 120; }
+    }
+    var elegVa = !semCad && elegTempo && !temFalta && !afast120;
+    var motivoVa = null;
+    if(tipoBen === 'VA'){
+      if(semCad) motivoVa = !admVa ? 'Análise manual: data de admissão não informada.' : (diasEfetivosVa < 30 ? 'Não elegível por tempo: ' + diasEfetivosVa + ' de 30 dias na competência.' : 'Tempo de vínculo atendido; confirmar faltas, afastamentos e contrato manualmente.');
+      else if(!possuiVaE) motivoVa = 'Não possui VA na parametrização';
+      else if(diasEfetivosVa < 30) motivoVa = 'Não elegível · ' + diasEfetivosVa + ' de 30 dias efetivos no período';
+      else if(temFalta) motivoVa = faltas.length === 1 ? 'Não elegível · Falta injustificada em ' + datasFaltas[0].split('-').reverse().join('/') : 'Não elegível · ' + faltas.length + ' faltas injustificadas no período de ausências';
+      else if(afast120) motivoVa = 'Não elegível · ' + diasAfCont + ' dias de afastamento na data-base ' + dataBase.split('-').reverse().join('/');
+    }
+    var elegAntesFalta = !semCad && possuiVaE && elegTempo && !afast120;
+    var valorVaBase = tipoBen === 'VA' && elegAntesFalta ? Number(parametro.valorVa) || 0 : 0;
+    var descontoVa = tipoBen === 'VA' && elegAntesFalta && temFalta ? valorVaBase : 0;
+    var valorVa = Math.max(0, valorVaBase - descontoVa);
+
+    // VR — dias pela escala, menos férias, menos ausências do período de apuração
+    var diasPrev = motor.dias.length;
+    var diasFer = motor.dias.filter(function(d){ return datasFerias[d.data]; }).length;
+    var diasVrDesc = 0, datasAusVr = [];
+    if(tipoBen === 'VR' && ctx.descontarAusencias && ctx.ausInicial && ctx.ausFinal){
+      var mAus = benDiasPrevistos(ctx.ausInicial, ctx.ausFinal, colab.admissao, colab.jornada, ctx.feriados);
+      if(mAus.erro) throw new Error((colab.nome || 'Colaborador') + ': ' + mAus.erro);
+      var trabalhaveis = {}; mAus.dias.forEach(function(d){ trabalhaveis[d.data] = true; });
+      var setDesc = {};
+      (dados.ausVR || []).forEach(function(a){
+        if(!a.ini || !a.fim) return;
+        for(var at = benParse(a.ini), f2 = benParse(a.fim); at <= f2; at = benAdd(at, 1)){
+          var dt = benFmt(at);
+          if(dt >= ctx.ausInicial && dt <= ctx.ausFinal && trabalhaveis[dt]) setDesc[dt] = true;
+        }
+      });
+      datasAusVr = Object.keys(setDesc).sort(); diasVrDesc = datasAusVr.length;
+    }
+    var diasVrReg = tipoBen === 'VR' && parametro.possuiVr ? Math.max(0, diasPrev - diasFer - diasVrDesc) : 0;
+
+    // VR — retroativo de nova admissão (mês anterior ao início do período) + trava de duplicidade
+    var retro = false, retIni = null, retFim = null, diasRetro = 0, retroJaPago = false;
+    if(tipoBen === 'VR' && parametro.possuiVr && ctx.retroativo && colab.admissao && ctx.periodoInicial){
+      var inicioPed = benParse(ctx.periodoInicial), admD = benParse(colab.admissao);
+      var iniMesAnt = new Date(inicioPed.getFullYear(), inicioPed.getMonth() - 1, 1, 12);
+      var fimMesAnt = new Date(inicioPed.getFullYear(), inicioPed.getMonth(), 0, 12);
+      if(admD >= iniMesAnt && admD <= fimMesAnt){
+        retro = true; retIni = benFmt(admD); retFim = benFmt(fimMesAnt);
+        diasRetro = benDiasPrevistos(retIni, retFim, colab.admissao, colab.jornada, ctx.feriados).dias.length;
+        retroJaPago = (ctx.retroativosPagos || []).some(function(r){ return r.colaboradorId === colab.id && r.ini === retIni && r.fim === retFim; });
+        if(retroJaPago) diasRetro = 0;
+      }
+    }
+    var vUnit = Number(parametro.valorVr) || 0;
+    var valorVrReg = tipoBen === 'VR' ? diasVrReg * vUnit : 0;
+    var valorVrRetro = tipoBen === 'VR' ? diasRetro * vUnit : 0;
+    var diasVr = diasVrReg + diasRetro;
+    return {
+      colab: colab, parametro: parametro, origem: linha.origem, desligadoVa: !!dataDesl, dataDesligamentoVa: dataDesl,
+      analiseDesligamentoVa: dataDesl ? 'PENDENTE' : 'NAO_APLICAVEL', intermitente: false,
+      diasEfetivosVa: diasEfetivosVa, elegivelVa: elegVa, motivoVa: motivoVa, faltasInjustificadasVa: faltas.length, datasFaltasVa: datasFaltas,
+      dataBaseAfastamentoVa: dataBase, diasAfastamentoContinuoVa: diasAfCont, inicioAfastamentoContinuoVa: iniAfCont, afastamentoSuperior120Va: afast120,
+      valorVaBase: benRound2(valorVaBase), descontoVa: benRound2(descontoVa), valorVa: benRound2(valorVa),
+      diasPrevistos: diasPrev, diasFerias: diasFer, diasVrDescontados: diasVrDesc, datasAusenciasVr: datasAusVr, diasVr: diasVr, diasVrRegular: diasVrReg, diasVrRetroativo: diasRetro,
+      valorVrRegular: benRound2(valorVrReg), valorVrRetroativo: benRound2(valorVrRetro),
+      retroativoAdmissao: retro, retroativoPeriodoInicial: retIni, retroativoPeriodoFinal: retFim, retroativoJaPago: retroJaPago,
+      valorVr: benRound2(valorVrReg + valorVrRetro),
+      descontoFolha: tipoBen === 'VR' ? benRound2(diasVr * (Number(parametro.descontoVrPorDia) || 0)) : 0,
+      erro: tipoBen === 'VR' ? motor.erro : null
+    };
+  }
+
+  // VR em 2 créditos: o 2º recebe metade (arredondada para baixo em centavos); o 1º fica com o restante.
+  function benDistribuirVR(valorVr, pagar2x, integral){
+    var total = Math.round(Number(valorVr || 0) * 100) / 100;
+    if(!pagar2x || integral) return { forma: 'INTEGRAL', primeiro: total, segundo: 0 };
+    var segundo = Math.floor((total * 100) / 2) / 100;
+    return { forma: '2X', primeiro: Math.round((total - segundo) * 100) / 100, segundo: segundo };
+  }
+
+  // ============================================================
+  // BENEFÍCIOS — LIGAÇÃO COM OS DADOS DO PAINEL
+  // Colaboradores (Ativos), jornada, admissão, Absenteísmo (faltas/atestados), Férias,
+  // Desligamentos e Intermitentes alimentam o motor de cálculo automaticamente.
+  // ============================================================
+  var BEN_FERIADOS_PADRAO = [
+    ['2026-01-01','Confraternização Universal'],['2026-04-03','Sexta-feira Santa'],['2026-04-21','Tiradentes'],['2026-05-01','Dia do Trabalho'],
+    ['2026-09-07','Independência do Brasil'],['2026-10-12','Nossa Senhora Aparecida'],['2026-11-02','Finados'],['2026-11-15','Proclamação da República'],
+    ['2026-11-20','Consciência Negra'],['2026-12-25','Natal'],['2027-01-01','Confraternização Universal']
+  ];
+  function benEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function benId(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function benMoeda(v){ return (Number(v) || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+  function benDataBR(iso){ return iso ? iso.split('-').reverse().join('/') : '—'; }
+  function benSemAcento(s){ return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim(); }
+  function benCpf(s){ return String(s || '').replace(/\D/g, ''); }
+  function benHoje(){ return new Date().toISOString().slice(0, 10); }
+  function benColecoes(){
+    ['vtEmpresas','vtCadastros','vtSaldos','vtPedidos','vavrParametros','vavrPedidos','convocacoes','feriados'].forEach(function(c){ if(!Array.isArray(appState[c])) appState[c] = []; });
+  }
+  function benSalvar(){
+    benColecoes();
+    return cloudPut(appState).catch(function(err){ console.error('Erro ao salvar Benefícios:', err); });
+  }
+
+  // Feriados: usa a lista cadastrada; enquanto estiver vazia, vale a lista padrão (2026).
+  function benFeriadosSet(){
+    benColecoes();
+    if(!appState.feriados.length) return new Set(BEN_FERIADOS_PADRAO.map(function(f){ return f[0]; }));
+    return new Set(appState.feriados.filter(function(f){ return f.ativo !== false; }).map(function(f){ return f.data; }));
+  }
+
+  // Colaboradores considerados nos cálculos: Ativos (como no sistema original, só status ATIVO).
+  function benColaboradores(){
+    return appState.ativos.map(function(a){
+      return { id: a.id, nome: a.nome, cpf: a.cpf || '', posto: a.posto || '', postoTrabalho: a.postoTrabalho || '', cargo: a.cargo || '',
+               admissao: a.admissao || null, jornada: a.jornada || '', contratoTipo: a.contratoTipo || '', empresa: a.empresa || '', supervisor: a.supervisor || '' };
+    });
+  }
+  function benEhIntermitente(c){
+    return String(c.contratoTipo || '').toUpperCase().indexOf('INTERMIT') >= 0 || String(c.posto || '').toUpperCase().indexOf('INTERMITENTE') >= 0;
+  }
+
+  // Absenteísmo → ausências do motor. "Falta" = FALTA; "Atestado" = ATESTADO (ou DECLARAÇÃO, se o motivo for comparecimento).
+  function benIndexAusencias(){
+    var idx = {};
+    (appState.absenteismo || []).forEach(function(e){
+      if(!e.inicio) return;
+      var k = normNome(e.nome);
+      var tipoUp = benSemAcento(e.tipo);
+      var motivo = benSemAcento(e.motivo);
+      var tipo = tipoUp === 'FALTA' ? 'FALTA' : (motivo.indexOf('COMPARECIMENTO') >= 0 ? 'DECLARACAO' : 'ATESTADO');
+      (idx[k] = idx[k] || []).push({ ini: e.inicio, fim: e.fim || e.inicio, tipo: tipo, desc: e.motivo || '', descontaVt: tipo !== 'DECLARACAO', inss: !!e.inss });
+    });
+    return idx;
+  }
+  function benIndexFerias(){
+    var idx = {};
+    (appState.ferias || []).forEach(function(f){
+      if(!f.dataInicial || !f.dataFinal) return;
+      (idx[normNome(f.nome)] = idx[normNome(f.nome)] || []).push({ ini: f.dataInicial, fim: f.dataFinal });
+    });
+    return idx;
+  }
+  function benIndexConvocacoes(){
+    var idx = {};
+    benColecoes();
+    appState.convocacoes.forEach(function(c){ (idx[c.colaboradorId] = idx[c.colaboradorId] || []).push(c.data); });
+    return idx;
+  }
+  function benCadastrosDe(colabId){
+    benColecoes();
+    return appState.vtCadastros.filter(function(v){ return v.colaboradorId === colabId && v.status !== 'INATIVO'; });
+  }
+  // Último saldo de cada cartão até a data informada.
+  function benSaldosAte(dataLimite){
+    benColecoes();
+    var por = {};
+    appState.vtSaldos.forEach(function(s){
+      if(!s.cadastroId || s.data > dataLimite) return;
+      var a = por[s.cadastroId];
+      if(!a || s.data > a.data || (s.data === a.data && (s.criadoEm || '') > (a.criadoEm || ''))) por[s.cadastroId] = s;
+    });
+    return por;
+  }
+  function benUltimoSaldo(cadastroId){
+    var r = null;
+    appState.vtSaldos.forEach(function(s){ if(s.cadastroId === cadastroId && (!r || s.data > r.data || (s.data === r.data && (s.criadoEm || '') > (r.criadoEm || '')))) r = s; });
+    return r;
+  }
+
+  // ---------- Pedido de VT ----------
+  // params: {tipo:'REGULAR'|'PIX', periodoInicial, periodoFinal, ausInicial, ausFinal, naoDescontarAusencias, escopo:'TODOS'|'POSTO'|'COLABORADOR'|'EMPRESA', selecionados:[]}
+  function benCalcularPedidoVT(params, ajustesAnteriores){
+    benColecoes();
+    var colabs = benColaboradores();
+    var sel = {}; (params.selecionados || []).forEach(function(s){ sel[s] = true; });
+    var empresasPorColab = null;
+    if(params.escopo === 'EMPRESA'){
+      empresasPorColab = {};
+      appState.vtCadastros.forEach(function(v){ if(v.status !== 'INATIVO' && sel[v.empresaTransporte]) empresasPorColab[v.colaboradorId] = true; });
+    }
+    var eleg = colabs.filter(function(c){
+      if(params.tipo === 'PIX') return !!sel[c.id];
+      if(params.escopo === 'POSTO') return !!sel[c.posto];
+      if(params.escopo === 'COLABORADOR') return !!sel[c.id];
+      if(params.escopo === 'EMPRESA') return !!empresasPorColab[c.id];
+      return true;
+    });
+    var feriados = benFeriadosSet(), ferIdx = benIndexFerias(), ausIdx = benIndexAusencias();
+    var saldos = benSaldosAte(params.periodoInicial);
+    var saldosMap = {};
+    Object.keys(saldos).forEach(function(k){ saldosMap[k] = { saldo: saldos[k].saldo, data: saldos[k].data, origem: saldos[k].origem }; });
+    var ctx = { periodoInicial: params.periodoInicial, periodoFinal: params.periodoFinal, ausInicial: params.ausInicial || '', ausFinal: params.ausFinal || '',
+                tipo: params.tipo, naoDescontarAusencias: !!params.naoDescontarAusencias, feriados: feriados };
+    var itens = [], semCad = [];
+    eleg.forEach(function(c){
+      var k = normNome(c.nome);
+      var cads = benCadastrosDe(c.id);
+      var r = benCalcularVTColaborador(ctx, c, cads, ferIdx[k] || [], ausIdx[k] || [], saldosMap);
+      var base = { colaboradorId: c.id, nome: c.nome, cpf: c.cpf, posto: c.posto, jornada: c.jornada, diasPrevistos: r.diasPrevistos, diasFerias: r.diasFerias,
+                   diasAusencias: r.diasAusencias, diasAfastamento: r.diasAfastamento, diasFinais: r.diasFinais, erro: r.erro || '' };
+      if(!r.cadastros.length){
+        if(params.tipo !== 'PIX' && params.escopo !== 'COLABORADOR'){ semCad.push(c.nome); return; }
+        itens.push(Object.assign({}, base, { cadastroId: '', empresaTransporte: '', numeroCartao: '', valorIda: 0, valorVolta: 0, tarifaDiaria: 0, saldoAtual: null, dataSaldo: null,
+          consumoProjetado: 0, saldoProjetado: null, valorNecessario: 0, valorCalculado: 0, valorFinal: 0, idas: 0, voltas: 0, qtdVT: 0,
+          alertas: ['Sem cadastro de VT ativo'], erroFinanceiro: null, ajusteManual: false, motivoAjuste: '', forma: params.tipo === 'PIX' ? 'PIX' : 'RECARGA' }));
+        return;
+      }
+      r.cadastros.forEach(function(l){
+        var aj = ajustesAnteriores ? ajustesAnteriores[l.cadastroId] : null;
+        itens.push(Object.assign({}, base, l, {
+          valorFinal: aj ? aj.valorFinal : l.valorCalculado, ajusteManual: !!aj, motivoAjuste: aj ? aj.motivoAjuste : '',
+          forma: params.tipo === 'PIX' ? 'PIX' : 'RECARGA'
+        }));
+      });
+    });
+    itens.sort(function(a, b){ return a.nome.localeCompare(b.nome); });
+    itens.semCadastro = semCad;
+    return itens;
+  }
+
+  // ---------- Pedido de VA / VR ----------
+  // params: {tipo:'VA'|'VR', competencia, periodoInicial, periodoFinal, ausInicial, ausFinal, descontarAusencias, retroativo, calcularDesligados,
+  //          abrangencia:'GERAL'|'POSTO'|'FUNCAO'|'COLABORADOR', selecionados:[]}
+  function benCalcularPedidoVAVR(params){
+    benColecoes();
+    var colabs = benColaboradores();
+    var sel = {}; (params.selecionados || []).forEach(function(s){ sel[s] = true; });
+    var base = colabs.filter(function(c){
+      if(params.abrangencia === 'POSTO') return !!sel[c.posto];
+      if(params.abrangencia === 'FUNCAO') return !!sel[c.cargo];
+      if(params.abrangencia === 'COLABORADOR') return !!sel[c.id];
+      return true;
+    });
+    var parametros = appState.vavrParametros;
+    var feriados = benFeriadosSet(), ferIdx = benIndexFerias(), ausIdx = benIndexAusencias(), convIdx = benIndexConvocacoes();
+    var retroPagos = [];
+    if(params.tipo === 'VR' && params.retroativo){
+      appState.vavrPedidos.forEach(function(p){
+        (p.itens || []).forEach(function(i){
+          if(i.retroativoAdmissao && i.statusCompra === 'COMPRA_REALIZADA' && Number(i.valorVrRetroativo) > 0)
+            retroPagos.push({ colaboradorId: i.colaboradorId, ini: i.retroativoPeriodoInicial, fim: i.retroativoPeriodoFinal });
+        });
+      });
+    }
+    var ctx = { tipo: params.tipo, periodoInicial: params.periodoInicial, periodoFinal: params.periodoFinal, ausInicial: params.ausInicial || '', ausFinal: params.ausFinal || '',
+                descontarAusencias: params.descontarAusencias !== false, retroativo: !!params.retroativo, feriados: feriados, competencia: params.competencia, retroativosPagos: retroPagos };
+
+    var linhas = base.map(function(c){
+      var r = benResolverParametro(c, parametros, params.periodoInicial, params.periodoFinal);
+      return { colab: c, parametro: r.parametro, origem: r.origem };
+    });
+
+    // Desligados (só VA): conferência manual — janela = mês de apuração + mês da competência.
+    var desligados = [];
+    if(params.tipo === 'VA' && params.calcularDesligados){
+      var janela = benJanelaDesligadosVA(params.periodoInicial, params.competencia);
+      var jaNaLista = {}; linhas.forEach(function(l){ jaNaLista[normNome(l.colab.nome)] = true; });
+      var fontes = [];
+      (appState.inativos || []).forEach(function(i){ if(i.desligamento) fontes.push({ nome: i.nome, cpf: i.cpf, posto: i.posto, cargo: i.cargo, empresa: i.empresa, dataAdmissao: i.admissao, dataDesligamento: i.desligamento, id: 'in-' + i.id }); });
+      (appState.desligamentosAndamento || []).forEach(function(d){ if(d.desligamento) fontes.push({ nome: d.nome, cpf: d.cpf, posto: d.posto, cargo: d.cargo, empresa: d.empresa, dataAdmissao: d.admissao, dataDesligamento: d.desligamento, id: 'da-' + d.id }); });
+      fontes.forEach(function(f){
+        if(!benDesligadoElegivelVA(f, janela, params.competencia)) return;
+        if(params.abrangencia === 'POSTO' && !sel[f.posto]) return;
+        if(params.abrangencia === 'FUNCAO' && !sel[f.cargo]) return;
+        if(params.abrangencia === 'COLABORADOR') return;
+        var k = normNome(f.nome); if(jaNaLista[k]) return; jaNaLista[k] = true;
+        var colab = { id: f.id, nome: f.nome, cpf: f.cpf || '', posto: f.posto || '', cargo: f.cargo || '', admissao: f.dataAdmissao || null, jornada: '', contratoTipo: '', empresa: f.empresa || '' };
+        var r = benResolverParametro(colab, parametros, params.periodoInicial, params.periodoFinal);
+        linhas.push({ colab: colab, parametro: r.parametro, origem: r.origem, dataDesligamento: f.dataDesligamento, dataAdmissaoDesligado: f.dataAdmissao, semCadastro: false });
+        desligados.push(f.nome);
+      });
+    }
+
+    var semParametro = linhas.filter(function(l){ return !l.parametro && !l.dataDesligamento; });
+    var resultados = [];
+    linhas.forEach(function(l){
+      var k = normNome(l.colab.nome);
+      var aus = ausIdx[k] || [];
+      var dados = {
+        ferias: ferIdx[k] || [],
+        faltas: params.tipo === 'VA' && params.ausInicial && params.ausFinal ? aus.filter(function(a){ return a.tipo === 'FALTA' && a.ini <= params.ausFinal && a.fim >= params.ausInicial; }) : [],
+        afastamentos: aus.filter(function(a){ return a.tipo === 'ATESTADO' || a.inss; }),
+        convocacoes: (convIdx[l.colab.id] || []).filter(function(d){ return d >= params.periodoInicial && d <= params.periodoFinal; }),
+        ausVR: aus.filter(function(a){ return a.descontaVt !== false && params.ausInicial && params.ausFinal && a.ini <= params.ausFinal && a.fim >= params.ausInicial; })
+      };
+      var r = benCalcularVAVRLinha(ctx, l, dados);
+      if(r) resultados.push(r);
+    });
+    return { linhas: resultados, semParametro: semParametro, desligados: desligados };
+  }
+
+  function benLinhaParaItemVAVR(r, params){
+    var parametro = r.parametro || {};
+    return {
+      colaboradorId: r.colab.id, nome: r.colab.nome, cpf: r.colab.cpf, posto: r.colab.posto, cargo: r.colab.cargo, empresa: r.colab.empresa || '',
+      origemRegra: r.origem || '', valorVaParam: Number(parametro.valorVa) || 0, valorVrParam: Number(parametro.valorVr) || 0, descontoVrPorDia: Number(parametro.descontoVrPorDia) || 0,
+      intermitente: !!r.intermitente, quantidadeConvocacoes: r.quantidadeConvocacoes || 0,
+      desligadoVa: !!r.desligadoVa, dataDesligamentoVa: r.dataDesligamentoVa || '', analiseDesligamentoVa: r.analiseDesligamentoVa || 'NAO_APLICAVEL',
+      diasEfetivosVa: r.diasEfetivosVa || 0, elegivelVa: !!r.elegivelVa, motivoVa: r.motivoVa || '', faltasInjustificadasVa: r.faltasInjustificadasVa || 0,
+      diasAfastamentoContinuoVa: r.diasAfastamentoContinuoVa || 0, valorVaBase: r.valorVaBase || 0, descontoVa: r.descontoVa || 0, valorVa: r.valorVa || 0,
+      diasPrevistos: r.diasPrevistos || 0, diasFerias: r.diasFerias || 0, diasVrDescontados: r.diasVrDescontados || 0, diasVr: r.diasVr || 0,
+      diasVrRegular: r.diasVrRegular || 0, diasVrRetroativo: r.diasVrRetroativo || 0, valorVrRegular: r.valorVrRegular || 0, valorVrRetroativo: r.valorVrRetroativo || 0,
+      retroativoAdmissao: !!r.retroativoAdmissao, retroativoPeriodoInicial: r.retroativoPeriodoInicial || '', retroativoPeriodoFinal: r.retroativoPeriodoFinal || '', retroativoJaPago: !!r.retroativoJaPago,
+      valorVr: r.valorVr || 0, descontoFolha: r.descontoFolha || 0, erro: r.erro || '', integral1Credito: false,
+      statusCompra: 'PENDENTE'
+    };
+  }
+  // Valor que realmente será creditado ao colaborador no item de VA/VR.
+  function benValorFinalItemVAVR(item, tipo){
+    if(tipo === 'VA'){
+      if(item.desligadoVa) return item.analiseDesligamentoVa === 'APROVADO' ? Number(item.valorVa) || 0 : 0;
+      return Number(item.valorVa) || 0;
+    }
+    return Number(item.valorVr) || 0;
+  }
+
+  // ============================================================
+  // BENEFÍCIOS — INTERFACE
+  // ============================================================
+  var BEN_UI = { tab: 'resumo', vt: { escopo: 'TODOS', tipo: 'REGULAR' }, vv: {}, previaVT: null, previaVV: null, pedidoAberto: null };
+  var BEN_ABAS = [['resumo','Resumo'],['pedidoVT','Pedido VT'],['pedidoVV','Pedido VA/VR'],['pedidos','Pedidos'],['parametros','Parâmetros VA/VR'],['vt','Cadastro VT'],['saldos','Saldos dos cartões'],['intermitentes','Intermitentes'],['feriados','Feriados']];
+  var BEN_STATUS = { EM_ANDAMENTO: ['Em andamento','amber'], FINALIZADO: ['Finalizado','teal'], COMPRA_REALIZADA: ['Compra realizada','teal'], CANCELADO: ['Cancelado','red'] };
+  var BEN_INP = 'padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;';
+
+  var benRoleNome = '';
+  function benPodeUsar(){ return benRoleNome === 'administrador' || benRoleNome === 'dp' || benRoleNome === 'analista'; }
+  function benUsuario(){ return currentUser || ''; }
+  function benNomeColab(id){ var c = appState.ativos.find(function(a){ return a.id === id; }); return c ? c.nome : ''; }
+  function benPorNome(nome){ var k = normNome(nome); return appState.ativos.find(function(a){ return normNome(a.nome) === k; }); }
+  function benMesAtual(){ return benHoje().slice(0, 7); }
+  function benPeriodoMes(ym){
+    var p = ym.split('-').map(Number);
+    return { ini: ym + '-01', fim: ym + '-' + ('0' + new Date(p[0], p[1], 0).getDate()).slice(-2) };
+  }
+  function benMesSeguinte(ym){ var p = ym.split('-').map(Number); return new Date(Date.UTC(p[0], p[1], 1)).toISOString().slice(0, 7); }
+  function benMesAnterior(ym){ var p = ym.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 2, 1)).toISOString().slice(0, 7); }
+  function benPill(txt, cor){ return '<span class="pill ' + (cor || '') + '">' + benEsc(txt) + '</span>'; }
+  function benCampo(label, html, full){ return '<div class="modal-field' + (full ? ' full' : '') + '"><label>' + label + '</label>' + html + '</div>'; }
+  function benOptions(lista, atual, vazio){
+    return (vazio ? '<option value="">' + vazio + '</option>' : '') + lista.map(function(o){
+      var v = Array.isArray(o) ? o[0] : o, t = Array.isArray(o) ? o[1] : o;
+      return '<option value="' + benEsc(v) + '"' + (v === atual ? ' selected' : '') + '>' + benEsc(t) + '</option>';
+    }).join('');
+  }
+  function benUnicos(arr){ var m = {}; arr.forEach(function(x){ if(x) m[x] = 1; }); return Object.keys(m).sort(); }
+  function benTabela(cabecalhos, linhas, vazio){
+    if(!linhas.length) return '<div style="padding:22px;color:var(--text-dim);font-size:13px;">' + (vazio || 'Nenhum registro.') + '</div>';
+    return '<div style="overflow-x:auto;"><table><thead><tr>' + cabecalhos.map(function(h){ return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      linhas.map(function(l){ return '<tr>' + l.map(function(c){ return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function benPainel(titulo, corpo, acoes){
+    return '<div class="panel" style="margin-bottom:18px;"><div class="panel-head" style="flex-wrap:wrap;gap:10px;"><span class="panel-title">' + titulo + '</span><div style="display:flex;gap:8px;flex-wrap:wrap;">' + (acoes || '') + '</div></div>' + corpo + '</div>';
+  }
+  function benBtn(act, txt, extra, ghost){ return '<button class="btn' + (ghost ? ' btn-ghost' : '') + '" data-ben="' + act + '" ' + (extra || '') + '>' + txt + '</button>'; }
+  function benAbrirModal(titulo, corpo, largo){
+    document.getElementById('ben-modal-titulo').textContent = titulo;
+    document.getElementById('ben-modal-corpo').innerHTML = corpo;
+    document.getElementById('ben-modal-box').style.maxWidth = largo ? '1180px' : '560px';
+    openModal('modal-ben');
+  }
+
+  function refreshBeneficiosView(){
+    benColecoes();
+    var host = document.getElementById('ben-content');
+    if(!host) return;
+    document.getElementById('ben-tabs').innerHTML = BEN_ABAS.map(function(a){
+      return '<button class="btn' + (BEN_UI.tab === a[0] ? '' : ' btn-ghost') + '" data-ben-tab="' + a[0] + '"' + (BEN_UI.tab === a[0] ? ' style="background:var(--teal);color:#052622;border:none;"' : '') + '>' + a[1] + '</button>';
+    }).join('');
+    var fn = { resumo: benRenderResumo, pedidoVT: benRenderPedidoVT, pedidoVV: benRenderPedidoVV, pedidos: benRenderPedidos, parametros: benRenderParametros, vt: benRenderVT, saldos: benRenderSaldos, intermitentes: benRenderIntermitentes, feriados: benRenderFeriados }[BEN_UI.tab];
+    host.innerHTML = fn();
+  }
+
+  // ---------- Resumo ----------
+  function benRenderResumo(){
+    var cols = benColaboradores();
+    var semVT = cols.filter(function(c){ return !benCadastrosDe(c.id).length && !benEhIntermitente(c); });
+    var semParam = cols.filter(function(c){ return !benResolverParametro(c, appState.vavrParametros, '', '').parametro; });
+    var semJornada = cols.filter(function(c){ return !c.jornada; });
+    var semAdm = cols.filter(function(c){ return !c.admissao; });
+    var cartoesSemSaldo = appState.vtCadastros.filter(function(v){ return v.status !== 'INATIVO' && !benUltimoSaldo(v.id); });
+    var inter = cols.filter(benEhIntermitente);
+    function lista(arr){ return arr.length ? '<div style="font-size:12px;color:var(--text-dim);margin-top:6px;max-height:110px;overflow:auto;">' + arr.slice(0, 40).map(function(c){ return benEsc(c.nome || c.colaboradorId); }).join(' • ') + (arr.length > 40 ? ' … +' + (arr.length - 40) : '') + '</div>' : ''; }
+    function card(t, n, cor, extra){ return '<div class="stat-card"><div class="stat-label">' + t + '</div><div class="stat-value ' + (cor || '') + '">' + n + '</div>' + (extra || '') + '</div>'; }
+    var emAnd = appState.vtPedidos.concat(appState.vavrPedidos).filter(function(p){ return p.status === 'EM_ANDAMENTO' || p.status === 'FINALIZADO'; }).length;
+    return '<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-bottom:18px;">' +
+      card('Colaboradores ativos', cols.length) + card('Cadastros de VT', appState.vtCadastros.length) + card('Intermitentes', inter.length) + card('Pedidos em aberto', emAnd, emAnd ? 'amber' : '') + '</div>' +
+      benPainel('Pendências que impedem ou distorcem o cálculo',
+        '<div style="padding:16px 18px;display:grid;gap:14px;">' +
+        '<div><b>' + semVT.length + '</b> ativos sem cadastro de VT (não entram com valor no pedido de VT)' + lista(semVT) + '</div>' +
+        '<div><b>' + semParam.length + '</b> ativos sem parâmetro de VA/VR (posto, função ou colaborador) — o pedido de VA/VR bloqueia esses nomes' + lista(semParam) + '</div>' +
+        '<div><b>' + cartoesSemSaldo.length + '</b> cartões de VT sem saldo informado' + lista(cartoesSemSaldo) + '</div>' +
+        '<div><b>' + semJornada.length + '</b> ativos sem jornada no cadastro (sem jornada não há dias previstos)' + lista(semJornada) + '</div>' +
+        '<div><b>' + semAdm.length + '</b> ativos sem data de admissão' + lista(semAdm) + '</div></div>') +
+      '<div style="font-size:12px;color:var(--text-dim);line-height:1.6;">Os cálculos usam automaticamente: <b>Ativos</b> (posto, cargo, jornada, admissão, tipo de contrato), <b>Absenteísmo</b> (faltas e atestados; atestado com INSS vira afastamento), <b>Férias</b>, <b>Desligamentos</b> (VA de desligados vai para conferência) e <b>Feriados</b> cadastrados na aba.</div>';
+  }
+
+  // ---------- Parâmetros VA/VR ----------
+  function benRenderParametros(){
+    var linhas = appState.vavrParametros.map(function(p){
+      var esc = p.colaboradorId ? 'Colaborador: ' + benNomeColab(p.colaboradorId) : (p.cargo ? 'Função: ' + p.cargo : 'Posto: ' + (p.posto || '—'));
+      return [benEsc(esc), p.possuiVa ? benMoeda(p.valorVa) : '—', p.possuiVr ? benMoeda(p.valorVr) : '—', p.possuiVr ? benMoeda(p.descontoVrPorDia) : '—',
+        benDataBR(p.vigenciaInicial) + ' → ' + (p.vigenciaFinal ? benDataBR(p.vigenciaFinal) : 'sem fim'), p.ativo === false ? benPill('Inativo','red') : benPill('Ativo','teal'),
+        benBtn('par-edit', 'Editar', 'data-id="' + p.id + '"', true) + benBtn('par-del', 'Excluir', 'data-id="' + p.id + '"', true)];
+    });
+    return benPainel('Parâmetros de VA/VR (prioridade: colaborador › função › posto)',
+      benTabela(['Aplica-se a','VA','VR','Desc. folha/dia','Vigência','Status',''], linhas, 'Nenhum parâmetro cadastrado.'),
+      benBtn('par-novo', '+ Novo parâmetro') + benBtn('par-lote', 'Parâmetro para vários postos', '', true));
+  }
+  function benFormParametro(p, lote){
+    p = p || { possuiVa: true, possuiVr: true, descontoVrPorDia: 1.46, vigenciaInicial: benMesAtual() + '-01', ativo: true };
+    var tipo = p.colaboradorId ? 'COLABORADOR' : (p.cargo ? 'FUNCAO' : 'POSTO');
+    var postos = benUnicos(appState.ativos.map(function(a){ return a.posto; })), cargos = benUnicos(appState.ativos.map(function(a){ return a.cargo; }));
+    var alvo = lote
+      ? benCampo('Postos (marque os que recebem este parâmetro)', '<div id="par-postos" style="max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px;display:grid;gap:4px;">' +
+          postos.map(function(x){ return '<label style="font-size:12.5px;display:flex;gap:6px;"><input type="checkbox" value="' + benEsc(x) + '"> ' + benEsc(x) + '</label>'; }).join('') + '</div>', true)
+      : benCampo('Aplica-se a', '<select id="par-tipo">' + benOptions([['POSTO','Posto'],['FUNCAO','Função (cargo)'],['COLABORADOR','Colaborador']], tipo) + '</select>') +
+        benCampo('Posto / Função / Colaborador', '<input type="text" id="par-alvo" list="par-dl" autocomplete="off" value="' + benEsc(p.colaboradorId ? benNomeColab(p.colaboradorId) : (p.cargo || p.posto || '')) + '"><datalist id="par-dl"></datalist>');
+    return '<form id="ben-form-par" data-id="' + (p.id || '') + '" data-lote="' + (lote ? 1 : 0) + '"><div class="modal-grid">' + alvo +
+      benCampo('Possui VA', '<select id="par-possui-va">' + benOptions([['1','Sim'],['0','Não']], p.possuiVa ? '1' : '0') + '</select>') +
+      benCampo('Valor VA (R$)', '<input type="number" step="0.01" id="par-va" value="' + (p.valorVa || '') + '">') +
+      benCampo('Possui VR', '<select id="par-possui-vr">' + benOptions([['1','Sim'],['0','Não']], p.possuiVr ? '1' : '0') + '</select>') +
+      benCampo('Valor VR por dia (R$)', '<input type="number" step="0.01" id="par-vr" value="' + (p.valorVr || '') + '">') +
+      benCampo('Desconto de folha do VR por dia (R$)', '<input type="number" step="0.01" id="par-desc" value="' + (p.descontoVrPorDia == null ? 1.46 : p.descontoVrPorDia) + '">') +
+      benCampo('Status', '<select id="par-ativo">' + benOptions([['1','Ativo'],['0','Inativo']], p.ativo === false ? '0' : '1') + '</select>') +
+      benCampo('Vigência inicial', '<input type="date" id="par-vi" value="' + (p.vigenciaInicial || '') + '" required>') +
+      benCampo('Vigência final (opcional)', '<input type="date" id="par-vf" value="' + (p.vigenciaFinal || '') + '">') +
+      '</div><div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal(\'modal-ben\')">Cancelar</button><button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button></div></form>';
+  }
+  function benSalvarParametro(form){
+    var lote = form.getAttribute('data-lote') === '1', id = form.getAttribute('data-id');
+    var g = function(i){ return document.getElementById(i).value; };
+    var base = { possuiVa: g('par-possui-va') === '1', valorVa: Number(g('par-va')) || 0, possuiVr: g('par-possui-vr') === '1', valorVr: Number(g('par-vr')) || 0,
+      descontoVrPorDia: Number(g('par-desc')) || 0, ativo: g('par-ativo') === '1', vigenciaInicial: g('par-vi'), vigenciaFinal: g('par-vf') || '' };
+    if(base.vigenciaFinal && base.vigenciaFinal < base.vigenciaInicial){ alert('A vigência final não pode ser anterior à inicial.'); return; }
+    if(!base.possuiVa && !base.possuiVr){ alert('Marque que possui VA e/ou VR.'); return; }
+    if(lote){
+      var postos = Array.prototype.slice.call(document.querySelectorAll('#par-postos input:checked')).map(function(i){ return i.value; });
+      if(!postos.length){ alert('Marque ao menos um posto.'); return; }
+      postos.forEach(function(po){ appState.vavrParametros.push(Object.assign({ id: benId('par') , posto: po, cargo: '', colaboradorId: '' }, base)); });
+    } else {
+      var tipo = g('par-tipo'), alvo = g('par-alvo').trim();
+      if(!alvo){ alert('Informe o posto, a função ou o colaborador.'); return; }
+      var reg = Object.assign({ id: id || benId('par'), posto: '', cargo: '', colaboradorId: '' }, base);
+      if(tipo === 'COLABORADOR'){ var c = benPorNome(alvo); if(!c){ alert('Colaborador não encontrado nos Ativos.'); return; } reg.colaboradorId = c.id; }
+      else if(tipo === 'FUNCAO') reg.cargo = alvo; else reg.posto = alvo;
+      var dup = appState.vavrParametros.find(function(p){ return p.id !== reg.id && p.ativo !== false && reg.ativo && !!p.colaboradorId === !!reg.colaboradorId && p.colaboradorId === reg.colaboradorId && (p.cargo || '') === reg.cargo && (p.posto || '') === reg.posto &&
+        (!p.vigenciaFinal || p.vigenciaFinal >= reg.vigenciaInicial) && (!reg.vigenciaFinal || reg.vigenciaFinal >= p.vigenciaInicial); });
+      if(dup){ alert('Já existe um parâmetro ativo para este alvo com vigência sobreposta.'); return; }
+      var ix = appState.vavrParametros.findIndex(function(p){ return p.id === reg.id; });
+      if(ix >= 0) appState.vavrParametros[ix] = reg; else appState.vavrParametros.push(reg);
+    }
+    closeModal('modal-ben'); benSalvar(); refreshBeneficiosView();
+  }
+
+  // ---------- Cadastro VT ----------
+  function benRenderVT(){
+    var linhas = appState.vtCadastros.map(function(v){
+      var s = benUltimoSaldo(v.id);
+      return [benEsc(benNomeColab(v.colaboradorId) || v.nome), benEsc(v.empresaTransporte), benEsc(v.numeroCartao || '—'), benMoeda(v.valorIda), benMoeda(v.valorVolta), s ? benMoeda(s.saldo) + ' <span style="color:var(--text-dim);font-size:11px;">(' + benDataBR(s.data) + ')</span>' : '—',
+        v.status === 'INATIVO' ? benPill('Inativo','red') : benPill('Ativo','teal'), benBtn('vt-edit', 'Editar', 'data-id="' + v.id + '"', true) + benBtn('vt-del', 'Excluir', 'data-id="' + v.id + '"', true)];
+    });
+    var emp = benPainel('Empresas de transporte', '<div style="padding:14px 18px;display:flex;gap:8px;flex-wrap:wrap;">' + (appState.vtEmpresas.length ? appState.vtEmpresas.map(function(e){
+      return '<span class="pill teal">' + benEsc(e.nome) + ' <a href="#" data-ben="emp-del" data-id="' + e.id + '" style="color:inherit;margin-left:6px;">×</a></span>'; }).join('') : '<span style="color:var(--text-dim);font-size:13px;">Nenhuma empresa cadastrada (também são criadas ao salvar um cadastro).</span>') + '</div>', benBtn('emp-nova', '+ Empresa'));
+    return emp + benPainel('Cadastros de VT por colaborador (um colaborador pode ter mais de um cartão)', benTabela(['Colaborador','Empresa','Cartão','Ida','Volta','Último saldo','Status',''], linhas, 'Nenhum cadastro de VT.'),
+      benBtn('vt-novo', '+ Novo cadastro') + benBtn('vt-import', 'Importar planilha', '', true) + benBtn('vt-modelo', 'Modelo de planilha', '', true));
+  }
+  function benFormVT(v){
+    v = v || { status: 'ATIVO' };
+    var emps = benUnicos(appState.vtEmpresas.map(function(e){ return e.nome; }).concat(appState.vtCadastros.map(function(c){ return c.empresaTransporte; })));
+    return '<form id="ben-form-vt" data-id="' + (v.id || '') + '"><div class="modal-grid">' +
+      benCampo('Colaborador (Ativos)', '<input type="text" id="vt-nome" list="vt-dl" autocomplete="off" value="' + benEsc(v.colaboradorId ? benNomeColab(v.colaboradorId) : '') + '" required><datalist id="vt-dl">' + appState.ativos.map(function(a){ return '<option value="' + benEsc(a.nome) + '">'; }).join('') + '</datalist>', true) +
+      benCampo('Empresa de transporte', '<input type="text" id="vt-emp" list="vt-emp-dl" value="' + benEsc(v.empresaTransporte || '') + '" required><datalist id="vt-emp-dl">' + emps.map(function(e){ return '<option value="' + benEsc(e) + '">'; }).join('') + '</datalist>') +
+      benCampo('Nº do cartão', '<input type="text" id="vt-cartao" value="' + benEsc(v.numeroCartao || '') + '">') +
+      benCampo('Valor da ida (R$)', '<input type="number" step="0.01" id="vt-ida" value="' + (v.valorIda == null ? '' : v.valorIda) + '" required>') +
+      benCampo('Valor da volta (R$)', '<input type="number" step="0.01" id="vt-volta" value="' + (v.valorVolta == null ? '' : v.valorVolta) + '" required>') +
+      benCampo('Status', '<select id="vt-status">' + benOptions([['ATIVO','Ativo'],['INATIVO','Inativo']], v.status) + '</select>') +
+      '</div><div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal(\'modal-ben\')">Cancelar</button><button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button></div></form>';
+  }
+  function benGarantirEmpresa(nome){
+    var k = benSemAcento(nome);
+    if(nome && !appState.vtEmpresas.some(function(e){ return benSemAcento(e.nome) === k; })) appState.vtEmpresas.push({ id: benId('emp'), nome: nome.trim() });
+  }
+  function benSalvarVT(form){
+    var id = form.getAttribute('data-id'), g = function(i){ return document.getElementById(i).value; };
+    var c = benPorNome(g('vt-nome'));
+    if(!c){ alert('Colaborador não encontrado nos Ativos. Escolha um nome da lista.'); return; }
+    var reg = { id: id || benId('vtc'), colaboradorId: c.id, nome: c.nome, empresaTransporte: g('vt-emp').trim(), numeroCartao: g('vt-cartao').trim(), valorIda: Number(g('vt-ida')) || 0, valorVolta: Number(g('vt-volta')) || 0, status: g('vt-status') };
+    benGarantirEmpresa(reg.empresaTransporte);
+    var ix = appState.vtCadastros.findIndex(function(v){ return v.id === reg.id; });
+    if(ix >= 0) appState.vtCadastros[ix] = reg; else appState.vtCadastros.push(reg);
+    closeModal('modal-ben'); benSalvar(); refreshBeneficiosView();
+  }
+
+  // ---------- Leitura de planilhas (xlsx/csv) ----------
+  function benLerPlanilha(cb){
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.xls,.csv';
+    inp.onchange = function(){
+      var f = inp.files[0]; if(!f) return;
+      var r = new FileReader();
+      r.onload = function(){
+        try {
+          var wb = XLSX.read(r.result, { type: 'array', cellDates: false });
+          var linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: true });
+          cb(linhas.map(function(l){ var o = {}; Object.keys(l).forEach(function(k){ o[benSemAcento(k).replace(/[^A-Z0-9]/g, '')] = l[k]; }); return o; }));
+        } catch(e){ alert('Não foi possível ler a planilha: ' + e.message); }
+      };
+      r.readAsArrayBuffer(f);
+    };
+    inp.click();
+  }
+  function benNum(v){ if(typeof v === 'number') return v; var s = String(v || '').replace(/[^\d,.-]/g, ''); if(s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.'); return Number(s) || 0; }
+  function benDataPlanilha(v){
+    if(typeof v === 'number') return new Date(Math.round((v - 25569) * 86400000)).toISOString().slice(0, 10);
+    var s = String(v || '').trim(), m;
+    if((m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/))) return m[3] + '-' + m[2] + '-' + m[1];
+    if((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return m[0];
+    return '';
+  }
+  function benImportarVT(){
+    benLerPlanilha(function(rows){
+      var ok = 0, ign = [];
+      rows.forEach(function(r){
+        var c = (r.CPF && appState.ativos.find(function(a){ return benCpf(a.cpf) && benCpf(a.cpf) === benCpf(r.CPF); })) || benPorNome(r.NOME || r.COLABORADOR || '');
+        var emp = String(r.EMPRESA || r.EMPRESATRANSPORTE || '').trim();
+        if(!c || !emp){ ign.push(r.NOME || r.CPF || '(linha sem nome)'); return; }
+        var cartao = String(r.CARTAO || r.NUMEROCARTAO || '').trim();
+        var reg = appState.vtCadastros.find(function(v){ return v.colaboradorId === c.id && v.empresaTransporte === emp && (v.numeroCartao || '') === cartao; });
+        var novo = { id: reg ? reg.id : benId('vtc'), colaboradorId: c.id, nome: c.nome, empresaTransporte: emp, numeroCartao: cartao, valorIda: benNum(r.IDA || r.VALORIDA), valorVolta: benNum(r.VOLTA || r.VALORVOLTA), status: 'ATIVO' };
+        benGarantirEmpresa(emp);
+        if(reg) appState.vtCadastros[appState.vtCadastros.indexOf(reg)] = novo; else appState.vtCadastros.push(novo);
+        ok++;
+      });
+      benSalvar(); refreshBeneficiosView();
+      alert(ok + ' cadastros importados.' + (ign.length ? '\nIgnorados (colaborador não encontrado nos Ativos ou sem empresa): ' + ign.slice(0, 30).join(', ') : ''));
+    });
+  }
+
+  // ---------- Saldos ----------
+  function benRenderSaldos(){
+    var linhas = appState.vtCadastros.filter(function(v){ return v.status !== 'INATIVO'; }).map(function(v){
+      var s = benUltimoSaldo(v.id);
+      return [benEsc(benNomeColab(v.colaboradorId) || v.nome), benEsc(v.empresaTransporte), benEsc(v.numeroCartao || '—'), s ? benMoeda(s.saldo) : '—', s ? benDataBR(s.data) : '—', s ? benEsc(s.origem || '') : '', benBtn('sal-novo', 'Informar saldo', 'data-id="' + v.id + '"', true)];
+    });
+    return benPainel('Saldo atual de cada cartão (usado na projeção do VT regular)', benTabela(['Colaborador','Empresa','Cartão','Saldo','Data','Origem',''], linhas, 'Cadastre os VTs primeiro.'),
+      benBtn('sal-import', 'Importar saldos (planilha)') + benBtn('sal-modelo', 'Modelo de planilha', '', true)) +
+      '<div style="font-size:12px;color:var(--text-dim);">Planilha de saldos: colunas <b>CARTAO</b> (ou NOME/CPF), <b>SALDO</b> e <b>DATA</b>. No Pedido VT via PIX o saldo é ignorado.</div>';
+  }
+  function benFormSaldo(cadId){
+    var v = appState.vtCadastros.find(function(x){ return x.id === cadId; }), s = benUltimoSaldo(cadId);
+    return '<form id="ben-form-saldo" data-id="' + cadId + '"><div style="font-size:13px;margin-bottom:10px;">' + benEsc(benNomeColab(v.colaboradorId)) + ' — ' + benEsc(v.empresaTransporte) + ' ' + benEsc(v.numeroCartao || '') + '</div><div class="modal-grid">' +
+      benCampo('Saldo (R$)', '<input type="number" step="0.01" id="sal-valor" value="' + (s ? s.saldo : '') + '" required>') + benCampo('Data do saldo', '<input type="date" id="sal-data" value="' + benHoje() + '" required>') +
+      '</div><div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal(\'modal-ben\')">Cancelar</button><button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button></div></form>';
+  }
+  function benImportarSaldos(){
+    benLerPlanilha(function(rows){
+      var ok = 0, ign = [];
+      rows.forEach(function(r){
+        var cart = String(r.CARTAO || r.NUMEROCARTAO || '').trim(), cad = null;
+        if(cart) cad = appState.vtCadastros.find(function(v){ return (v.numeroCartao || '') === cart; });
+        if(!cad){ var c = (r.CPF && appState.ativos.find(function(a){ return benCpf(a.cpf) && benCpf(a.cpf) === benCpf(r.CPF); })) || benPorNome(r.NOME || ''); if(c){ var l = benCadastrosDe(c.id); if(l.length === 1) cad = l[0]; } }
+        var data = benDataPlanilha(r.DATA) || benHoje();
+        if(!cad || r.SALDO === ''){ ign.push(cart || r.NOME || r.CPF || '(linha)'); return; }
+        appState.vtSaldos.push({ id: benId('sal'), cadastroId: cad.id, saldo: benNum(r.SALDO), data: data, origem: 'IMPORTAÇÃO', criadoEm: new Date().toISOString() });
+        ok++;
+      });
+      benSalvar(); refreshBeneficiosView();
+      alert(ok + ' saldos importados.' + (ign.length ? '\nNão identificados: ' + ign.slice(0, 30).join(', ') : ''));
+    });
+  }
+
+  // ---------- Intermitentes ----------
+  function benRenderIntermitentes(){
+    var mes = BEN_UI.mesInter || benMesAtual(), per = benPeriodoMes(mes);
+    var inter = benColaboradores().filter(benEhIntermitente);
+    var contagem = {}; appState.convocacoes.forEach(function(c){ if(c.data >= per.ini && c.data <= per.fim) contagem[c.colaboradorId] = (contagem[c.colaboradorId] || 0) + 1; });
+    var linhas = inter.map(function(c){
+      var n = contagem[c.id] || 0;
+      return [benEsc(c.nome), benEsc(c.posto), n, n >= 20 ? benPill('VA integral (≥20)', 'teal') : benPill('VA não elegível (<20)', 'amber'), benBtn('con-add', 'Lançar convocações', 'data-id="' + c.id + '"', true)];
+    });
+    var lanc = appState.convocacoes.filter(function(c){ return c.data >= per.ini && c.data <= per.fim; }).sort(function(a, b){ return a.data < b.data ? -1 : 1; }).map(function(c){
+      return [benDataBR(c.data), benEsc(benNomeColab(c.colaboradorId) || c.nome), benEsc(c.posto || ''), benEsc(c.observacao || ''), benBtn('con-del', 'Excluir', 'data-id="' + c.id + '"', true)];
+    });
+    return '<div style="margin-bottom:14px;"><label style="font-size:12px;color:var(--text-dim);">Mês de apuração </label><input type="month" id="ben-mes-inter" value="' + mes + '" style="' + BEN_INP + '"></div>' +
+      benPainel('Intermitentes (contrato INTERMITENTE ou posto Intermitente nos Ativos)', benTabela(['Colaborador','Posto','Convocações no mês','Situação do VA',''], linhas, 'Nenhum intermitente nos Ativos.')) +
+      benPainel('Convocações lançadas no mês (' + lanc.length + ')', benTabela(['Data','Colaborador','Posto','Obs.',''], lanc, 'Nenhuma convocação lançada neste mês.'), benBtn('con-import', 'Importar planilha', '', true)) +
+      '<div style="font-size:12px;color:var(--text-dim);">Regra: VA integral a partir de 20 convocações no mês; o VR é de 1 dia por convocação. Planilha: colunas <b>NOME</b> (ou CPF) e <b>DATA</b>.</div>';
+  }
+  function benFormConvocacao(colabId){
+    return '<form id="ben-form-con" data-id="' + colabId + '"><div style="font-size:13px;margin-bottom:10px;">' + benEsc(benNomeColab(colabId)) + '</div><div class="modal-grid">' +
+      benCampo('Datas das convocações (uma por linha, dd/mm/aaaa ou aaaa-mm-dd)', '<textarea id="con-datas" rows="6" style="width:100%;' + BEN_INP + '"></textarea>', true) +
+      benCampo('Observação', '<input type="text" id="con-obs">', true) +
+      '</div><div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal(\'modal-ben\')">Cancelar</button><button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button></div></form>';
+  }
+  function benAddConvocacao(c, data, obs){
+    if(appState.convocacoes.some(function(x){ return x.colaboradorId === c.id && x.data === data; })) return false;
+    appState.convocacoes.push({ id: benId('con'), colaboradorId: c.id, nome: c.nome, posto: c.posto, data: data, observacao: obs || '' });
+    return true;
+  }
+
+  // ---------- Feriados ----------
+  function benRenderFeriados(){
+    var usandoPadrao = !appState.feriados.length;
+    var lista = usandoPadrao ? BEN_FERIADOS_PADRAO.map(function(f){ return { id: '', data: f[0], nome: f[1], ativo: true }; }) : appState.feriados.slice().sort(function(a, b){ return a.data < b.data ? -1 : 1; });
+    var linhas = lista.map(function(f){
+      return [benDataBR(f.data), benEsc(f.nome), f.ativo === false ? benPill('Desativado','red') : benPill('Ativo','teal'),
+        f.id ? benBtn('fer-tog', f.ativo === false ? 'Ativar' : 'Desativar', 'data-id="' + f.id + '"', true) + benBtn('fer-del', 'Excluir', 'data-id="' + f.id + '"', true) : ''];
+    });
+    return benPainel('Feriados considerados nos dias previstos de VT/VR',
+      (usandoPadrao ? '<div style="padding:12px 18px;font-size:12.5px;color:var(--amber);">Usando a lista padrão (nacionais 2026/2027). Clique em "Salvar lista padrão para editar" para poder incluir feriados municipais/estaduais e desativar os que não valem.</div>' : '') +
+      benTabela(['Data','Nome','Status',''], linhas),
+      (usandoPadrao ? benBtn('fer-seed', 'Salvar lista padrão para editar') : '') + benBtn('fer-novo', '+ Feriado'));
+  }
+
+  // ---------- Pedido VT ----------
+  function benRenderPedidoVT(){
+    var f = BEN_UI.vt, mes = f.mes || benMesSeguinte(benMesAtual()), per = benPeriodoMes(mes), ap = benPeriodoMes(f.mesAus || benMesAtual());
+    var postos = benUnicos(appState.ativos.map(function(a){ return a.posto; })), emps = benUnicos(appState.vtCadastros.map(function(v){ return v.empresaTransporte; }));
+    var escopo = f.escopo || 'TODOS';
+    var seletor = '';
+    if(f.tipo === 'PIX' || escopo === 'COLABORADOR') seletor = '<textarea id="vt-sel-nomes" rows="3" placeholder="Nomes dos colaboradores, um por linha" style="width:100%;' + BEN_INP + '">' + benEsc(f.nomes || '') + '</textarea>';
+    else if(escopo === 'POSTO') seletor = '<select id="vt-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(postos, null) + '</select>';
+    else if(escopo === 'EMPRESA') seletor = '<select id="vt-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(emps, null) + '</select>';
+    var form = '<div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
+      benCampo('Tipo', '<select id="vt-tipo">' + benOptions([['REGULAR','Regular (recarga, considera saldo)'],['PIX','PIX (ignora saldo)']], f.tipo) + '</select>') +
+      benCampo('Mês do benefício', '<input type="month" id="vt-mes" value="' + mes + '">') +
+      benCampo('Início do período', '<input type="date" id="vt-pi" value="' + (f.pi || per.ini) + '">') + benCampo('Fim do período', '<input type="date" id="vt-pf" value="' + (f.pf || per.fim) + '">') +
+      benCampo('Início da apuração de ausências', '<input type="date" id="vt-ai" value="' + (f.ai || ap.ini) + '">') + benCampo('Fim da apuração de ausências', '<input type="date" id="vt-af" value="' + (f.af || ap.fim) + '">') +
+      (f.tipo === 'PIX' ? '' : benCampo('Abrangência', '<select id="vt-escopo">' + benOptions([['TODOS','Todos os ativos'],['POSTO','Por posto'],['EMPRESA','Por empresa de transporte'],['COLABORADOR','Colaboradores específicos']], escopo) + '</select>')) +
+      '<div class="modal-field" style="grid-column:1/-1;">' + seletor + '</div>' +
+      '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vt-nd"' + (f.nd ? ' checked' : '') + '> Não descontar ausências (faltas/atestados)</label></div>';
+    var res = BEN_UI.previaVT ? benHtmlPreviaVT(BEN_UI.previaVT) : '';
+    return benPainel('Novo pedido de VT', form, benBtn('vt-calc', 'Calcular prévia')) + res;
+  }
+  function benHtmlPreviaVT(itens){
+    var tot = itens.reduce(function(s, i){ return s + (Number(i.valorFinal) || 0); }, 0);
+    var erros = itens.filter(function(i){ return i.erro || i.erroFinanceiro || (i.alertas && i.alertas.length); }).length;
+    var linhas = itens.map(function(i){
+      return [benEsc(i.nome), benEsc(i.posto), benEsc(i.jornada || '—'), benEsc(i.empresaTransporte || '—'), benEsc(i.numeroCartao || ''), i.diasPrevistos, i.diasFerias, i.diasAusencias, i.diasAfastamento, i.diasFinais,
+        benMoeda(i.tarifaDiaria), i.saldoAtual == null ? '—' : benMoeda(i.saldoAtual), benMoeda(i.valorNecessario), '<b>' + benMoeda(i.valorFinal) + '</b>',
+        benEsc([i.erro, i.erroFinanceiro && (i.erroFinanceiro.mensagem || i.erroFinanceiro)].concat(i.alertas || []).filter(Boolean).join(' | '))];
+    });
+    var aviso = itens.semCadastro && itens.semCadastro.length ? '<div style="padding:12px 18px;color:var(--amber);font-size:12.5px;border-bottom:1px solid var(--line);">' + itens.semCadastro.length + ' ativo(s) sem cadastro de VT não entraram no pedido (intermitentes e quem não usa VT inclusive).</div>' : '';
+    return benPainel('Prévia — ' + itens.length + ' linhas • total ' + benMoeda(tot) + (erros ? ' • ' + erros + ' com alerta' : ''),
+      aviso + benTabela(['Colaborador','Posto','Jornada','Empresa','Cartão','Previstos','Férias','Ausências','Afast.','Dias','Tarifa/dia','Saldo','Necessário','Valor a comprar','Alertas'], linhas),
+      benBtn('vt-salvar', 'Salvar pedido') + benBtn('vt-prev-xls', 'Exportar prévia', '', true));
+  }
+  function benLerFormVT(){
+    var g = function(i){ var e = document.getElementById(i); return e ? e.value : ''; };
+    var f = BEN_UI.vt;
+    f.tipo = g('vt-tipo') || 'REGULAR'; f.mes = g('vt-mes'); f.pi = g('vt-pi'); f.pf = g('vt-pf'); f.ai = g('vt-ai'); f.af = g('vt-af'); f.nd = document.getElementById('vt-nd').checked;
+    if(document.getElementById('vt-escopo')) f.escopo = g('vt-escopo');
+    var multi = document.getElementById('vt-sel-multi'), nomes = document.getElementById('vt-sel-nomes'), sel = [];
+    if(multi) sel = Array.prototype.slice.call(multi.selectedOptions).map(function(o){ return o.value; });
+    if(nomes){ f.nomes = nomes.value; nomes.value.split('\n').forEach(function(n){ if(n.trim()){ var c = benPorNome(n); if(c) sel.push(c.id); } }); }
+    return { tipo: f.tipo, periodoInicial: f.pi, periodoFinal: f.pf, ausInicial: f.ai, ausFinal: f.af, naoDescontarAusencias: f.nd, escopo: f.tipo === 'PIX' ? 'COLABORADOR' : f.escopo, selecionados: sel };
+  }
+
+  // ---------- Pedido VA/VR ----------
+  function benRenderPedidoVV(){
+    var f = BEN_UI.vv, comp = f.comp || benMesSeguinte(benMesAtual()), apur = benMesAnterior(comp), per = benPeriodoMes(apur), ap = benPeriodoMes(f.mesAus || apur);
+    var postos = benUnicos(appState.ativos.map(function(a){ return a.posto; })), cargos = benUnicos(appState.ativos.map(function(a){ return a.cargo; }));
+    var ab = f.abr || 'GERAL', seletor = '';
+    if(ab === 'POSTO') seletor = '<select id="vv-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(postos, null) + '</select>';
+    if(ab === 'FUNCAO') seletor = '<select id="vv-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(cargos, null) + '</select>';
+    if(ab === 'COLABORADOR') seletor = '<textarea id="vv-sel-nomes" rows="3" placeholder="Nomes, um por linha" style="width:100%;' + BEN_INP + '">' + benEsc(f.nomes || '') + '</textarea>';
+    var tipo = f.tipo || 'VA';
+    var form = '<div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
+      benCampo('Benefício', '<select id="vv-tipo">' + benOptions([['VA','VA — Vale Alimentação'],['VR','VR — Vale Refeição']], tipo) + '</select>') +
+      benCampo('Competência (mês do crédito)', '<input type="month" id="vv-comp" value="' + comp + '">') +
+      benCampo('Início da apuração', '<input type="date" id="vv-pi" value="' + (f.pi || per.ini) + '">') + benCampo('Fim da apuração', '<input type="date" id="vv-pf" value="' + (f.pf || per.fim) + '">') +
+      benCampo('Início das ausências', '<input type="date" id="vv-ai" value="' + (f.ai || ap.ini) + '">') + benCampo('Fim das ausências', '<input type="date" id="vv-af" value="' + (f.af || ap.fim) + '">') +
+      benCampo('Abrangência', '<select id="vv-abr">' + benOptions([['GERAL','Todos os ativos'],['POSTO','Por posto'],['FUNCAO','Por função'],['COLABORADOR','Colaboradores específicos']], ab) + '</select>') +
+      '<div class="modal-field" style="grid-column:1/-1;">' + seletor + '</div>' +
+      '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-desc"' + (f.desc === false ? '' : ' checked') + '> Descontar ausências</label>' +
+      (tipo === 'VR' ? '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-retro"' + (f.retro ? ' checked' : '') + '> Incluir retroativo de admissão (mês anterior)</label>' +
+        '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-2x"' + (f.dois ? ' checked' : '') + '> Pagar em 2 créditos</label>' :
+        '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-deslig"' + (f.deslig ? ' checked' : '') + '> Incluir desligados (conferência manual)</label>') + '</div>';
+    var res = BEN_UI.previaVV ? benHtmlPreviaVV(BEN_UI.previaVV) : '';
+    return benPainel('Novo pedido de VA / VR', form, benBtn('vv-calc', 'Calcular prévia')) + res;
+  }
+  function benHtmlPreviaVV(pv){
+    var tipo = pv.params.tipo, itens = pv.itens;
+    var tot = itens.reduce(function(s, i){ return s + benValorFinalItemVAVR(i, tipo); }, 0);
+    var bloq = pv.semParametro.length ? '<div style="padding:12px 18px;color:var(--red);font-size:12.5px;border-bottom:1px solid var(--line);">⛔ ' + pv.semParametro.length + ' colaborador(es) sem parâmetro de VA/VR — cadastre a regra em "Parâmetros VA/VR" para salvar o pedido: ' + pv.semParametro.slice(0, 25).map(function(l){ return benEsc(l.colab.nome); }).join(', ') + (pv.semParametro.length > 25 ? '…' : '') + '</div>' : '';
+    var linhas = itens.map(function(i){ return benLinhaTabelaVV(i, tipo, false); });
+    var cab = tipo === 'VA' ? ['Colaborador','Posto','Regra','Dias efetivos','Faltas','Afast. (dias)','VA base','Desconto','VA a creditar','Situação'] :
+      ['Colaborador','Posto','Regra','Previstos','Férias','Desc. ausência','Dias VR','Retroativo','VR','Desc. folha','Situação'];
+    return benPainel('Prévia — ' + itens.length + ' linhas • total ' + benMoeda(tot), bloq + benTabela(cab, linhas),
+      benBtn('vv-salvar', 'Salvar pedido', pv.semParametro.length ? 'disabled style="opacity:.5;"' : '') + benBtn('vv-prev-xls', 'Exportar prévia', '', true));
+  }
+  function benLinhaTabelaVV(i, tipo, editavel){
+    var sit = i.erro ? benPill(i.erro, 'red') : (tipo === 'VA' ? (i.desligadoVa ? benPill('Desligado — ' + (i.analiseDesligamentoVa || 'PENDENTE'), i.analiseDesligamentoVa === 'APROVADO' ? 'teal' : 'amber') : (i.elegivelVa ? benPill('Elegível', 'teal') : benPill(i.motivoVa || 'Não elegível', 'amber'))) : (i.retroativoJaPago ? benPill('Retroativo já pago', 'amber') : benPill('OK', 'teal')));
+    var acoes = '';
+    if(editavel && tipo === 'VA' && i.desligadoVa && editavel === 'EDIT')
+      acoes = benBtn('vv-aprovar', 'Aprovar', 'data-id="' + i.colaboradorId + '"', true) + benBtn('vv-reprovar', 'Reprovar', 'data-id="' + i.colaboradorId + '"', true);
+    if(tipo === 'VA') return [benEsc(i.nome), benEsc(i.posto), benEsc(i.origemRegra || '—'), i.diasEfetivosVa, i.faltasInjustificadasVa, i.diasAfastamentoContinuoVa, benMoeda(i.valorVaBase), benMoeda(i.descontoVa), '<b>' + benMoeda(benValorFinalItemVAVR(i, 'VA')) + '</b>', sit + acoes];
+    return [benEsc(i.nome), benEsc(i.posto), benEsc(i.origemRegra || '—'), i.diasPrevistos, i.diasFerias, i.diasVrDescontados, i.diasVrRegular, i.diasVrRetroativo || 0, '<b>' + benMoeda(i.valorVr) + '</b>', benMoeda(i.descontoFolha), sit];
+  }
+  function benLerFormVV(){
+    var g = function(i){ var e = document.getElementById(i); return e ? e.value : ''; }, c = function(i){ var e = document.getElementById(i); return e ? e.checked : false; };
+    var f = BEN_UI.vv;
+    f.tipo = g('vv-tipo'); f.comp = g('vv-comp'); f.pi = g('vv-pi'); f.pf = g('vv-pf'); f.ai = g('vv-ai'); f.af = g('vv-af'); f.abr = g('vv-abr'); f.desc = c('vv-desc'); f.retro = c('vv-retro'); f.dois = c('vv-2x'); f.deslig = c('vv-deslig');
+    var multi = document.getElementById('vv-sel-multi'), nomes = document.getElementById('vv-sel-nomes'), sel = [];
+    if(multi) sel = Array.prototype.slice.call(multi.selectedOptions).map(function(o){ return o.value; });
+    if(nomes){ f.nomes = nomes.value; nomes.value.split('\n').forEach(function(n){ if(n.trim()){ var cc = benPorNome(n); if(cc) sel.push(cc.id); } }); }
+    return { tipo: f.tipo, competencia: f.comp, periodoInicial: f.pi, periodoFinal: f.pf, ausInicial: f.ai, ausFinal: f.af, descontarAusencias: f.desc, retroativo: f.retro && f.tipo === 'VR', calcularDesligados: f.deslig && f.tipo === 'VA', abrangencia: f.abr, selecionados: sel, pagar2x: f.dois };
+  }
+
+  // ---------- Pedidos salvos ----------
+  function benTodosPedidos(){
+    return appState.vtPedidos.map(function(p){ return { p: p, kind: 'VT' }; }).concat(appState.vavrPedidos.map(function(p){ return { p: p, kind: p.tipo }; }))
+      .sort(function(a, b){ return (b.p.criadoEm || '') < (a.p.criadoEm || '') ? -1 : 1; });
+  }
+  function benTotalPedido(p, kind){
+    return (p.itens || []).reduce(function(s, i){ return s + (kind === 'VT' ? (Number(i.valorFinal) || 0) : (i.valorAjustado != null ? Number(i.valorAjustado) : benValorFinalItemVAVR(i, kind))); }, 0);
+  }
+  function benRenderPedidos(){
+    var linhas = benTodosPedidos().map(function(x){
+      var p = x.p, st = BEN_STATUS[p.status] || [p.status, ''];
+      return [x.kind + (p.tipo === 'PIX' ? ' (PIX)' : ''), benDataBR(p.periodoInicial) + ' → ' + benDataBR(p.periodoFinal), p.competencia ? p.competencia : '—', (p.itens || []).length, benMoeda(benTotalPedido(p, x.kind)), benPill(st[0], st[1]), benEsc(p.criadoPor || '') + '<div style="font-size:11px;color:var(--text-dim);">' + benEsc((p.criadoEm || '').slice(0, 16).replace('T', ' ')) + '</div>', benBtn('ped-abrir', 'Abrir', 'data-id="' + p.id + '" data-kind="' + x.kind + '"', true)];
+    });
+    return benPainel('Pedidos de benefícios', benTabela(['Tipo','Período','Competência','Linhas','Total','Status','Criado por',''], linhas, 'Nenhum pedido salvo ainda.'));
+  }
+  function benAcharPedido(id, kind){ return (kind === 'VT' ? appState.vtPedidos : appState.vavrPedidos).find(function(p){ return p.id === id; }); }
+  function benAbrirPedido(id, kind){
+    var p = benAcharPedido(id, kind); if(!p) return;
+    BEN_UI.pedidoAberto = { id: id, kind: kind };
+    var st = BEN_STATUS[p.status] || [p.status, ''], editavel = p.status === 'EM_ANDAMENTO';
+    var botoes = '';
+    if(p.status === 'EM_ANDAMENTO') botoes = benBtn('ped-recalc', 'Recalcular') + benBtn('ped-status', 'Finalizar', 'data-s="FINALIZADO"') + benBtn('ped-status', 'Cancelar pedido', 'data-s="CANCELADO"', true);
+    if(p.status === 'FINALIZADO') botoes = benBtn('ped-status', 'Marcar compra realizada', 'data-s="COMPRA_REALIZADA"') + benBtn('ped-status', 'Reabrir', 'data-s="EM_ANDAMENTO"', true) + benBtn('ped-status', 'Cancelar pedido', 'data-s="CANCELADO"', true);
+    if(p.status === 'CANCELADO') botoes = benBtn('ped-del', 'Excluir', '', true);
+    botoes += benBtn('ped-xls', 'Exportar Excel', '', true);
+    if(kind === 'VR') botoes += benBtn('ped-xls2', 'Exportar créditos', '', true);
+    var cab, linhas;
+    if(kind === 'VT'){
+      cab = ['Colaborador','Posto','Empresa','Cartão','Dias','Tarifa/dia','Saldo','Necessário','Calculado','Valor final','Obs.'];
+      linhas = p.itens.map(function(i, ix){
+        return [benEsc(i.nome), benEsc(i.posto), benEsc(i.empresaTransporte || '—'), benEsc(i.numeroCartao || ''), i.diasFinais, benMoeda(i.tarifaDiaria), i.saldoAtual == null ? '—' : benMoeda(i.saldoAtual), benMoeda(i.valorNecessario), benMoeda(i.valorCalculado),
+          editavel ? '<input type="number" step="0.01" data-ben-aj="' + ix + '" value="' + i.valorFinal + '" style="width:100px;' + BEN_INP + '">' : '<b>' + benMoeda(i.valorFinal) + '</b>', benEsc(i.motivoAjuste || (i.alertas || []).join(' | '))];
+      });
+    } else {
+      cab = kind === 'VA' ? ['Colaborador','Posto','Regra','Dias efetivos','Faltas','Afast. (dias)','VA base','Desconto','VA a creditar','Situação'] : ['Colaborador','Posto','Regra','Previstos','Férias','Desc. ausência','Dias VR','Retroativo','VR','Desc. folha','Situação'];
+      linhas = p.itens.map(function(i){ return benLinhaTabelaVV(i, kind, editavel ? 'EDIT' : true); });
+    }
+    var info = '<div style="font-size:13px;margin-bottom:10px;">' + benPill(st[0], st[1]) + ' &nbsp; ' + kind + ' • ' + benDataBR(p.periodoInicial) + ' → ' + benDataBR(p.periodoFinal) + (p.competencia ? ' • competência ' + p.competencia : '') + ' • <b>' + benMoeda(benTotalPedido(p, kind)) + '</b>' +
+      (kind === 'VR' ? ' • ' + (p.pagar2x ? 'em 2 créditos' : 'crédito único') : '') + '</div>' +
+      (editavel && kind === 'VT' ? '<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Altere o valor final na coluna, informe o motivo ao sair do campo. O ajuste é preservado ao recalcular.</div>' : '');
+    benAbrirModal('Pedido ' + kind, info + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' + botoes + '</div>' + benTabela(cab, linhas), true);
+  }
+  function benMudarStatus(p, kind, novo){
+    if(novo === 'COMPRA_REALIZADA' && !confirm('Marcar a compra como realizada? O pedido ficará travado.')) return;
+    if(novo === 'CANCELADO' && !confirm('Cancelar este pedido?')) return;
+    p.status = novo; p.atualizadoEm = new Date().toISOString(); p.atualizadoPor = benUsuario();
+    if(kind !== 'VT') p.itens.forEach(function(i){ i.statusCompra = novo === 'COMPRA_REALIZADA' ? 'COMPRA_REALIZADA' : (novo === 'CANCELADO' ? 'CANCELADO' : 'PENDENTE'); });
+    benSalvar(); refreshBeneficiosView(); benAbrirPedido(p.id, kind);
+  }
+  function benRecalcularPedido(p, kind){
+    if(kind === 'VT'){
+      var aj = {}; p.itens.forEach(function(i){ if(i.ajusteManual && i.cadastroId) aj[i.cadastroId] = { valorFinal: i.valorFinal, motivoAjuste: i.motivoAjuste }; });
+      var sel = p.params.selecionados || [];
+      p.itens = benCalcularPedidoVT(p.params, aj);
+    } else {
+      var ant = {}; p.itens.forEach(function(i){ ant[i.colaboradorId] = i; });
+      var r = benCalcularPedidoVAVR(p.params);
+      p.itens = r.linhas.map(function(l){ var n = benLinhaParaItemVAVR(l, p.params), a = ant[n.colaboradorId]; if(a && n.desligadoVa){ n.analiseDesligamentoVa = a.analiseDesligamentoVa || n.analiseDesligamentoVa; } return n; });
+    }
+    p.atualizadoEm = new Date().toISOString(); benSalvar(); benAbrirPedido(p.id, kind);
+  }
+  function benExportarPedido(p, kind, creditos){
+    var rows;
+    if(kind === 'VT') rows = p.itens.map(function(i){ return { 'COLABORADOR': i.nome, 'CPF': i.cpf, 'POSTO': i.posto, 'JORNADA': i.jornada, 'EMPRESA': i.empresaTransporte, 'CARTAO': i.numeroCartao, 'DIAS PREVISTOS': i.diasPrevistos, 'DIAS FERIAS': i.diasFerias, 'DIAS AUSENCIA': i.diasAusencias, 'DIAS AFASTAMENTO': i.diasAfastamento, 'DIAS FINAIS': i.diasFinais, 'TARIFA DIA': i.tarifaDiaria, 'SALDO': i.saldoAtual, 'NECESSARIO': i.valorNecessario, 'VALOR CALCULADO': i.valorCalculado, 'VALOR A COMPRAR': i.valorFinal, 'FORMA': i.forma, 'AJUSTE MANUAL': i.ajusteManual ? 'SIM' : '', 'MOTIVO': i.motivoAjuste, 'ALERTAS': (i.alertas || []).join(' | ') }; });
+    else if(creditos) rows = p.itens.filter(function(i){ return i.valorVr > 0; }).map(function(i){ var d = benDistribuirVR(i.valorVr, p.pagar2x, i.integral1Credito); return { 'COLABORADOR': i.nome, 'CPF': i.cpf, 'POSTO': i.posto, 'VR TOTAL': i.valorVr, '1o CREDITO': d.primeiro, '2o CREDITO': d.segundo }; });
+    else if(kind === 'VA') rows = p.itens.map(function(i){ return { 'COLABORADOR': i.nome, 'CPF': i.cpf, 'POSTO': i.posto, 'CARGO': i.cargo, 'REGRA': i.origemRegra, 'DIAS EFETIVOS': i.diasEfetivosVa, 'FALTAS': i.faltasInjustificadasVa, 'AFASTAMENTO (DIAS)': i.diasAfastamentoContinuoVa, 'VA BASE': i.valorVaBase, 'DESCONTO': i.descontoVa, 'VA A CREDITAR': benValorFinalItemVAVR(i, 'VA'), 'DESLIGADO': i.desligadoVa ? i.dataDesligamentoVa : '', 'ANALISE': i.analiseDesligamentoVa, 'SITUACAO': i.erro || i.motivoVa }; });
+    else rows = p.itens.map(function(i){ return { 'COLABORADOR': i.nome, 'CPF': i.cpf, 'POSTO': i.posto, 'CARGO': i.cargo, 'REGRA': i.origemRegra, 'DIAS PREVISTOS': i.diasPrevistos, 'DIAS FERIAS': i.diasFerias, 'DESC. AUSENCIA': i.diasVrDescontados, 'DIAS VR': i.diasVrRegular, 'DIAS RETROATIVO': i.diasVrRetroativo, 'VR REGULAR': i.valorVrRegular, 'VR RETROATIVO': i.valorVrRetroativo, 'VR TOTAL': i.valorVr, 'DESCONTO FOLHA': i.descontoFolha, 'SITUACAO': i.erro || (i.retroativoJaPago ? 'Retroativo já pago' : '') }; });
+    exportarExcel('Pedido_' + kind + (creditos ? '_creditos' : ''), kind, rows);
+  }
+
+  // ---------- Eventos ----------
+  function benSalvarPedidoVT(){
+    if(!BEN_UI.previaVT || !BEN_UI.previaVT.length){ alert('Calcule a prévia primeiro.'); return; }
+    var params = BEN_UI.paramsVT;
+    var p = { id: benId('pvt'), tipo: params.tipo, periodoInicial: params.periodoInicial, periodoFinal: params.periodoFinal, ausInicial: params.ausInicial, ausFinal: params.ausFinal,
+      status: 'EM_ANDAMENTO', params: params, itens: BEN_UI.previaVT.slice(), criadoEm: new Date().toISOString(), criadoPor: benUsuario() };
+    appState.vtPedidos.push(p);
+    BEN_UI.previaVT = null; BEN_UI.tab = 'pedidos';
+    benSalvar(); refreshBeneficiosView();
+  }
+  function benSalvarPedidoVV(){
+    var pv = BEN_UI.previaVV;
+    if(!pv || !pv.itens.length){ alert('Calcule a prévia primeiro.'); return; }
+    if(pv.semParametro.length){ alert('Há colaboradores sem parâmetro de VA/VR. Cadastre a regra antes de salvar.'); return; }
+    var params = pv.params;
+    var p = { id: benId('pvv'), tipo: params.tipo, competencia: params.competencia, periodoInicial: params.periodoInicial, periodoFinal: params.periodoFinal, ausInicial: params.ausInicial, ausFinal: params.ausFinal,
+      pagar2x: !!params.pagar2x, status: 'EM_ANDAMENTO', params: params, itens: pv.itens, criadoEm: new Date().toISOString(), criadoPor: benUsuario() };
+    appState.vavrPedidos.push(p);
+    BEN_UI.previaVV = null; BEN_UI.tab = 'pedidos';
+    benSalvar(); refreshBeneficiosView();
+  }
+
+  function benAcao(act, el){
+    var id = el.getAttribute('data-id');
+    var ped = BEN_UI.pedidoAberto ? benAcharPedido(BEN_UI.pedidoAberto.id, BEN_UI.pedidoAberto.kind) : null;
+    switch(act){
+      case 'par-novo': benAbrirModal('Novo parâmetro VA/VR', benFormParametro()); popularDatalistParametro(); break;
+      case 'par-lote': benAbrirModal('Parâmetro para vários postos', benFormParametro(null, true)); break;
+      case 'par-edit': benAbrirModal('Editar parâmetro', benFormParametro(appState.vavrParametros.find(function(p){ return p.id === id; }))); popularDatalistParametro(); break;
+      case 'par-del': if(confirm('Excluir este parâmetro?')){ appState.vavrParametros = appState.vavrParametros.filter(function(p){ return p.id !== id; }); benSalvar(); refreshBeneficiosView(); } break;
+      case 'emp-nova': var n = prompt('Nome da empresa de transporte:'); if(n && n.trim()){ benGarantirEmpresa(n); benSalvar(); refreshBeneficiosView(); } break;
+      case 'emp-del': appState.vtEmpresas = appState.vtEmpresas.filter(function(e){ return e.id !== id; }); benSalvar(); refreshBeneficiosView(); break;
+      case 'vt-novo': benAbrirModal('Novo cadastro de VT', benFormVT()); break;
+      case 'vt-edit': benAbrirModal('Editar cadastro de VT', benFormVT(appState.vtCadastros.find(function(v){ return v.id === id; }))); break;
+      case 'vt-del':
+        if(confirm('Excluir este cadastro de VT (e os saldos dele)?')){
+          appState.vtCadastros = appState.vtCadastros.filter(function(v){ return v.id !== id; });
+          appState.vtSaldos = appState.vtSaldos.filter(function(s){ return s.cadastroId !== id; });
+          benSalvar(); refreshBeneficiosView();
+        } break;
+      case 'vt-import': benImportarVT(); break;
+      case 'vt-modelo': exportarExcel('Modelo_Cadastro_VT', 'VT', [{ NOME: 'NOME DO COLABORADOR', CPF: '', EMPRESA: 'EMPRESA DE TRANSPORTE', CARTAO: '123456', IDA: 5.5, VOLTA: 5.5 }]); break;
+      case 'sal-novo': benAbrirModal('Informar saldo do cartão', benFormSaldo(id)); break;
+      case 'sal-import': benImportarSaldos(); break;
+      case 'sal-modelo': exportarExcel('Modelo_Saldos_VT', 'Saldos', [{ CARTAO: '123456', NOME: '', SALDO: 100.5, DATA: '01/11/2026' }]); break;
+      case 'con-add': benAbrirModal('Lançar convocações', benFormConvocacao(id)); break;
+      case 'con-del': appState.convocacoes = appState.convocacoes.filter(function(c){ return c.id !== id; }); benSalvar(); refreshBeneficiosView(); break;
+      case 'con-import':
+        benLerPlanilha(function(rows){
+          var ok = 0, ign = [];
+          rows.forEach(function(r){
+            var c = (r.CPF && appState.ativos.find(function(a){ return benCpf(a.cpf) && benCpf(a.cpf) === benCpf(r.CPF); })) || benPorNome(r.NOME || r.COLABORADOR || ''), d = benDataPlanilha(r.DATA);
+            if(!c || !d){ ign.push(r.NOME || r.CPF || '(linha)'); return; }
+            if(benAddConvocacao(c, d, r.OBSERVACAO || r.OBS)) ok++;
+          });
+          benSalvar(); refreshBeneficiosView(); alert(ok + ' convocações importadas.' + (ign.length ? '\nNão identificados: ' + ign.slice(0, 30).join(', ') : ''));
+        }); break;
+      case 'fer-seed': appState.feriados = BEN_FERIADOS_PADRAO.map(function(f){ return { id: benId('fer'), data: f[0], nome: f[1], ativo: true }; }); benSalvar(); refreshBeneficiosView(); break;
+      case 'fer-novo':
+        benAbrirModal('Novo feriado', '<form id="ben-form-fer"><div class="modal-grid">' + benCampo('Data', '<input type="date" id="fer-data" required>') + benCampo('Nome', '<input type="text" id="fer-nome" required>') +
+          '</div><div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeModal(\'modal-ben\')">Cancelar</button><button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button></div></form>'); break;
+      case 'fer-tog': var f = appState.feriados.find(function(x){ return x.id === id; }); if(f){ f.ativo = f.ativo === false; benSalvar(); refreshBeneficiosView(); } break;
+      case 'fer-del': appState.feriados = appState.feriados.filter(function(x){ return x.id !== id; }); benSalvar(); refreshBeneficiosView(); break;
+      case 'vt-calc':
+        var pr = benLerFormVT();
+        if(!pr.periodoInicial || !pr.periodoFinal || pr.periodoFinal < pr.periodoInicial){ alert('Período inválido.'); return; }
+        if((pr.tipo === 'PIX' || pr.escopo !== 'TODOS') && !pr.selecionados.length){ alert('Selecione o que será incluído no pedido.'); return; }
+        BEN_UI.paramsVT = pr; BEN_UI.previaVT = benCalcularPedidoVT(pr); refreshBeneficiosView(); break;
+      case 'vt-salvar': benSalvarPedidoVT(); break;
+      case 'vt-prev-xls': benExportarPedido({ itens: BEN_UI.previaVT }, 'VT'); break;
+      case 'vv-calc':
+        var pp = benLerFormVV();
+        if(!pp.periodoInicial || !pp.periodoFinal || pp.periodoFinal < pp.periodoInicial){ alert('Período inválido.'); return; }
+        if(pp.abrangencia !== 'GERAL' && !pp.selecionados.length){ alert('Selecione o que será incluído no pedido.'); return; }
+        var r = benCalcularPedidoVAVR(pp);
+        BEN_UI.previaVV = { params: pp, itens: r.linhas.map(function(l){ return benLinhaParaItemVAVR(l, pp); }), semParametro: r.semParametro };
+        refreshBeneficiosView(); break;
+      case 'vv-salvar': benSalvarPedidoVV(); break;
+      case 'vv-prev-xls': benExportarPedido({ itens: BEN_UI.previaVV.itens, pagar2x: !!BEN_UI.previaVV.params.pagar2x }, BEN_UI.previaVV.params.tipo); break;
+      case 'ped-abrir': benAbrirPedido(id, el.getAttribute('data-kind')); break;
+      case 'ped-status': if(ped) benMudarStatus(ped, BEN_UI.pedidoAberto.kind, el.getAttribute('data-s')); break;
+      case 'ped-recalc': if(ped) benRecalcularPedido(ped, BEN_UI.pedidoAberto.kind); break;
+      case 'ped-xls': if(ped) benExportarPedido(ped, BEN_UI.pedidoAberto.kind); break;
+      case 'ped-xls2': if(ped) benExportarPedido(ped, BEN_UI.pedidoAberto.kind, true); break;
+      case 'ped-del':
+        if(ped && confirm('Excluir este pedido cancelado?')){
+          var kd = BEN_UI.pedidoAberto.kind, idp = ped.id;
+          if(kd === 'VT') appState.vtPedidos = appState.vtPedidos.filter(function(x){ return x.id !== idp; }); else appState.vavrPedidos = appState.vavrPedidos.filter(function(x){ return x.id !== idp; });
+          closeModal('modal-ben'); benSalvar(); refreshBeneficiosView();
+        } break;
+      case 'vv-aprovar': case 'vv-reprovar':
+        if(ped){
+          var it = ped.itens.find(function(x){ return x.colaboradorId === id; });
+          if(it){ it.analiseDesligamentoVa = act === 'vv-aprovar' ? 'APROVADO' : 'REPROVADO'; benSalvar(); refreshBeneficiosView(); benAbrirPedido(ped.id, BEN_UI.pedidoAberto.kind); }
+        } break;
+    }
+  }
+  function popularDatalistParametro(){
+    var tipoEl = document.getElementById('par-tipo'); if(!tipoEl) return;
+    var dl = document.getElementById('par-dl');
+    function fill(){
+      var t = tipoEl.value, arr = t === 'COLABORADOR' ? appState.ativos.map(function(a){ return a.nome; }) : benUnicos(appState.ativos.map(function(a){ return t === 'FUNCAO' ? a.cargo : a.posto; }));
+      dl.innerHTML = arr.map(function(x){ return '<option value="' + benEsc(x) + '">'; }).join('');
+    }
+    tipoEl.addEventListener('change', fill); fill();
+  }
+
+  (function benInstalarEventos(){
+    var view = document.getElementById('view-beneficios');
+    if(!view) return;
+    view.addEventListener('click', function(e){
+      var t = e.target.closest('[data-ben-tab]');
+      if(t){ BEN_UI.tab = t.getAttribute('data-ben-tab'); refreshBeneficiosView(); return; }
+      var b = e.target.closest('[data-ben]');
+      if(b){ e.preventDefault(); benAcao(b.getAttribute('data-ben'), b); }
+    });
+    view.addEventListener('change', function(e){
+      var id = e.target.id;
+      if(id === 'vt-tipo' || id === 'vt-escopo'){ benLerFormVT(); BEN_UI.previaVT = null; refreshBeneficiosView(); }
+      else if(id === 'vv-tipo' || id === 'vv-abr'){ benLerFormVV(); BEN_UI.previaVV = null; refreshBeneficiosView(); }
+      else if(id === 'vt-mes' && e.target.value){ var p = benPeriodoMes(e.target.value); document.getElementById('vt-pi').value = p.ini; document.getElementById('vt-pf').value = p.fim; }
+      else if(id === 'vv-comp' && e.target.value){ var a = benPeriodoMes(benMesAnterior(e.target.value)); document.getElementById('vv-pi').value = a.ini; document.getElementById('vv-pf').value = a.fim; document.getElementById('vv-ai').value = a.ini; document.getElementById('vv-af').value = a.fim; }
+      else if(id === 'ben-mes-inter'){ BEN_UI.mesInter = e.target.value; refreshBeneficiosView(); }
+    });
+    var modal = document.getElementById('modal-ben');
+    modal.addEventListener('click', function(e){
+      var b = e.target.closest('[data-ben]'); if(b){ e.preventDefault(); benAcao(b.getAttribute('data-ben'), b); }
+    });
+    modal.addEventListener('change', function(e){
+      var ix = e.target.getAttribute('data-ben-aj');
+      if(ix === null || !BEN_UI.pedidoAberto) return;
+      var p = benAcharPedido(BEN_UI.pedidoAberto.id, 'VT'), it = p && p.itens[Number(ix)];
+      if(!it || p.status !== 'EM_ANDAMENTO') return;
+      var novo = benRound2(e.target.value);
+      if(novo === benRound2(it.valorFinal)) return;
+      var motivo = prompt('Motivo do ajuste manual (obrigatório):', it.motivoAjuste || '');
+      if(!motivo || !motivo.trim()){ e.target.value = it.valorFinal; return; }
+      it.valorFinal = novo; it.ajusteManual = novo !== benRound2(it.valorCalculado); it.motivoAjuste = it.ajusteManual ? motivo.trim() : '';
+      benSalvar(); benAbrirPedido(p.id, 'VT'); refreshBeneficiosView();
+    });
+    modal.addEventListener('submit', function(e){
+      e.preventDefault();
+      var f = e.target;
+      if(f.id === 'ben-form-par') benSalvarParametro(f);
+      else if(f.id === 'ben-form-vt') benSalvarVT(f);
+      else if(f.id === 'ben-form-saldo'){
+        appState.vtSaldos.push({ id: benId('sal'), cadastroId: f.getAttribute('data-id'), saldo: Number(document.getElementById('sal-valor').value) || 0, data: document.getElementById('sal-data').value, origem: 'MANUAL', criadoEm: new Date().toISOString() });
+        closeModal('modal-ben'); benSalvar(); refreshBeneficiosView();
+      } else if(f.id === 'ben-form-con'){
+        var c = appState.ativos.find(function(a){ return a.id === f.getAttribute('data-id'); }), ok = 0;
+        document.getElementById('con-datas').value.split(/[\n,;]+/).forEach(function(s){ var d = benDataPlanilha(s); if(d && c && benAddConvocacao(c, d, document.getElementById('con-obs').value.trim())) ok++; });
+        closeModal('modal-ben'); benSalvar(); refreshBeneficiosView();
+      } else if(f.id === 'ben-form-fer'){
+        if(!appState.feriados.length) appState.feriados = BEN_FERIADOS_PADRAO.map(function(x){ return { id: benId('fer'), data: x[0], nome: x[1], ativo: true }; });
+        appState.feriados.push({ id: benId('fer'), data: document.getElementById('fer-data').value, nome: document.getElementById('fer-nome').value.trim(), ativo: true });
+        closeModal('modal-ben'); benSalvar(); refreshBeneficiosView();
+      }
+    });
+  })();
 
   // ============================================================
   // DATA NO TOPO DA TELA
