@@ -273,7 +273,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-03-21</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-22</div>
     </div>
   </aside>
 
@@ -946,7 +946,7 @@
         <div class="panel">
           <div style="overflow-x:auto;">
             <table>
-              <thead><tr><th>Colaborador</th><th>CPF</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Dias Tirados</th><th>Dias Restantes</th><th>Vencimento</th><th>Limite de Gozo</th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>CPF</th><th>Empresa</th><th>Posto</th><th>Cargo</th><th>Admissão</th><th>Período Aquisitivo</th><th>Início das Férias</th><th>Fim das Férias</th><th>Dias Tirados</th><th>Dias Restantes</th><th>Abono</th><th>13º Antecipado</th><th>Vencimento</th><th>Limite de Gozo</th></tr></thead>
               <tbody id="ferias-analitico-tbody"></tbody>
             </table>
           </div>
@@ -1412,6 +1412,9 @@
         <div><div style="font-size:11px;color:var(--text-dim);">Posto</div><div id="fer-edit-posto" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Cargo</div><div id="fer-edit-cargo" style="font-size:13.5px;"></div></div>
         <div><div style="font-size:11px;color:var(--text-dim);">Admissão</div><div id="fer-edit-admissao" class="mono" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Empresa</div><div id="fer-edit-empresa" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Período Aquisitivo</div><div id="fer-edit-periodo-aquisitivo" class="mono" style="font-size:13.5px;"></div></div>
+        <div><div style="font-size:11px;color:var(--text-dim);">Abono no ciclo</div><div id="fer-edit-abono-ciclo" class="mono" style="font-size:13.5px;"></div></div>
       </div>
 
       <div class="stats" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px;">
@@ -1436,7 +1439,7 @@
         </div>
         <div style="overflow-x:auto;">
           <table>
-            <thead><tr><th>Data Inicial</th><th>Data Final</th><th>Dias</th><th></th></tr></thead>
+            <thead><tr><th>Data Inicial</th><th>Data Final</th><th>Dias</th><th>Abono</th><th>13º Antecip.</th><th></th></tr></thead>
             <tbody id="fer-edit-periodos-tbody"></tbody>
           </table>
         </div>
@@ -1459,6 +1462,16 @@
         <div class="modal-grid">
           <div class="modal-field"><label>Data Inicial</label><input type="date" id="pf-f-data-inicial" required></div>
           <div class="modal-field"><label>Data Final</label><input type="date" id="pf-f-data-final" required></div>
+        </div>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;"><input type="checkbox" id="pf-abono-chk"> Abono pecuniário (vender dias de férias)</label>
+            <div id="pf-abono-wrap" style="display:none;margin-top:8px;">
+              <label style="font-size:11.5px;color:var(--text-dim);">Dias vendidos (máximo 10 no período aquisitivo)</label>
+              <input type="number" id="pf-abono-dias" min="1" max="10" step="1" placeholder="Ex: 10">
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;"><input type="checkbox" id="pf-13-chk"> Antecipação da parcela do 13º</label>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-periodo-ferias')">Cancelar</button>
@@ -1913,6 +1926,16 @@
           <div class="modal-field"><label>Data Inicial</label><input type="date" id="fer-f-inicio" required></div>
           <div class="modal-field"><label>Data Final</label><input type="date" id="fer-f-fim" required></div>
         </div>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;"><input type="checkbox" id="fer-f-abono-chk"> Abono pecuniário (vender dias de férias)</label>
+            <div id="fer-f-abono-wrap" style="display:none;margin-top:8px;">
+              <label style="font-size:11.5px;color:var(--text-dim);">Dias vendidos (máximo 10 no período aquisitivo)</label>
+              <input type="number" id="fer-f-abono-dias" min="1" max="10" step="1" placeholder="Ex: 10">
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;"><input type="checkbox" id="fer-f-13-chk"> Antecipação da parcela do 13º</label>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal('modal-ferias')">Cancelar</button>
           <button type="submit" class="btn" style="background:var(--teal);color:#052622;border:none;">Salvar</button>
@@ -2181,7 +2204,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-03-21 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-04-22 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -3408,31 +3431,54 @@
   // Calcula o status de férias de um colaborador ativo:
   // a cada ciclo de 12 meses sem registrar férias, o período vence.
   var FERIAS_DIAS_POR_CICLO = 30;
+  var FERIAS_ABONO_MAX = 10; // abono pecuniário (férias vendidas): no máximo 10 dias por ciclo
+
+  // Agrupa os períodos de férias de um colaborador em ciclos (período aquisitivo).
+  // O ciclo fecha quando dias tirados + dias vendidos (abono) completam os 30 de direito.
+  function agruparFeriasEmCiclos(pessoa, lista){
+    var regs = (lista || appState.ferias)
+      .filter(function(f){ return normNome(f.nome) === normNome(pessoa.nome); })
+      .sort(function(a,b){ return (a.dataInicial||'').localeCompare(b.dataInicial||''); });
+    var fechados = [];
+    var atual = { periodos: [], tirados: 0, abono: 0 };
+    regs.forEach(function(f){
+      if(f.dataInicial < pessoa.admissao) return; // anterior à admissão atual: não conta
+      atual.periodos.push(f);
+      atual.tirados += diffDias(f.dataInicial, f.dataFinal) + 1; // inclusive
+      atual.abono += Number(f.abonoDias) || 0;
+      // só fecha o ciclo (e abre o próximo, zerado) quando completar os 30 dias de direito
+      if(atual.tirados + atual.abono >= FERIAS_DIAS_POR_CICLO){
+        fechados.push(atual);
+        atual = { periodos: [], tirados: 0, abono: 0 };
+      }
+    });
+    return { fechados: fechados, aberto: atual };
+  }
+
+  function rotuloPeriodoAquisitivo(inicioISO){
+    if(!inicioISO) return '—';
+    var fim = addMeses(inicioISO, FERIAS_CICLO_MESES);
+    if(!fim) return '—';
+    return inicioISO.slice(2,4) + '-' + fim.slice(2,4);
+  }
+
+  function situacaoPeriodoFerias(f, hoje){
+    if(f.dataInicial > hoje) return 'Programada';
+    if(f.dataFinal >= hoje) return 'Em gozo';
+    return 'Gozada';
+  }
 
   function computeFeriasStatus(pessoa){
     if(!pessoa.admissao) return { aplicavel:false };
-    var feriasDoColaborador = appState.ferias
-      .filter(function(f){ return normNome(f.nome) === normNome(pessoa.nome); })
-      .sort(function(a,b){ return (a.dataInicial||'').localeCompare(b.dataInicial||''); });
 
     // O ciclo SEMPRE segue a data-base da admissão (dia/mês do aniversário de admissão):
     // ciclo 0 = admissão → 1º aniversário; ao completar os 30 dias do ciclo, passa para o
     // próximo aniversário. A data em que as férias foram gozadas NÃO desloca o vencimento.
     var hoje = new Date().toISOString().slice(0,10);
-    var ciclosConcluidos = 0;
-    var diasTirados = 0; // dias já tirados dentro do ciclo atual (ainda em aberto)
-
-    feriasDoColaborador.forEach(function(f){
-      if(f.dataInicial < pessoa.admissao) return; // anterior à admissão atual: não conta
-      var diasDesseTrecho = diffDias(f.dataInicial, f.dataFinal) + 1; // inclusive
-      diasTirados += diasDesseTrecho;
-      // só fecha o ciclo (e abre o próximo, zerado) quando completar os 30 dias de direito —
-      // até lá, os dias tirados vão só se somando dentro do mesmo ciclo em aberto.
-      if(diasTirados >= FERIAS_DIAS_POR_CICLO){
-        ciclosConcluidos++;
-        diasTirados = 0;
-      }
-    });
+    var ciclos = agruparFeriasEmCiclos(pessoa);
+    var ciclosConcluidos = ciclos.fechados.length;
+    var diasTirados = ciclos.aberto.tirados; // dias já tirados dentro do ciclo atual (ainda em aberto)
+    var abonoDias = ciclos.aberto.abono;
 
     var dataBase = addMeses(pessoa.admissao, FERIAS_CICLO_MESES * ciclosConcluidos);
 
@@ -3443,11 +3489,26 @@
     // Limite de gozo: 10 meses após o vencimento das férias (1º período).
     var limiteGozo = addMeses(vencimento1, 10);
     var diasParaVencer = diffDias(hoje, vencimento1);
-    var diasRestantes = Math.max(FERIAS_DIAS_POR_CICLO - diasTirados, 0);
+    var diasRestantes = Math.max(FERIAS_DIAS_POR_CICLO - diasTirados - abonoDias, 0);
+
+    // Períodos para exibir: os do ciclo em aberto; se ainda não há nenhum, mostra os que já estão
+    // programados/em gozo do ciclo anterior (que fechou ao completar os 30 dias), com o rótulo dele.
+    var exibir = ciclos.aberto.periodos.map(function(f){ return { f:f, rotuloCiclo:'' }; });
+    if(!exibir.length && ciclos.fechados.length){
+      var ult = ciclos.fechados[ciclos.fechados.length - 1];
+      var rot = rotuloPeriodoAquisitivo(addMeses(pessoa.admissao, FERIAS_CICLO_MESES * (ciclos.fechados.length - 1)));
+      exibir = ult.periodos.filter(function(f){ return f.dataFinal >= hoje; }).map(function(f){ return { f:f, rotuloCiclo:rot }; });
+    }
+    var periodosExibir = exibir.map(function(x){
+      return { id:x.f.id, inicio:x.f.dataInicial, fim:x.f.dataFinal, dias: diffDias(x.f.dataInicial, x.f.dataFinal) + 1,
+               situacao: situacaoPeriodoFerias(x.f, hoje), abonoDias: Number(x.f.abonoDias) || 0, antecipa13: !!x.f.antecipa13, rotuloCiclo: x.rotuloCiclo };
+    });
 
     return { aplicavel:true, vencida:vencida, dataBase:dataBase, proximoVencimento:proximoVencimento,
              vencimento1:vencimento1, limiteGozo:limiteGozo, mesesDesdeBase:mesesDesdeBase, diasParaVencer:diasParaVencer,
-             diasTirados:diasTirados, diasRestantes:diasRestantes };
+             diasTirados:diasTirados, diasRestantes:diasRestantes, abonoDias:abonoDias,
+             periodoAquisitivo: rotuloPeriodoAquisitivo(dataBase), periodosExibir: periodosExibir,
+             antecipa13: ciclos.aberto.periodos.some(function(f){ return !!f.antecipa13; }) || periodosExibir.some(function(p){ return p.antecipa13; }) };
   }
 
   function getAtivosComStatusFerias(){
@@ -3586,6 +3647,9 @@
     document.getElementById('fer-edit-posto').textContent = pessoa.posto || '—';
     document.getElementById('fer-edit-cargo').textContent = pessoa.cargo || '—';
     document.getElementById('fer-edit-admissao').textContent = formatDateBR(pessoa.admissao);
+    document.getElementById('fer-edit-empresa').textContent = pessoa.empresa || '—';
+    document.getElementById('fer-edit-periodo-aquisitivo').textContent = status.aplicavel ? status.periodoAquisitivo + ' (' + formatDateBR(status.dataBase) + ' a ' + formatDateBR(addDias(status.vencimento1, -1)) + ')' : '—';
+    document.getElementById('fer-edit-abono-ciclo').textContent = status.aplicavel ? (status.abonoDias || 0) + ' de ' + FERIAS_ABONO_MAX + ' dias' : '—';
 
     if(status.aplicavel){
       document.getElementById('fer-edit-dias-tirados').textContent = status.diasTirados + ' de ' + FERIAS_DIAS_POR_CICLO;
@@ -3617,6 +3681,8 @@
         '<td class="mono">'+formatDateBR(f.dataInicial)+'</td>' +
         '<td class="mono">'+formatDateBR(f.dataFinal)+'</td>' +
         '<td class="mono">'+dias+'</td>' +
+        '<td class="mono">'+(Number(f.abonoDias) ? f.abonoDias + ' dias' : '—')+'</td>' +
+        '<td><button type="button" class="btn btn-ghost" data-toggle-13-id="'+f.id+'" title="Clique para marcar/desmarcar a antecipação da parcela do 13º" style="padding:3px 10px;font-size:11px;'+(f.antecipa13 ? 'border-color:var(--teal);color:var(--teal);' : '')+'">'+(f.antecipa13 ? '✓ Sim' : 'Não')+'</button></td>' +
         '<td style="display:flex;gap:6px;">' +
           '<button type="button" class="btn btn-ghost" data-editar-periodo-id="'+f.id+'" style="padding:3px 8px;font-size:11px;">Editar</button>' +
           '<button type="button" class="btn btn-ghost" data-remover-periodo-id="'+f.id+'" style="padding:3px 8px;font-size:11px;border-color:var(--red);color:var(--red);">Remover</button>' +
@@ -3625,6 +3691,16 @@
     }).join('');
     tbody.querySelectorAll('[data-editar-periodo-id]').forEach(function(btn){
       btn.addEventListener('click', function(){ abrirModalPeriodoFerias(nome, this.getAttribute('data-editar-periodo-id')); });
+    });
+    tbody.querySelectorAll('[data-toggle-13-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var f = appState.ferias.find(function(x){ return x.id === btn.getAttribute('data-toggle-13-id'); });
+        if(!f) return;
+        f.antecipa13 = !f.antecipa13;
+        cloudPut(appState).catch(function(err){ console.error('Erro ao salvar antecipação do 13º:', err); });
+        renderPeriodosFerias(nome);
+        refreshFeriasView();
+      });
     });
     tbody.querySelectorAll('[data-remover-periodo-id]').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -3638,6 +3714,54 @@
     });
   }
 
+  // ---- Abono pecuniário (férias vendidas) e antecipação do 13º: campos dos formulários de férias
+  function atualizarAbonoUI(prefixo){
+    var marcado = document.getElementById(prefixo+'-abono-chk').checked;
+    document.getElementById(prefixo+'-abono-wrap').style.display = marcado ? 'block' : 'none';
+    if(!marcado) document.getElementById(prefixo+'-abono-dias').value = '';
+  }
+  function resetAbonoUI(prefixo){
+    document.getElementById(prefixo+'-abono-chk').checked = false;
+    document.getElementById(prefixo+'-13-chk').checked = false;
+    atualizarAbonoUI(prefixo);
+  }
+  function preencherAbonoUI(prefixo, f){
+    var ab = Number(f && f.abonoDias) || 0;
+    document.getElementById(prefixo+'-abono-chk').checked = ab > 0;
+    document.getElementById(prefixo+'-abono-dias').value = ab > 0 ? ab : '';
+    document.getElementById(prefixo+'-13-chk').checked = !!(f && f.antecipa13);
+    atualizarAbonoUI(prefixo);
+  }
+  // Devolve {abonoDias, antecipa13} ou null se o abono for inválido (já avisa o usuário).
+  function lerAbonoUI(prefixo){
+    var abono = 0;
+    if(document.getElementById(prefixo+'-abono-chk').checked){
+      abono = Number(document.getElementById(prefixo+'-abono-dias').value);
+      if(!abono || abono < 1 || abono > FERIAS_ABONO_MAX || Math.floor(abono) !== abono){
+        alert('Informe de 1 a ' + FERIAS_ABONO_MAX + ' dias de abono (férias vendidas).');
+        return null;
+      }
+    }
+    return { abonoDias: abono, antecipa13: document.getElementById(prefixo+'-13-chk').checked };
+  }
+  // O abono só vale se, somando os períodos do mesmo ciclo (período aquisitivo), não passar de 10 dias.
+  function abonoDoCicloExcede(nome, registroTentativo){
+    if(!registroTentativo.abonoDias) return false;
+    var pessoa = appState.ativos.find(function(a){ return normNome(a.nome) === normNome(nome); });
+    if(!pessoa || !pessoa.admissao) return false;
+    var lista = appState.ferias.filter(function(f){ return f.id !== registroTentativo.id; }).concat([registroTentativo]);
+    var g = agruparFeriasEmCiclos(pessoa, lista);
+    var todos = g.fechados.concat([g.aberto]);
+    for(var i = 0; i < todos.length; i++){
+      var tem = todos[i].periodos.some(function(f){ return f.id === registroTentativo.id; });
+      if(tem) return todos[i].abono > FERIAS_ABONO_MAX;
+    }
+    return false;
+  }
+  ['pf','fer-f'].forEach(function(pre){
+    document.getElementById(pre+'-abono-chk').addEventListener('change', function(){ atualizarAbonoUI(pre); });
+  });
+
   function abrirModalPeriodoFerias(nome, id){
     document.getElementById('pf-f-nome').value = nome;
     document.getElementById('pf-f-id').value = id || '';
@@ -3646,9 +3770,11 @@
       document.getElementById('periodo-ferias-titulo').textContent = 'Editar Período de Férias';
       document.getElementById('pf-f-data-inicial').value = f ? f.dataInicial : '';
       document.getElementById('pf-f-data-final').value = f ? f.dataFinal : '';
+      preencherAbonoUI('pf', f);
     } else {
       document.getElementById('periodo-ferias-titulo').textContent = 'Adicionar Período de Férias';
       document.getElementById('form-periodo-ferias').reset();
+      resetAbonoUI('pf');
     }
     openModal('modal-periodo-ferias');
   }
@@ -3667,12 +3793,16 @@
       alert('A Data Final não pode ser anterior à Data Inicial.');
       return;
     }
-    if(id){
-      var f = appState.ferias.find(function(x){ return x.id === id; });
-      if(f){ f.dataInicial = dataInicial; f.dataFinal = dataFinal; }
-    } else {
-      appState.ferias.push({ id: 'fer' + Date.now(), nome: nome, dataInicial: dataInicial, dataFinal: dataFinal });
+    var extras = lerAbonoUI('pf');
+    if(!extras) return;
+    var registro = id ? appState.ferias.find(function(x){ return x.id === id; }) : null;
+    var tentativo = Object.assign({}, registro || { id: 'fer' + Date.now(), nome: nome }, { dataInicial: dataInicial, dataFinal: dataFinal, abonoDias: extras.abonoDias, antecipa13: extras.antecipa13 });
+    if(abonoDoCicloExcede(nome, tentativo)){
+      alert('O abono (férias vendidas) soma mais de ' + FERIAS_ABONO_MAX + ' dias neste período aquisitivo. Reduza os dias de abono.');
+      return;
     }
+    if(registro){ Object.assign(registro, tentativo); }
+    else { appState.ferias.push(tentativo); }
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar período de férias:', err); });
     closeModal('modal-periodo-ferias');
     renderPeriodosFerias(nome);
@@ -3701,11 +3831,17 @@
       return '<tr data-nome-ferias="'+a.nome+'" class="row-clickable" title="Clique para editar as férias">' +
         '<td>'+a.nome+'</td>' +
         '<td class="mono">'+formatCPF(a.cpf)+'</td>' +
+        '<td>'+(a.empresa||'—')+'</td>' +
         '<td><span class="pill amber">'+(a.posto||'—')+'</span></td>' +
         '<td>'+(a.cargo||'—')+'</td>' +
         '<td class="mono">'+formatDateBR(a.admissao)+'</td>' +
+        '<td class="mono">'+a.feriasStatus.periodoAquisitivo+'</td>' +
+        '<td class="mono">'+(a.feriasStatus.periodosExibir.length ? a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.inicio) + (x.rotuloCiclo ? ' <span style="color:var(--text-faint);">(ciclo '+x.rotuloCiclo+')</span>' : '') + ' <span style="color:var(--text-faint);">'+x.situacao+'</span>'; }).join('<br>') : '—')+'</td>' +
+        '<td class="mono">'+(a.feriasStatus.periodosExibir.length ? a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.fim); }).join('<br>') : '—')+'</td>' +
         '<td class="mono">'+a.feriasStatus.diasTirados+' de '+FERIAS_DIAS_POR_CICLO+'</td>' +
         '<td class="mono"><span class="pill '+corDiasRestantes+'">'+a.feriasStatus.diasRestantes+' dias</span></td>' +
+        '<td class="mono">'+(a.feriasStatus.abonoDias ? a.feriasStatus.abonoDias + ' dias' : '—')+'</td>' +
+        '<td>'+(a.feriasStatus.antecipa13 ? '<span class="pill teal">Sim</span>' : '—')+'</td>' +
         '<td class="mono"><span class="pill '+cor1+'">'+formatDateBR(a.feriasStatus.vencimento1)+'</span></td>' +
         '<td class="mono"><span class="pill '+corLimite+'">'+formatDateBR(a.feriasStatus.limiteGozo)+'</span></td>' +
       '</tr>';
@@ -5112,11 +5248,18 @@
     return getAtivosComStatusFerias().map(function(a){
       return {
         'Nome': a.nome,
+        'Empresa': a.empresa || '',
         'Posto': a.posto,
         'Cargo': a.cargo,
         'Admissão': formatDateBR(a.admissao),
+        'Período Aquisitivo': a.feriasStatus.periodoAquisitivo,
+        'Início das Férias': a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.inicio); }).join(' | '),
+        'Fim das Férias': a.feriasStatus.periodosExibir.map(function(x){ return formatDateBR(x.fim); }).join(' | '),
+        'Situação das Férias': a.feriasStatus.periodosExibir.map(function(x){ return x.situacao + (x.rotuloCiclo ? ' (ciclo ' + x.rotuloCiclo + ')' : ''); }).join(' | '),
         'Dias Tirados no Ciclo Atual': a.feriasStatus.diasTirados,
         'Dias Restantes no Ciclo Atual': a.feriasStatus.diasRestantes,
+        'Abono (dias vendidos)': a.feriasStatus.abonoDias || 0,
+        'Antecipação 13º': a.feriasStatus.antecipa13 ? 'Sim' : 'Não',
         'Vencimento': formatDateBR(a.feriasStatus.vencimento1),
         'Limite de Gozo': formatDateBR(a.feriasStatus.limiteGozo),
         'Status': a.feriasStatus.vencida ? 'Férias Vencidas' : 'À Vencer'
@@ -5246,6 +5389,7 @@
     var nomes = Array.from(new Set(appState.ativos.map(function(a){ return a.nome; }))).sort();
     nomeList.innerHTML = nomes.map(function(n){ return '<option value="'+n+'">'; }).join('');
     document.getElementById('form-ferias').reset();
+    resetAbonoUI('fer-f');
     document.getElementById('fer-f-posto').value = '';
     document.getElementById('fer-f-cargo').value = '';
     openModal('modal-ferias');
@@ -5274,11 +5418,20 @@
       dataInicial: document.getElementById('fer-f-inicio').value,
       dataFinal: document.getElementById('fer-f-fim').value
     };
+    var extrasF = lerAbonoUI('fer-f');
+    if(!extrasF) return;
+    novo.abonoDias = extrasF.abonoDias;
+    novo.antecipa13 = extrasF.antecipa13;
+    if(abonoDoCicloExcede(nome, novo)){
+      alert('O abono (férias vendidas) soma mais de ' + FERIAS_ABONO_MAX + ' dias neste período aquisitivo. Reduza os dias de abono.');
+      return;
+    }
     appState.ferias.unshift(novo);
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar férias:', err); });
     refreshFeriasView();
     closeModal('modal-ferias');
     this.reset();
+    resetAbonoUI('fer-f');
   });
 
   function applyInativosFilters(){
