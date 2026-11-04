@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-30</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-32</div>
     </div>
   </aside>
 
@@ -2222,7 +2222,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-04-30 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-04-32 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -7951,7 +7951,9 @@
     if(!admissao) return { dias: [], erro: 'Colaborador sem data de admissão.' };
     var jornada = String(jornadaOriginal == null ? '' : jornadaOriginal).trim().toUpperCase();
     if(!jornada) return { dias: [], erro: 'Colaborador sem jornada cadastrada.' };
-    if(BEN_JORNADAS.indexOf(jornada) < 0) return { dias: [], erro: 'Jornada não reconhecida: ' + jornadaOriginal + '.' };
+    var faixa = jornada.match(/^(DOM|SEG|TER|QUA|QUI|SEX|SAB)-(DOM|SEG|TER|QUA|QUI|SEX|SAB)$/), DSEM = ['DOM','SEG','TER','QUA','QUI','SEX','SAB'];
+    var fIni = faixa ? DSEM.indexOf(faixa[1]) : -1, fFim = faixa ? DSEM.indexOf(faixa[2]) : -1;
+    if(BEN_JORNADAS.indexOf(jornada) < 0 && !faixa) return { dias: [], erro: 'Jornada não reconhecida: ' + jornadaOriginal + '.' };
     var inicio = benParse(periodoInicial), fim = benParse(periodoFinal), dataAdm = benParse(admissao);
     if(dataAdm > fim) return { dias: [], erro: null };
     if(dataAdm > inicio) inicio = dataAdm;
@@ -7962,6 +7964,7 @@
       if(jornada === 'SEG-SEX') trabalha = dow >= 1 && dow <= 5 && !feriado;
       else if(jornada === 'SEG-SAB') trabalha = dow >= 1 && dow <= 6 && !feriado;
       else if(jornada === '12X36') trabalha = benDiff(dataAdm, atual) % 2 === 0;
+      else if(faixa && BEN_JORNADAS.indexOf(jornada) < 0) trabalha = (fIni <= fFim ? (dow >= fIni && dow <= fFim) : (dow >= fIni || dow <= fFim)) && !feriado;
       else if(jornada === 'SEG-SEX (+1 NA QUARTA)'){ trabalha = dow >= 1 && dow <= 5 && !feriado; if(trabalha && dow === 3) idas = 2; }
       else trabalha = dow === 0 || dow === 6 || feriado; // SAB/DOM/FER
       if(trabalha) dias.push({ data: txt, quantidadeIdas: idas, quantidadeVoltas: voltas });
@@ -8215,7 +8218,6 @@
     var diasVrDesc = 0, datasAusVr = [];
     if(tipoBen === 'VR' && ctx.descontarAusencias && ctx.ausInicial && ctx.ausFinal){
       var mAus = benDiasPrevistos(ctx.ausInicial, ctx.ausFinal, colab.admissao, colab.jornada, ctx.feriados);
-      if(mAus.erro) throw new Error((colab.nome || 'Colaborador') + ': ' + mAus.erro);
       var trabalhaveis = {}; mAus.dias.forEach(function(d){ trabalhaveis[d.data] = true; });
       var setDesc = {};
       (dados.ausVR || []).forEach(function(a){
@@ -8528,6 +8530,20 @@
   function benMesSeguinte(ym){ var p = ym.split('-').map(Number); return new Date(Date.UTC(p[0], p[1], 1)).toISOString().slice(0, 7); }
   function benMesAnterior(ym){ var p = ym.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 2, 1)).toISOString().slice(0, 7); }
   function benNomeSt(i){ var s = i.status && i.status !== 'ATIVO' ? ' <span class="pill ' + (i.status === 'ABANDONO' || i.status === 'INSS' ? 'red' : 'amber') + '" style="font-size:10px;">' + benEsc(i.status) + '</span>' : ''; return benEsc(i.nome) + s; }
+  function benPickerHtml(pfx, sel){
+    sel = sel || [];
+    var ls = benColaboradores().slice().sort(function(a, b){ return a.nome.localeCompare(b.nome); });
+    return '<div data-picker="' + pfx + '"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;"><input type="text" id="' + pfx + '-busca" placeholder="Buscar colaborador por nome, CPF ou posto..." autocomplete="off" style="flex:1;min-width:220px;' + BEN_INP + '">' +
+      '<button type="button" class="btn btn-ghost" data-ben="pick-todos" data-p="' + pfx + '">Marcar exibidos</button><button type="button" class="btn btn-ghost" data-ben="pick-limpar" data-p="' + pfx + '">Limpar</button>' +
+      '<span id="' + pfx + '-cont" style="font-size:12px;color:var(--text-dim);">' + sel.length + ' selecionado(s)</span></div>' +
+      '<div id="' + pfx + '-lista" style="max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px;display:grid;gap:2px;">' +
+      ls.map(function(c){ return '<label data-t="' + benEsc(benSemAcento(c.nome + ' ' + c.cpf + ' ' + c.posto + ' ' + c.postoTrabalho)) + '" style="display:flex;gap:8px;font-size:12.5px;align-items:center;padding:3px 6px;border-radius:6px;cursor:pointer;"><input type="checkbox" class="ben-pick" data-p="' + pfx + '" value="' + benEsc(c.id) + '"' + (sel.indexOf(c.id) >= 0 ? ' checked' : '') + '> <span>' + benEsc(c.nome) + '</span><span style="color:var(--text-dim);font-size:11.5px;margin-left:auto;">' + benEsc(c.posto) + (c.status !== 'ATIVO' ? ' • ' + benEsc(c.status) : '') + '</span></label>'; }).join('') + '</div></div>';
+  }
+  function benPickerAtualiza(pfx){
+    var ids = Array.prototype.slice.call(document.querySelectorAll('input.ben-pick[data-p="' + pfx + '"]:checked')).map(function(i){ return i.value; });
+    if(pfx === 'vtp') BEN_UI.vt.selIds = ids; else BEN_UI.vv.selIds = ids;
+    var el = document.getElementById(pfx + '-cont'); if(el) el.textContent = ids.length + ' selecionado(s)';
+  }
   function benPill(txt, cor){ return '<span class="pill ' + (cor || '') + '">' + benEsc(txt) + '</span>'; }
   function benCampo(label, html, full){ return '<div class="modal-field' + (full ? ' full' : '') + '"><label>' + label + '</label>' + html + '</div>'; }
   function benOptions(lista, atual, vazio){
@@ -8946,7 +8962,7 @@
     var postos = benUnicos(appState.ativos.map(function(a){ return a.posto; })), emps = benUnicos(appState.vtCadastros.map(function(v){ return v.empresaTransporte; }));
     var escopo = f.escopo || 'TODOS';
     var seletor = '';
-    if(f.tipo === 'PIX' || escopo === 'COLABORADOR') seletor = '<textarea id="vt-sel-nomes" rows="3" placeholder="Nomes dos colaboradores, um por linha" style="width:100%;' + BEN_INP + '">' + benEsc(f.nomes || '') + '</textarea>';
+    if(f.tipo === 'PIX' || escopo === 'COLABORADOR') seletor = benPickerHtml('vtp', f.selIds);
     else if(escopo === 'POSTO') seletor = '<select id="vt-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(postos, null) + '</select>';
     else if(escopo === 'EMPRESA') seletor = '<select id="vt-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(emps, null) + '</select>';
     var form = '<div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
@@ -8979,9 +8995,9 @@
     var f = BEN_UI.vt;
     f.tipo = g('vt-tipo') || 'REGULAR'; f.mes = g('vt-mes'); f.pi = g('vt-pi'); f.pf = g('vt-pf'); f.ai = g('vt-ai'); f.af = g('vt-af'); f.nd = document.getElementById('vt-nd').checked; f.aband = document.getElementById('vt-aband').checked;
     if(document.getElementById('vt-escopo')) f.escopo = g('vt-escopo');
-    var multi = document.getElementById('vt-sel-multi'), nomes = document.getElementById('vt-sel-nomes'), sel = [];
+    var multi = document.getElementById('vt-sel-multi'), sel = [];
     if(multi) sel = Array.prototype.slice.call(multi.selectedOptions).map(function(o){ return o.value; });
-    if(nomes){ f.nomes = nomes.value; nomes.value.split('\n').forEach(function(n){ if(n.trim()){ var c = benPorNome(n); if(c) sel.push(c.id); } }); }
+    if(document.getElementById('vtp-lista')){ benPickerAtualiza('vtp'); sel = (f.selIds || []).slice(); }
     return { tipo: f.tipo, periodoInicial: f.pi, periodoFinal: f.pf, ausInicial: f.ai, ausFinal: f.af, naoDescontarAusencias: f.nd, incluirAbandono: f.aband, escopo: f.tipo === 'PIX' ? 'COLABORADOR' : f.escopo, selecionados: sel };
   }
 
@@ -8992,7 +9008,7 @@
     var ab = f.abr || 'GERAL', seletor = '';
     if(ab === 'POSTO') seletor = '<select id="vv-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(postos, null) + '</select>';
     if(ab === 'FUNCAO') seletor = '<select id="vv-sel-multi" multiple size="6" style="' + BEN_INP + 'min-width:240px;">' + benOptions(cargos, null) + '</select>';
-    if(ab === 'COLABORADOR') seletor = '<textarea id="vv-sel-nomes" rows="3" placeholder="Nomes, um por linha" style="width:100%;' + BEN_INP + '">' + benEsc(f.nomes || '') + '</textarea>';
+    if(ab === 'COLABORADOR') seletor = benPickerHtml('vvp', f.selIds);
     var tipo = f.tipo || 'VA';
     var form = '<div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
       benCampo('Benefício', '<select id="vv-tipo">' + benOptions([['VA','VA — Vale Alimentação'],['VR','VR — Vale Refeição']], tipo) + '</select>') +
@@ -9033,9 +9049,9 @@
     var g = function(i){ var e = document.getElementById(i); return e ? e.value : ''; }, c = function(i){ var e = document.getElementById(i); return e ? e.checked : false; };
     var f = BEN_UI.vv;
     f.tipo = g('vv-tipo'); f.comp = g('vv-comp'); f.pi = g('vv-pi'); f.pf = g('vv-pf'); f.ai = g('vv-ai'); f.af = g('vv-af'); f.abr = g('vv-abr'); f.desc = c('vv-desc'); f.retro = c('vv-retro'); f.dois = c('vv-2x'); f.deslig = c('vv-deslig'); f.ign = c('vv-ign'); f.aband = c('vv-aband');
-    var multi = document.getElementById('vv-sel-multi'), nomes = document.getElementById('vv-sel-nomes'), sel = [];
+    var multi = document.getElementById('vv-sel-multi'), sel = [];
     if(multi) sel = Array.prototype.slice.call(multi.selectedOptions).map(function(o){ return o.value; });
-    if(nomes){ f.nomes = nomes.value; nomes.value.split('\n').forEach(function(n){ if(n.trim()){ var cc = benPorNome(n); if(cc) sel.push(cc.id); } }); }
+    if(document.getElementById('vvp-lista')){ benPickerAtualiza('vvp'); sel = (f.selIds || []).slice(); }
     return { tipo: f.tipo, competencia: f.comp, periodoInicial: f.pi, periodoFinal: f.pf, ausInicial: f.ai, ausFinal: f.af, descontarAusencias: f.desc, retroativo: f.retro && f.tipo === 'VR', calcularDesligados: f.deslig && f.tipo === 'VA', abrangencia: f.abr, selecionados: sel, pagar2x: f.dois, ignorarSemParametro: f.ign, incluirAbandono: f.aband };
   }
 
@@ -9162,6 +9178,8 @@
         }); break;
       case 'res-xls': exportarExcel('Beneficios_' + el.getAttribute('data-k'), 'Dados', BEN_RES[el.getAttribute('data-k')] || []); break;
       case 'gas-proj': BEN_UI.projMes = document.getElementById('ben-proj-mes').value || benMesSeguinte(benMesAtual()); BEN_UI.proj = benCalcularProjecao(BEN_UI.projMes); refreshBeneficiosView(); break;
+      case 'pick-todos': Array.prototype.slice.call(document.querySelectorAll('#' + el.getAttribute('data-p') + '-lista label')).forEach(function(l){ if(l.style.display !== 'none') l.querySelector('input').checked = true; }); benPickerAtualiza(el.getAttribute('data-p')); break;
+      case 'pick-limpar': Array.prototype.slice.call(document.querySelectorAll('input.ben-pick[data-p="' + el.getAttribute('data-p') + '"]')).forEach(function(i){ i.checked = false; }); benPickerAtualiza(el.getAttribute('data-p')); break;
       case 'par-del': if(confirm('Excluir este parâmetro?')){ appState.vavrParametros = appState.vavrParametros.filter(function(p){ return p.id !== id; }); benSalvar(); refreshBeneficiosView(); } break;
       case 'emp-nova': var n = prompt('Nome da empresa de transporte:'); if(n && n.trim()){ benGarantirEmpresa(n); benSalvar(); refreshBeneficiosView(); } break;
       case 'emp-del': appState.vtEmpresas = appState.vtEmpresas.filter(function(e){ return e.id !== id; }); benSalvar(); refreshBeneficiosView(); break;
@@ -9263,8 +9281,16 @@
       var b = e.target.closest('[data-ben]');
       if(b){ e.preventDefault(); benAcao(b.getAttribute('data-ben'), b); }
     });
+    view.addEventListener('input', function(e){
+      var id = e.target.id;
+      if(/-busca$/.test(id)){
+        var pf = id.replace('-busca', ''), q = benSemAcento(e.target.value);
+        Array.prototype.slice.call(document.querySelectorAll('#' + pf + '-lista label')).forEach(function(l){ l.style.display = !q || l.getAttribute('data-t').indexOf(q) >= 0 ? 'flex' : 'none'; });
+      }
+    });
     view.addEventListener('change', function(e){
       var id = e.target.id;
+      if(e.target.classList && e.target.classList.contains('ben-pick')){ benPickerAtualiza(e.target.getAttribute('data-p')); return; }
       if(id === 'vt-tipo' || id === 'vt-escopo'){ benLerFormVT(); BEN_UI.previaVT = null; refreshBeneficiosView(); }
       else if(id === 'vv-tipo' || id === 'vv-abr'){ benLerFormVV(); BEN_UI.previaVV = null; refreshBeneficiosView(); }
       else if(id === 'vt-mes' && e.target.value){ var p = benPeriodoMes(e.target.value); document.getElementById('vt-pi').value = p.ini; document.getElementById('vt-pf').value = p.fim; }
