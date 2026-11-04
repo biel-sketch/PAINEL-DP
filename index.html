@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-25</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-27</div>
     </div>
   </aside>
 
@@ -2222,7 +2222,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-04-25 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-04-27 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -8582,13 +8582,13 @@
   function benRenderParametros(){
     var linhas = appState.vavrParametros.map(function(p){
       var esc = p.colaboradorId ? 'Colaborador: ' + benNomeColab(p.colaboradorId) : (p.cargo ? 'Função: ' + p.cargo : 'Posto: ' + (p.posto || '—'));
-      return [benEsc(esc), p.possuiVa ? benMoeda(p.valorVa) : '—', p.possuiVr ? benMoeda(p.valorVr) : '—', p.possuiVr ? benMoeda(p.descontoVrPorDia) : '—',
+      return [benEsc(esc) + (p.tipoContrato ? ' <span style="color:var(--text-dim);font-size:11px;">(' + benEsc(p.tipoContrato) + ')</span>' : ''), p.possuiVa ? benMoeda(p.valorVa) : '—', p.possuiVr ? benMoeda(p.valorVr) : '—', p.possuiVr ? benMoeda(p.descontoVrPorDia) : '—',
         benDataBR(p.vigenciaInicial) + ' → ' + (p.vigenciaFinal ? benDataBR(p.vigenciaFinal) : 'sem fim'), p.ativo === false ? benPill('Inativo','red') : benPill('Ativo','teal'),
         benBtn('par-edit', 'Editar', 'data-id="' + p.id + '"', true) + benBtn('par-del', 'Excluir', 'data-id="' + p.id + '"', true)];
     });
     return benPainel('Parâmetros de VA/VR (prioridade: colaborador › função › posto)',
       benTabela(['Aplica-se a','VA','VR','Desc. folha/dia','Vigência','Status',''], linhas, 'Nenhum parâmetro cadastrado.'),
-      benBtn('par-novo', '+ Novo parâmetro') + benBtn('par-lote', 'Parâmetro para vários postos', '', true));
+      benBtn('par-novo', '+ Novo parâmetro') + benBtn('par-lote', 'Parâmetro para vários postos', '', true) + benBtn('par-import', 'Importar planilha', '', true) + benBtn('par-modelo', 'Modelo de planilha', '', true));
   }
   function benFormParametro(p, lote){
     p = p || { possuiVa: true, possuiVr: true, descontoVrPorDia: 1.46, vigenciaInicial: benMesAtual() + '-01', ativo: true };
@@ -8992,6 +8992,27 @@
       case 'par-novo': benAbrirModal('Novo parâmetro VA/VR', benFormParametro()); popularDatalistParametro(); break;
       case 'par-lote': benAbrirModal('Parâmetro para vários postos', benFormParametro(null, true)); break;
       case 'par-edit': benAbrirModal('Editar parâmetro', benFormParametro(appState.vavrParametros.find(function(p){ return p.id === id; }))); popularDatalistParametro(); break;
+      case 'par-modelo': exportarExcel('Modelo_Parametros_VAVR', 'Parametros', [{ POSTO: 'NOME DO POSTO', FUNCAO: '', NOME: '', CPF: '', CONTRATO: '', VA: 300, VR: 30, DESCONTO: 1.46, VIGENCIA: '01/11/2026' }]); break;
+      case 'par-import':
+        benLerPlanilha(function(rows){
+          var ok = 0, ign = [], hoje1 = benMesAtual() + '-01';
+          rows.forEach(function(r){
+            var va = benNum(r.VA || r.VALORVA), vr = benNum(r.VR || r.VALORVR);
+            var reg = { id: benId('par'), posto: '', cargo: '', colaboradorId: '', possuiVa: va > 0, valorVa: va, possuiVr: vr > 0, valorVr: vr,
+              descontoVrPorDia: r.DESCONTO === undefined || r.DESCONTO === '' ? 1.46 : benNum(r.DESCONTO), ativo: true, vigenciaInicial: benDataPlanilha(r.VIGENCIA) || hoje1, vigenciaFinal: '' };
+            var nm = String(r.NOME || r.COLABORADOR || '').trim(), cpfp = benCpf(r.CPF);
+            reg.tipoContrato = String(r.CONTRATO || '').trim();
+            if(nm || cpfp){ var c = (cpfp && appState.ativos.find(function(a){ return benCpf(a.cpf) === cpfp; })) || (nm && benPorNome(nm)); if(!c){ ign.push(nm || cpfp); return; } reg.colaboradorId = c.id; }
+            else if(String(r.FUNCAO || r.CARGO || '').trim()) reg.cargo = String(r.FUNCAO || r.CARGO).trim();
+            else if(String(r.POSTO || '').trim()) reg.posto = String(r.POSTO).trim();
+            else return;
+            if(!reg.possuiVa && !reg.possuiVr){ ign.push(nm || reg.cargo || reg.posto); return; }
+            appState.vavrParametros = appState.vavrParametros.filter(function(p){ return !(p.colaboradorId === reg.colaboradorId && (p.cargo || '') === reg.cargo && (p.posto || '') === reg.posto && p.vigenciaInicial === reg.vigenciaInicial); });
+            appState.vavrParametros.push(reg); ok++;
+          });
+          benSalvar(); refreshBeneficiosView();
+          alert(ok + ' parâmetros importados.' + (ign.length ? '\nIgnorados: ' + ign.slice(0, 30).join(', ') : ''));
+        }); break;
       case 'par-del': if(confirm('Excluir este parâmetro?')){ appState.vavrParametros = appState.vavrParametros.filter(function(p){ return p.id !== id; }); benSalvar(); refreshBeneficiosView(); } break;
       case 'emp-nova': var n = prompt('Nome da empresa de transporte:'); if(n && n.trim()){ benGarantirEmpresa(n); benSalvar(); refreshBeneficiosView(); } break;
       case 'emp-del': appState.vtEmpresas = appState.vtEmpresas.filter(function(e){ return e.id !== id; }); benSalvar(); refreshBeneficiosView(); break;
