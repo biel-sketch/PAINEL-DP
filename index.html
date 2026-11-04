@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-24</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-04-25</div>
     </div>
   </aside>
 
@@ -2222,7 +2222,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-04-24 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-04-25 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -8818,14 +8818,14 @@
   function benHtmlPreviaVT(itens){
     var tot = itens.reduce(function(s, i){ return s + (Number(i.valorFinal) || 0); }, 0);
     var erros = itens.filter(function(i){ return i.erro || i.erroFinanceiro || (i.alertas && i.alertas.length); }).length;
-    var linhas = itens.map(function(i){
+    var linhas = itens.map(function(i, ix){
       return [benEsc(i.nome), benEsc(i.posto), benEsc(i.jornada || '—'), benEsc(i.empresaTransporte || '—'), benEsc(i.numeroCartao || ''), i.diasPrevistos, i.diasFerias, i.diasAusencias, i.diasAfastamento, i.diasFinais,
         benMoeda(i.tarifaDiaria), i.saldoAtual == null ? '—' : benMoeda(i.saldoAtual), benMoeda(i.valorNecessario), '<b>' + benMoeda(i.valorFinal) + '</b>',
-        benEsc([i.erro, i.erroFinanceiro && (i.erroFinanceiro.mensagem || i.erroFinanceiro)].concat(i.alertas || []).filter(Boolean).join(' | '))];
+        benEsc([i.erro, i.erroFinanceiro && (i.erroFinanceiro.mensagem || i.erroFinanceiro)].concat(i.alertas || []).filter(Boolean).join(' | ')), benBtn('lin-rem', 'Remover', 'data-ix="' + ix + '" data-src="VT"', true)];
     });
     var aviso = itens.semCadastro && itens.semCadastro.length ? '<div style="padding:12px 18px;color:var(--amber);font-size:12.5px;border-bottom:1px solid var(--line);">' + itens.semCadastro.length + ' ativo(s) sem cadastro de VT não entraram no pedido (intermitentes e quem não usa VT inclusive).</div>' : '';
     return benPainel('Prévia — ' + itens.length + ' linhas • total ' + benMoeda(tot) + (erros ? ' • ' + erros + ' com alerta' : ''),
-      aviso + benTabela(['Colaborador','Posto','Jornada','Empresa','Cartão','Previstos','Férias','Ausências','Afast.','Dias','Tarifa/dia','Saldo','Necessário','Valor a comprar','Alertas'], linhas),
+      aviso + benTabela(['Colaborador','Posto','Jornada','Empresa','Cartão','Previstos','Férias','Ausências','Afast.','Dias','Tarifa/dia','Saldo','Necessário','Valor a comprar','Alertas',''], linhas),
       benBtn('vt-salvar', 'Salvar pedido') + benBtn('vt-prev-xls', 'Exportar prévia', '', true));
   }
   function benLerFormVT(){
@@ -8856,6 +8856,7 @@
       benCampo('Abrangência', '<select id="vv-abr">' + benOptions([['GERAL','Todos os ativos'],['POSTO','Por posto'],['FUNCAO','Por função'],['COLABORADOR','Colaboradores específicos']], ab) + '</select>') +
       '<div class="modal-field" style="grid-column:1/-1;">' + seletor + '</div>' +
       '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-desc"' + (f.desc === false ? '' : ' checked') + '> Descontar ausências</label>' +
+      '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-ign"' + (f.ign ? ' checked' : '') + '> Ignorar colaboradores sem parâmetro (ficam fora do pedido)</label>' +
       (tipo === 'VR' ? '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-retro"' + (f.retro ? ' checked' : '') + '> Incluir retroativo de admissão (mês anterior)</label>' +
         '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-2x"' + (f.dois ? ' checked' : '') + '> Pagar em 2 créditos</label>' :
         '<label style="display:flex;gap:8px;font-size:12.5px;align-items:center;"><input type="checkbox" id="vv-deslig"' + (f.deslig ? ' checked' : '') + '> Incluir desligados (conferência manual)</label>') + '</div>';
@@ -8865,12 +8866,13 @@
   function benHtmlPreviaVV(pv){
     var tipo = pv.params.tipo, itens = pv.itens;
     var tot = itens.reduce(function(s, i){ return s + benValorFinalItemVAVR(i, tipo); }, 0);
-    var bloq = pv.semParametro.length ? '<div style="padding:12px 18px;color:var(--red);font-size:12.5px;border-bottom:1px solid var(--line);">⛔ ' + pv.semParametro.length + ' colaborador(es) sem parâmetro de VA/VR — cadastre a regra em "Parâmetros VA/VR" para salvar o pedido: ' + pv.semParametro.slice(0, 25).map(function(l){ return benEsc(l.colab.nome); }).join(', ') + (pv.semParametro.length > 25 ? '…' : '') + '</div>' : '';
-    var linhas = itens.map(function(i){ return benLinhaTabelaVV(i, tipo, false); });
+    var ign = !!pv.params.ignorarSemParametro;
+    var bloq = pv.semParametro.length ? '<div style="padding:12px 18px;color:' + (ign ? 'var(--amber)' : 'var(--red)') + ';font-size:12.5px;border-bottom:1px solid var(--line);">' + (ign ? 'ℹ️ ' + pv.semParametro.length + ' colaborador(es) sem parâmetro ficaram FORA do pedido: ' : '⛔ ' + pv.semParametro.length + ' colaborador(es) sem parâmetro de VA/VR — cadastre a regra, remova as linhas ou marque "Ignorar colaboradores sem parâmetro": ') + pv.semParametro.slice(0, 25).map(function(l){ return benEsc(l.colab.nome); }).join(', ') + (pv.semParametro.length > 25 ? '…' : '') + '</div>' : '';
+    var linhas = itens.map(function(i, ix){ var l = benLinhaTabelaVV(i, tipo, false); l[l.length - 1] += benBtn('lin-rem', 'Remover', 'data-ix="' + ix + '" data-src="VV"', true); return l; });
     var cab = tipo === 'VA' ? ['Colaborador','Posto','Regra','Dias efetivos','Faltas','Afast. (dias)','VA base','Desconto','VA a creditar','Situação'] :
       ['Colaborador','Posto','Regra','Previstos','Férias','Desc. ausência','Dias VR','Retroativo','VR','Desc. folha','Situação'];
     return benPainel('Prévia — ' + itens.length + ' linhas • total ' + benMoeda(tot), bloq + benTabela(cab, linhas),
-      benBtn('vv-salvar', 'Salvar pedido', pv.semParametro.length ? 'disabled style="opacity:.5;"' : '') + benBtn('vv-prev-xls', 'Exportar prévia', '', true));
+      benBtn('vv-salvar', 'Salvar pedido', pv.semParametro.length && !ign ? 'disabled style="opacity:.5;"' : '') + benBtn('vv-prev-xls', 'Exportar prévia', '', true));
   }
   function benLinhaTabelaVV(i, tipo, editavel){
     var sit = i.erro ? benPill(i.erro, 'red') : (tipo === 'VA' ? (i.desligadoVa ? benPill('Desligado — ' + (i.analiseDesligamentoVa || 'PENDENTE'), i.analiseDesligamentoVa === 'APROVADO' ? 'teal' : 'amber') : (i.elegivelVa ? benPill('Elegível', 'teal') : benPill(i.motivoVa || 'Não elegível', 'amber'))) : (i.retroativoJaPago ? benPill('Retroativo já pago', 'amber') : benPill('OK', 'teal')));
@@ -8883,11 +8885,11 @@
   function benLerFormVV(){
     var g = function(i){ var e = document.getElementById(i); return e ? e.value : ''; }, c = function(i){ var e = document.getElementById(i); return e ? e.checked : false; };
     var f = BEN_UI.vv;
-    f.tipo = g('vv-tipo'); f.comp = g('vv-comp'); f.pi = g('vv-pi'); f.pf = g('vv-pf'); f.ai = g('vv-ai'); f.af = g('vv-af'); f.abr = g('vv-abr'); f.desc = c('vv-desc'); f.retro = c('vv-retro'); f.dois = c('vv-2x'); f.deslig = c('vv-deslig');
+    f.tipo = g('vv-tipo'); f.comp = g('vv-comp'); f.pi = g('vv-pi'); f.pf = g('vv-pf'); f.ai = g('vv-ai'); f.af = g('vv-af'); f.abr = g('vv-abr'); f.desc = c('vv-desc'); f.retro = c('vv-retro'); f.dois = c('vv-2x'); f.deslig = c('vv-deslig'); f.ign = c('vv-ign');
     var multi = document.getElementById('vv-sel-multi'), nomes = document.getElementById('vv-sel-nomes'), sel = [];
     if(multi) sel = Array.prototype.slice.call(multi.selectedOptions).map(function(o){ return o.value; });
     if(nomes){ f.nomes = nomes.value; nomes.value.split('\n').forEach(function(n){ if(n.trim()){ var cc = benPorNome(n); if(cc) sel.push(cc.id); } }); }
-    return { tipo: f.tipo, competencia: f.comp, periodoInicial: f.pi, periodoFinal: f.pf, ausInicial: f.ai, ausFinal: f.af, descontarAusencias: f.desc, retroativo: f.retro && f.tipo === 'VR', calcularDesligados: f.deslig && f.tipo === 'VA', abrangencia: f.abr, selecionados: sel, pagar2x: f.dois };
+    return { tipo: f.tipo, competencia: f.comp, periodoInicial: f.pi, periodoFinal: f.pf, ausInicial: f.ai, ausFinal: f.af, descontarAusencias: f.desc, retroativo: f.retro && f.tipo === 'VR', calcularDesligados: f.deslig && f.tipo === 'VA', abrangencia: f.abr, selecionados: sel, pagar2x: f.dois, ignorarSemParametro: f.ign };
   }
 
   // ---------- Pedidos salvos ----------
@@ -8918,14 +8920,14 @@
     if(kind === 'VR') botoes += benBtn('ped-xls2', 'Exportar créditos', '', true);
     var cab, linhas;
     if(kind === 'VT'){
-      cab = ['Colaborador','Posto','Empresa','Cartão','Dias','Tarifa/dia','Saldo','Necessário','Calculado','Valor final','Obs.'];
+      cab = ['Colaborador','Posto','Empresa','Cartão','Dias','Tarifa/dia','Saldo','Necessário','Calculado','Valor final','Obs.',''];
       linhas = p.itens.map(function(i, ix){
         return [benEsc(i.nome), benEsc(i.posto), benEsc(i.empresaTransporte || '—'), benEsc(i.numeroCartao || ''), i.diasFinais, benMoeda(i.tarifaDiaria), i.saldoAtual == null ? '—' : benMoeda(i.saldoAtual), benMoeda(i.valorNecessario), benMoeda(i.valorCalculado),
-          editavel ? '<input type="number" step="0.01" data-ben-aj="' + ix + '" value="' + i.valorFinal + '" style="width:100px;' + BEN_INP + '">' : '<b>' + benMoeda(i.valorFinal) + '</b>', benEsc(i.motivoAjuste || (i.alertas || []).join(' | '))];
+          editavel ? '<input type="number" step="0.01" data-ben-aj="' + ix + '" value="' + i.valorFinal + '" style="width:100px;' + BEN_INP + '">' : '<b>' + benMoeda(i.valorFinal) + '</b>', benEsc(i.motivoAjuste || (i.alertas || []).join(' | ')) + (editavel ? benBtn('lin-rem', 'Remover', 'data-ix="' + ix + '" data-src="PED"', true) : '')];
       });
     } else {
       cab = kind === 'VA' ? ['Colaborador','Posto','Regra','Dias efetivos','Faltas','Afast. (dias)','VA base','Desconto','VA a creditar','Situação'] : ['Colaborador','Posto','Regra','Previstos','Férias','Desc. ausência','Dias VR','Retroativo','VR','Desc. folha','Situação'];
-      linhas = p.itens.map(function(i){ return benLinhaTabelaVV(i, kind, editavel ? 'EDIT' : true); });
+      linhas = p.itens.map(function(i, ix){ var l = benLinhaTabelaVV(i, kind, editavel ? 'EDIT' : true); if(editavel) l[l.length - 1] += benBtn('lin-rem', 'Remover', 'data-ix="' + ix + '" data-src="PED"', true); return l; });
     }
     var info = '<div style="font-size:13px;margin-bottom:10px;">' + benPill(st[0], st[1]) + ' &nbsp; ' + kind + ' • ' + benDataBR(p.periodoInicial) + ' → ' + benDataBR(p.periodoFinal) + (p.competencia ? ' • competência ' + p.competencia : '') + ' • <b>' + benMoeda(benTotalPedido(p, kind)) + '</b>' +
       (kind === 'VR' ? ' • ' + (p.pagar2x ? 'em 2 créditos' : 'crédito único') : '') + '</div>' +
@@ -8949,6 +8951,7 @@
       var r = benCalcularPedidoVAVR(p.params);
       p.itens = r.linhas.map(function(l){ var n = benLinhaParaItemVAVR(l, p.params), a = ant[n.colaboradorId]; if(a && n.desligadoVa){ n.analiseDesligamentoVa = a.analiseDesligamentoVa || n.analiseDesligamentoVa; } return n; });
     }
+    if(p.removidos && p.removidos.length) p.itens = p.itens.filter(function(i){ return p.removidos.indexOf(i.colaboradorId + '|' + (i.cadastroId || '')) < 0; });
     p.atualizadoEm = new Date().toISOString(); benSalvar(); benAbrirPedido(p.id, kind);
   }
   function benExportarPedido(p, kind, creditos){
@@ -8973,7 +8976,7 @@
   function benSalvarPedidoVV(){
     var pv = BEN_UI.previaVV;
     if(!pv || !pv.itens.length){ alert('Calcule a prévia primeiro.'); return; }
-    if(pv.semParametro.length){ alert('Há colaboradores sem parâmetro de VA/VR. Cadastre a regra antes de salvar.'); return; }
+    if(pv.semParametro.length && !pv.params.ignorarSemParametro){ alert('Há colaboradores sem parâmetro de VA/VR. Cadastre a regra antes de salvar.'); return; }
     var params = pv.params;
     var p = { id: benId('pvv'), tipo: params.tipo, competencia: params.competencia, periodoInicial: params.periodoInicial, periodoFinal: params.periodoFinal, ausInicial: params.ausInicial, ausFinal: params.ausFinal,
       pagar2x: !!params.pagar2x, status: 'EM_ANDAMENTO', params: params, itens: pv.itens, criadoEm: new Date().toISOString(), criadoPor: benUsuario() };
@@ -9028,6 +9031,12 @@
         if(!pr.periodoInicial || !pr.periodoFinal || pr.periodoFinal < pr.periodoInicial){ alert('Período inválido.'); return; }
         if((pr.tipo === 'PIX' || pr.escopo !== 'TODOS') && !pr.selecionados.length){ alert('Selecione o que será incluído no pedido.'); return; }
         BEN_UI.paramsVT = pr; BEN_UI.previaVT = benCalcularPedidoVT(pr); refreshBeneficiosView(); break;
+      case 'lin-rem':
+        var src = el.getAttribute('data-src'), ixr = Number(el.getAttribute('data-ix'));
+        if(src === 'VT' && BEN_UI.previaVT){ var sc = BEN_UI.previaVT.semCadastro; BEN_UI.previaVT.splice(ixr, 1); BEN_UI.previaVT.semCadastro = sc; refreshBeneficiosView(); }
+        else if(src === 'VV' && BEN_UI.previaVV){ BEN_UI.previaVV.itens.splice(ixr, 1); refreshBeneficiosView(); }
+        else if(src === 'PED' && ped && ped.status === 'EM_ANDAMENTO' && confirm('Remover esta linha do pedido?')){ (ped.removidos = ped.removidos || []).push(ped.itens[ixr].colaboradorId + '|' + (ped.itens[ixr].cadastroId || '')); ped.itens.splice(ixr, 1); benSalvar(); refreshBeneficiosView(); benAbrirPedido(ped.id, BEN_UI.pedidoAberto.kind); }
+        break;
       case 'vt-salvar': benSalvarPedidoVT(); break;
       case 'vt-prev-xls': benExportarPedido({ itens: BEN_UI.previaVT }, 'VT'); break;
       case 'vv-calc':
