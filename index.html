@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-05-33</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-06-34</div>
     </div>
   </aside>
 
@@ -2234,7 +2234,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-05-33 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-06-34 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -2588,7 +2588,11 @@
       var textoVenc = 'vence ' + formatDateBR(info.vencimento);
       return '<span class="pill '+pillClass+'">'+etapaLabel+' — '+textoVenc+'</span>';
     }
-    if(tipo === 'DETERMINADO') return '<span class="pill amber">Determinado</span>';
+    if(tipo === 'DETERMINADO'){
+      var infoD = computeExperienciaInfo(Object.assign({}, pessoa, { contratoTipo: 'EXPERIENCIA' }));
+      if(!infoD) return '<span class="pill amber">Determinado</span>';
+      return '<span class="pill amber">Determinado — vence '+formatDateBR(infoD.vencimento)+'</span>';
+    }
     if(tipo === 'INTERMITENTE'){
       var infoI = computeExperienciaInfo(pessoa);
       if(!infoI || infoI.vencida) return '<span class="pill amber">Intermitente</span>';
@@ -2883,6 +2887,8 @@
 
   // Retorna {etapa, vencimento, diasRestantes, vencida} para quem está em contrato de experiência
   function contratoTemExperiencia(tipo){ return tipo === 'EXPERIENCIA' || tipo === 'INTERMITENTE'; }
+  // Tipos que guardam prazo em dias (Determinado também tem duração/prorrogação, mas não entra no painel de Experiência)
+  function contratoGuardaDias(tipo){ return tipo === 'EXPERIENCIA' || tipo === 'INTERMITENTE' || tipo === 'DETERMINADO'; }
   function computeExperienciaInfo(pessoa){
     if(!contratoTemExperiencia(pessoa.contratoTipo) || !pessoa.admissao || !pessoa.experienciaDuracaoDias) return null;
     var hoje = new Date().toISOString().slice(0,10);
@@ -2912,8 +2918,8 @@
   function atualizarHintExperiencia(prefixo){
     var tipo = document.getElementById(prefixo+'-contrato-tipo').value;
     var wrapHint = document.getElementById(prefixo+'-experiencia-hint-wrap');
-    wrapHint.style.display = contratoTemExperiencia(tipo) ? 'block' : 'none';
-    if(!contratoTemExperiencia(tipo)) return;
+    wrapHint.style.display = contratoGuardaDias(tipo) ? 'block' : 'none';
+    if(!contratoGuardaDias(tipo)) return;
 
     var admissaoInput = document.getElementById(prefixo === 'nat' ? 'nat-admissao' : 'edt-admissao');
     var admissao = admissaoInput.value;
@@ -5653,8 +5659,8 @@
       pessoa.sexo = document.getElementById('nat-sexo').value || null;
       pessoa.supervisor = document.getElementById('nat-supervisor').value.trim() || null;
       pessoa.contratoTipo = document.getElementById('nat-contrato-tipo').value;
-      pessoa.experienciaDuracaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? Number(document.getElementById('nat-experiencia-duracao').value) : null;
-      pessoa.experienciaProrrogacaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
+      pessoa.experienciaDuracaoDias = contratoGuardaDias(pessoa.contratoTipo) ? (Number(document.getElementById('nat-experiencia-duracao').value) || null) : null;
+      pessoa.experienciaProrrogacaoDias = contratoGuardaDias(pessoa.contratoTipo) ? (Number(document.getElementById('nat-experiencia-prorrogacao').value) || null) : null;
       pessoa.estabilidade = document.getElementById('nat-estabilidade').checked;
       pessoa.estabilidadeInicio = pessoa.estabilidade ? (document.getElementById('nat-estabilidade-inicio').value || null) : null;
       pessoa.estabilidadeFim = pessoa.estabilidade ? (document.getElementById('nat-estabilidade-fim').value || null) : null;
@@ -5894,8 +5900,8 @@
     pessoa.observacao = document.getElementById('edt-observacao').value.trim() || null;
     pessoa.status = document.getElementById('edt-status').value;
     pessoa.contratoTipo = document.getElementById('edt-contrato-tipo').value;
-    pessoa.experienciaDuracaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? Number(document.getElementById('edt-experiencia-duracao').value) : null;
-    pessoa.experienciaProrrogacaoDias = contratoTemExperiencia(pessoa.contratoTipo) ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
+    pessoa.experienciaDuracaoDias = contratoGuardaDias(pessoa.contratoTipo) ? (Number(document.getElementById('edt-experiencia-duracao').value) || null) : null;
+    pessoa.experienciaProrrogacaoDias = contratoGuardaDias(pessoa.contratoTipo) ? (Number(document.getElementById('edt-experiencia-prorrogacao').value) || null) : null;
 
     cloudPut(appState).catch(function(err){ console.error('Erro ao salvar colaborador:', err); });
     refreshAtivosView();
