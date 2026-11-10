@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-06-34</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-10-35</div>
     </div>
   </aside>
 
@@ -2234,7 +2234,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-06-34 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-10-35 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -2573,8 +2573,24 @@
         a.status = 'ATIVO';
         mudou = true;
       }
+      if(feriasJaTerminaram(a)){
+        a.status = 'ATIVO';
+        mudou = true;
+      }
     });
     return mudou;
+  }
+
+  // Status FERIAS que ficou para trás: a pessoa tem férias lançadas, nenhuma cobre hoje
+  // nem começa depois de hoje, e a última já terminou (a pessoa voltou).
+  function feriasJaTerminaram(a){
+    if(a.status !== 'FERIAS') return false;
+    var d = new Date(); var hoje = d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+    var nome = normNome(a.nome);
+    var regs = (appState.ferias || []).filter(function(f){ return f.dataInicial && f.dataFinal && normNome(f.nome) === nome; });
+    if(!regs.length) return false;
+    var emCurso = regs.some(function(f){ return f.dataFinal >= hoje; });
+    return !emCurso;
   }
 
   function renderContratoCell(pessoa){
@@ -8354,7 +8370,7 @@
   // Colaboradores considerados nos cálculos: Ativos (como no sistema original, só status ATIVO).
   function benColaboradores(){
     return appState.ativos.map(function(a){
-      return { id: a.id, nome: a.nome, status: a.status || 'ATIVO', cpf: a.cpf || '', posto: a.posto || '', postoTrabalho: a.postoTrabalho || '', cargo: a.cargo || '',
+      return { id: a.id, nome: a.nome, status: feriasJaTerminaram(a) ? 'ATIVO' : (a.status || 'ATIVO'), cpf: a.cpf || '', posto: a.posto || '', postoTrabalho: a.postoTrabalho || '', cargo: a.cargo || '',
                admissao: a.admissao || null, jornada: a.jornada || '', contratoTipo: a.contratoTipo || '', empresa: a.empresa || '', supervisor: a.supervisor || '' };
     });
   }
