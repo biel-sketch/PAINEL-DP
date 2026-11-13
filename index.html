@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-10-35</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-13-36</div>
     </div>
   </aside>
 
@@ -2234,7 +2234,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-10-35 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-13-36 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -7766,6 +7766,7 @@
     });
     var todas = Promise.all(promessas).then(function(resultados){
       var falhas = resultados.filter(Boolean);
+      if(!falhas.length) ERRO_GRAVACAO_ATIVO = false;
       if(falhas.length){
         var e0 = falhas[0]; e0.falhas = falhas;
         mostrarErroGravacao(e0);
@@ -7775,13 +7776,20 @@
     return todas;
   }
 
+  // Erro de gravação fica na tela até a pessoa fechar ou até o próximo salvamento dar certo.
+  // Antes, o aviso sumia sozinho assim que o banco recusava a gravação e a tela voltava ao
+  // estado anterior — o registro "desaparecia" sem nenhuma mensagem.
+  var ERRO_GRAVACAO_ATIVO = false;
   function mostrarErroGravacao(err){
+    ERRO_GRAVACAO_ATIVO = true;
     console.error('Erro ao gravar no Firebase:', err);
     var banner = document.getElementById('global-error-banner');
     if(banner){
       banner.textContent = '⚠️ NÃO FOI POSSÍVEL SALVAR no banco' + (err && err.colecao ? ' (' + err.colecao + ')' : '') + ': ' +
-        ((err && (err.code || err.message)) || 'erro desconhecido') + '. Sua última alteração NÃO foi gravada — avise o suporte com esta mensagem.';
+        ((err && (err.code || err.message)) || 'erro desconhecido') + '. Sua última alteração NÃO foi gravada — avise o suporte com esta mensagem. (clique aqui para fechar)';
       banner.style.display = 'block';
+      banner.style.cursor = 'pointer';
+      banner.onclick = function(){ ERRO_GRAVACAO_ATIVO = false; banner.style.display = 'none'; banner.textContent = ''; };
     }
     try { setSyncIndicator('err', 'Erro ao salvar'); } catch(e){}
   }
@@ -7799,7 +7807,7 @@
 
   function processarSnapshot(cloud){
     var bannerInicial = document.getElementById('global-error-banner');
-    if(bannerInicial){ bannerInicial.style.display = 'none'; bannerInicial.textContent = ''; }
+    if(bannerInicial && !ERRO_GRAVACAO_ATIVO){ bannerInicial.style.display = 'none'; bannerInicial.textContent = ''; }
 
     // Foto "crua" do que o servidor mandou (antes de qualquer ajuste local): é a referência
     // para saber, na hora de salvar, quais coleções esta aba realmente alterou.
