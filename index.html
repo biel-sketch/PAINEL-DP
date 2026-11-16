@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-13-36</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-16-38</div>
     </div>
   </aside>
 
@@ -557,6 +557,8 @@
           <option value="EMPRESA" selected>Empresa</option>
           <option value="INSS">INSS</option>
         </select>
+        <label for="abs-filter-postotrab-top" style="font-size:11.5px;color:var(--text-dim);margin-left:10px;">Posto de trabalho:</label>
+        <select id="abs-filter-postotrab-top" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:220px;"><option value="">Todos</option></select>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -634,6 +636,8 @@
           <div style="display:flex;align-items:center;gap:8px;">
             <label for="abs-trend-visao" style="font-size:11.5px;color:var(--text-dim);">Visão:</label>
             <select id="abs-trend-visao" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"><option value="">Empresa Toda</option></select>
+            <label for="abs-trend-postotrab" style="font-size:11.5px;color:var(--text-dim);margin-left:8px;">Posto de trabalho:</label>
+            <select id="abs-trend-postotrab" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:240px;"><option value="">Todos</option></select>
           </div>
         </div>
         <div id="abs-trend-supervisor-aviso" style="display:none;font-size:11px;color:var(--amber);background:var(--amber-soft);padding:8px 16px;"></div>
@@ -736,6 +740,8 @@
           <option value="DETERMINADO">Determinado</option>
           <option value="INDETERMINADO" selected>Indeterminado</option>
         </select>
+        <label for="to-filter-postotrab-top" style="font-size:11.5px;color:var(--text-dim);margin-left:6px;">Posto de trabalho:</label>
+        <select id="to-filter-postotrab-top" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:220px;"><option value="">Todos</option></select>
         <label for="to-periodo-select" style="font-size:11.5px;color:var(--text-dim);margin-left:6px;">Período:</label>
         <select id="to-periodo-select" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"></select>
       </div>
@@ -788,6 +794,8 @@
           <div style="display:flex;align-items:center;gap:8px;">
             <label for="to-trend-visao" style="font-size:11.5px;color:var(--text-dim);">Visão:</label>
             <select id="to-trend-visao" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"><option value="">Empresa Toda</option></select>
+            <label for="to-trend-postotrab" style="font-size:11.5px;color:var(--text-dim);margin-left:8px;">Posto de trabalho:</label>
+            <select id="to-trend-postotrab" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:240px;"><option value="">Todos</option></select>
           </div>
         </div>
         <div id="to-trend-supervisor-aviso" style="display:none;font-size:11px;color:var(--amber);background:var(--amber-soft);padding:8px 16px;"></div>
@@ -2234,7 +2242,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-13-36 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-16-38 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -6060,7 +6068,7 @@
     return n;
   }
 
-  function computeHorasPrevistasAtivosMes(mesNome, supervisorFiltro, areaFiltro){
+  function computeHorasPrevistasAtivosMes(mesNome, supervisorFiltro, areaFiltro, postoTrabFiltro){
     var mesIdx = MESES_ORDEM.indexOf(mesNome);
     if(mesIdx < 0) return 0;
     var ano = 2026;
@@ -6068,6 +6076,7 @@
 
     appState.ativos.forEach(function(a){
       if(supervisorFiltro && (a.supervisor||'').trim() !== supervisorFiltro) return;
+      if(postoTrabFiltro && (a.postoTrabalho||'').trim() !== postoTrabFiltro) return;
       if(!pertenceArea(a.posto, areaFiltro)) return;
       var horasDia = horasPorJornada(a.jornada);
       if(horasDia === null) horasDia = 7.2; // fallback se a jornada não for reconhecida
@@ -6076,6 +6085,7 @@
 
     appState.inativos.forEach(function(i){
       if(supervisorFiltro && (i.supervisor||'').trim() !== supervisorFiltro) return;
+      if(postoTrabFiltro && (i.postoTrabalho||'').trim() !== postoTrabFiltro) return;
       if(!pertenceArea(i.posto, areaFiltro)) return;
       if(!i.desligamento) return;
       var dtDeslig = new Date(i.desligamento + 'T00:00:00');
@@ -6112,6 +6122,34 @@
     return Math.round(custo * 100) / 100;
   }
 
+  // Posto de trabalho de cada colaborador (Ativos e, se houver, Inativos), para filtrar
+  // absenteísmo/turnover: os eventos não guardam esse campo, então ele vem do cadastro pelo nome.
+  function mapaPostoTrabalhoPorNome(){
+    var m = {};
+    appState.inativos.forEach(function(i){ if(i.postoTrabalho && String(i.postoTrabalho).trim()) m[normNome(i.nome)] = String(i.postoTrabalho).trim(); });
+    appState.ativos.forEach(function(a){ if(a.postoTrabalho && String(a.postoTrabalho).trim()) m[normNome(a.nome)] = String(a.postoTrabalho).trim(); });
+    return m;
+  }
+  function postoTrabTopo(prefixo){
+    var el = document.getElementById(prefixo + '-filter-postotrab-top');
+    return el ? el.value : '';
+  }
+  function headcountFiltrado(supervisor, postoTrab, area){
+    return appState.ativos.filter(function(a){
+      return (!supervisor || (a.supervisor||'').trim() === supervisor) &&
+             (!postoTrab || (a.postoTrabalho||'').trim() === postoTrab) &&
+             pertenceArea(a.posto, area);
+    }).length;
+  }
+  function avisoFiltroTrend(supervisor, postoTrab){
+    var hc = headcountFiltrado(supervisor, postoTrab, '');
+    var partes = [];
+    if(supervisor) partes.push('equipe de ' + supervisor);
+    if(postoTrab) partes.push('posto de trabalho ' + postoTrab);
+    return '⚠️ % calculado usando o headcount ATUAL de ' + partes.join(' / ') + ' (' + hc + ' colaborador' + (hc===1?'':'es') + ') aplicado a todos os meses — não temos o histórico de quantas pessoas havia em cada mês.' +
+      (postoTrab ? ' O posto de trabalho vem do cadastro do colaborador pelo nome: eventos de quem não tem posto de trabalho cadastrado (ex.: ex-colaboradores antigos) não entram neste filtro.' : '');
+  }
+
   function computeHeadcountPorSupervisor(supervisor){
     return appState.ativos.filter(function(a){ return (a.supervisor||'').trim() === supervisor; }).length;
   }
@@ -6122,25 +6160,29 @@
     var sel = document.getElementById('abs-filter-inss-top');
     var valor = sel ? sel.value : '';
     var area = getAbsArea();
-    if(!valor && !area) return appState.absenteismo;
+    var ptTopo = postoTrabTopo('abs');
+    if(!valor && !area && !ptTopo) return appState.absenteismo;
+    var mapaPT = ptTopo ? mapaPostoTrabalhoPorNome() : null;
     return appState.absenteismo.filter(function(e){
-      return (!valor || (e.inss ? 'INSS' : 'EMPRESA') === valor) && pertenceArea(e.posto, area);
+      return (!valor || (e.inss ? 'INSS' : 'EMPRESA') === valor) && pertenceArea(e.posto, area) &&
+             (!ptTopo || mapaPT[normNome(e.nome)] === ptTopo);
     });
   }
 
-  function computeAbsMonthStats(mes, supervisorFiltro){
+  function computeAbsMonthStats(mes, supervisorFiltro, postoTrabFiltro){
+    postoTrabFiltro = postoTrabFiltro || postoTrabTopo('abs'); // o filtro do topo também vale para o denominador (headcount/horas)
+    var mapaPT = postoTrabFiltro ? mapaPostoTrabalhoPorNome() : null;
     var eventosMes = getAbsenteismoBase().filter(function(e){
-      return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro);
+      return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro) &&
+             (!postoTrabFiltro || mapaPT[normNome(e.nome)] === postoTrabFiltro);
     });
     var horasTotais;
     var refHistorico = ABS_HORAS_TOTAIS_MENSAL.find(function(h){ return h.mes === mes; });
     if(refHistorico){
       // Mesma fórmula da planilha (Cadastros): headcount x horas/dia x dias úteis.
       var area = getAbsArea();
-      if(supervisorFiltro){
-        var headcountSupervisor = appState.ativos.filter(function(a){
-          return (a.supervisor||'').trim() === supervisorFiltro && pertenceArea(a.posto, area);
-        }).length;
+      if(supervisorFiltro || postoTrabFiltro){
+        var headcountSupervisor = headcountFiltrado(supervisorFiltro, postoTrabFiltro, area);
         horasTotais = headcountSupervisor * refHistorico.diasUteis * refHistorico.horasDia;
       } else {
         var hcBase = refHistorico.headcount;
@@ -6150,7 +6192,7 @@
       }
     } else {
       // Mês sem linha em ABS_HORAS_TOTAIS_MENSAL — soma a jornada real dos ativos.
-      horasTotais = computeHorasPrevistasAtivosMes(mes, supervisorFiltro || null, getAbsArea());
+      horasTotais = computeHorasPrevistasAtivosMes(mes, supervisorFiltro || null, getAbsArea(), postoTrabFiltro || null);
     }
     var horasPerdidas = eventosMes.reduce(function(s, e){ return s + (Number(e.horasPerdidas) || 0); }, 0);
     var custoTotal = eventosMes.reduce(function(s, e){ return s + calcCustoEvento(e, mes); }, 0);
@@ -6158,7 +6200,21 @@
     return { mes: mes, horasTotais: horasTotais, horasPerdidas: horasPerdidas, custoTotal: custoTotal, pct: pct, meta: 0.04 };
   }
 
+  function populateTrendPostoTrabSelects(){
+    var postos = Array.from(new Set(appState.ativos.concat(appState.inativos).map(function(a){ return (a.postoTrabalho||'').trim(); }).filter(Boolean))).sort();
+    ['abs','to'].forEach(function(p){
+      popularSelectFiltro(document.getElementById(p + '-filter-postotrab-top'), postos, 'Todos');
+      var sel = document.getElementById(p + '-trend-postotrab');
+      popularSelectFiltro(sel, postos, 'Todos');
+      if(sel.getAttribute('data-bound') !== 'true'){
+        sel.setAttribute('data-bound', 'true');
+        sel.addEventListener('change', p === 'abs' ? renderAbsTrend : renderToTrend);
+      }
+    });
+  }
+
   function populateTrendVisaoSelects(){
+    populateTrendPostoTrabSelects();
     var supervisoresAbs = Array.from(new Set(
       appState.ativos.map(function(a){ return (a.supervisor||'').trim(); })
         .concat(appState.absenteismo.map(function(e){ return (e.supervisor||'').trim(); }))
@@ -6187,8 +6243,12 @@
   function renderAbsTrend(){
     populateTrendVisaoSelects();
     var supervisorFiltro = document.getElementById('abs-trend-visao').value;
+    var postoTrabFiltro = document.getElementById('abs-trend-postotrab').value || postoTrabTopo('abs');
     var avisoEl = document.getElementById('abs-trend-supervisor-aviso');
-    if(supervisorFiltro){
+    if(postoTrabFiltro){
+      avisoEl.textContent = avisoFiltroTrend(supervisorFiltro, postoTrabFiltro);
+      avisoEl.style.display = 'block';
+    } else if(supervisorFiltro){
       var hc = computeHeadcountPorSupervisor(supervisorFiltro);
       avisoEl.textContent = '⚠️ % calculado usando o headcount ATUAL da equipe de ' + supervisorFiltro + ' (' + hc + ' colaborador' + (hc===1?'':'es') + ') aplicado a todos os meses — não temos o histórico de quantas pessoas ele supervisionava em cada mês passado, então esse número é uma aproximação.';
       avisoEl.style.display = 'block';
@@ -6199,7 +6259,7 @@
     var tbody = document.getElementById('abs-trend-tbody');
     var mesesComDados = MESES_ORDEM.slice(0, MESES_ORDEM.indexOf(MES_ATUAL) + 1);
     var linhasMeses = mesesComDados.map(function(mes){
-      var s = computeAbsMonthStats(mes, supervisorFiltro);
+      var s = computeAbsMonthStats(mes, supervisorFiltro, postoTrabFiltro);
       var dentro = s.pct !== null && s.pct <= s.meta;
       var pillClass = s.pct === null ? '' : (dentro ? 'teal' : 'red');
       return '<tr>' +
@@ -6213,7 +6273,7 @@
       '</tr>';
     }).join('');
 
-    var sAno = computeAbsPeriodStats('ANO', supervisorFiltro);
+    var sAno = computeAbsPeriodStats('ANO', supervisorFiltro, postoTrabFiltro);
     var dentroAno = sAno.pct !== null && sAno.pct <= sAno.meta;
     var pillClassAno = sAno.pct === null ? '' : (dentroAno ? 'teal' : 'red');
     var linhaAno = '<tr style="background:#0D1526;border-top:2px solid var(--line-strong);font-weight:600;">' +
@@ -6230,6 +6290,7 @@
   }
 
   function populateAbsFilters(){
+    populateTrendPostoTrabSelects();
     var mesSel = document.getElementById('abs-filter-mes');
     var postoSel = document.getElementById('abs-filter-posto');
     var supervisorSel = document.getElementById('abs-filter-supervisor');
@@ -6272,13 +6333,13 @@
     return base.filter(function(e){ return e.mes === periodo; });
   }
 
-  function computeAbsPeriodStats(periodo, supervisorFiltro){
+  function computeAbsPeriodStats(periodo, supervisorFiltro, postoTrabFiltro){
     if(periodo === 'ANO'){
       // Planilha (Prazos): Absenteísmo geral do ano = MÉDIA dos % mensais (meses com % > 0).
       var meses = getMesesDisponiveis();
       var horasTotais = 0, horasPerdidas = 0, custoTotal = 0, somaPct = 0, qtdPct = 0;
       meses.forEach(function(m){
-        var s = computeAbsMonthStats(m, supervisorFiltro);
+        var s = computeAbsMonthStats(m, supervisorFiltro, postoTrabFiltro);
         horasTotais += s.horasTotais; horasPerdidas += s.horasPerdidas; custoTotal += s.custoTotal;
         var fechado = ABS_HORAS_TOTAIS_MENSAL.some(function(h){ return h.mes === m; });
         if(fechado && s.pct !== null && s.pct > 0){ somaPct += s.pct; qtdPct++; }
@@ -6286,7 +6347,7 @@
       return { horasTotais:horasTotais, horasPerdidas:horasPerdidas, custoTotal:custoTotal,
                pct: qtdPct>0 ? somaPct/qtdPct : null, meta:0.04 };
     }
-    return computeAbsMonthStats(periodo, supervisorFiltro);
+    return computeAbsMonthStats(periodo, supervisorFiltro, postoTrabFiltro);
   }
 
   // Tempo médio de afastamento (dias) por ocorrência, no período
@@ -6467,8 +6528,11 @@
     var tipo = document.getElementById('abs-filter-tipo').value;
     var inssFiltro = document.getElementById('abs-filter-inss-top').value;
     var areaFiltro = getAbsArea();
+    var ptTopoAbs = postoTrabTopo('abs');
+    var mapaPTAbs = ptTopoAbs ? mapaPostoTrabalhoPorNome() : null;
     var filtered = appState.absenteismo.filter(function(e){
       var responsavel = e.inss ? 'INSS' : 'EMPRESA';
+      if(ptTopoAbs && mapaPTAbs[normNome(e.nome)] !== ptTopoAbs) return false;
       return pertenceArea(e.posto, areaFiltro) && (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
              (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
              (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo) &&
@@ -6836,7 +6900,7 @@
   ['abs-filter-mes','abs-filter-posto','abs-filter-supervisor','abs-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyAbsFilters); });
   // O filtro de Responsável (Empresa/INSS) é global da aba: além da tabela,
   // recalcula cards, gráficos e tendência mensal.
-  ['abs-filter-inss-top','abs-filter-area'].forEach(function(id){
+  ['abs-filter-inss-top','abs-filter-area','abs-filter-postotrab-top'].forEach(function(id){
     document.getElementById(id).addEventListener('change', function(){
       renderAbsStatsCards();
       renderAbsTrend();
@@ -7116,25 +7180,29 @@
     var contrato = contratoSel ? contratoSel.value : '';
     var areaSel = document.getElementById('to-filter-area');
     var area = areaSel ? areaSel.value : '';
-    if(!contrato && !area) return appState.turnover;
+    var ptTopo = postoTrabTopo('to');
+    if(!contrato && !area && !ptTopo) return appState.turnover;
+    var mapaPT = ptTopo ? mapaPostoTrabalhoPorNome() : null;
     return appState.turnover.filter(function(e){
-      return (!contrato || (e.contrato||'').trim().toUpperCase() === contrato) && pertenceArea(e.posto, area);
+      return (!contrato || (e.contrato||'').trim().toUpperCase() === contrato) && pertenceArea(e.posto, area) &&
+             (!ptTopo || mapaPT[normNome(e.nome)] === ptTopo);
     });
   }
 
-  function computeTurnoverMonthStats(mes, supervisorFiltro){
+  function computeTurnoverMonthStats(mes, supervisorFiltro, postoTrabFiltro){
+    postoTrabFiltro = postoTrabFiltro || postoTrabTopo('to'); // o filtro do topo também vale para o denominador (headcount)
+    var mapaPT = postoTrabFiltro ? mapaPostoTrabalhoPorNome() : null;
     var eventosMes = getTurnoverBase().filter(function(e){
-      return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro);
+      return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro) &&
+             (!postoTrabFiltro || mapaPT[normNome(e.nome)] === postoTrabFiltro);
     });
     var admissoes = eventosMes.filter(function(e){ return e.tipo === 'Admissão'; }).length;
     var demissoes = eventosMes.filter(function(e){ return e.tipo === 'Demissão'; }).length;
     var areaSelTo = document.getElementById('to-filter-area');
     var areaTo = areaSelTo ? areaSelTo.value : '';
     var headcount;
-    if(supervisorFiltro){
-      headcount = appState.ativos.filter(function(a){
-        return (a.supervisor||'').trim() === supervisorFiltro && pertenceArea(a.posto, areaTo);
-      }).length;
+    if(supervisorFiltro || postoTrabFiltro){
+      headcount = headcountFiltrado(supervisorFiltro, postoTrabFiltro, areaTo);
     } else if(!HEADCOUNT_MENSAL.some(function(h){ return h.mes === mes; })){
       headcount = appState.ativos.filter(function(a){ return pertenceArea(a.posto, areaTo); }).length;
     } else {
@@ -7178,8 +7246,12 @@
     populateTrendVisaoSelects();
     renderComparativoContratosTurnover();
     var supervisorFiltro = document.getElementById('to-trend-visao').value;
+    var postoTrabFiltro = document.getElementById('to-trend-postotrab').value || postoTrabTopo('to');
     var avisoEl = document.getElementById('to-trend-supervisor-aviso');
-    if(supervisorFiltro){
+    if(postoTrabFiltro){
+      avisoEl.textContent = avisoFiltroTrend(supervisorFiltro, postoTrabFiltro);
+      avisoEl.style.display = 'block';
+    } else if(supervisorFiltro){
       var hc = computeHeadcountPorSupervisor(supervisorFiltro);
       avisoEl.textContent = '⚠️ % calculado usando o headcount ATUAL da equipe de ' + supervisorFiltro + ' (' + hc + ' colaborador' + (hc===1?'':'es') + ') aplicado a todos os meses — não temos o histórico de quantas pessoas ele supervisionava em cada mês passado, então esse número é uma aproximação.';
       avisoEl.style.display = 'block';
@@ -7190,7 +7262,7 @@
     var tbody = document.getElementById('to-trend-tbody');
     var mesesComDados = MESES_ORDEM.slice(0, MESES_ORDEM.indexOf(MES_ATUAL) + 1);
     var linhasMeses = mesesComDados.map(function(mes){
-      var s = computeTurnoverMonthStats(mes, supervisorFiltro);
+      var s = computeTurnoverMonthStats(mes, supervisorFiltro, postoTrabFiltro);
       var dentro = s.pct !== null && s.pct <= s.meta;
       var pillClass = s.pct === null ? '' : (dentro ? 'teal' : 'red');
       return '<tr>' +
@@ -7212,7 +7284,7 @@
     var somaAdmissoes = 0, somaDemissoes = 0, somaHeadcount = 0;
     var somaPct = 0, countPctValidos = 0;
     mesesComDados.forEach(function(mes){
-      var s = computeTurnoverMonthStats(mes, supervisorFiltro);
+      var s = computeTurnoverMonthStats(mes, supervisorFiltro, postoTrabFiltro);
       somaAdmissoes += s.admissoes; somaDemissoes += s.demissoes; somaHeadcount += s.headcount;
       if(s.pct !== null){ somaPct += s.pct; countPctValidos++; }
     });
@@ -7235,6 +7307,7 @@
   }
 
   function populateToFilters(){
+    populateTrendPostoTrabSelects();
     var mesSel = document.getElementById('to-filter-mes');
     var postoSel = document.getElementById('to-filter-posto');
     var supervisorSel = document.getElementById('to-filter-supervisor');
@@ -7354,7 +7427,10 @@
     var tipo = document.getElementById('to-filter-tipo').value;
     var contrato = document.getElementById('to-filter-contrato-top').value;
     var areaFiltroTo = document.getElementById('to-filter-area').value;
+    var ptTopoTo = postoTrabTopo('to');
+    var mapaPTTo = ptTopoTo ? mapaPostoTrabalhoPorNome() : null;
     var filtered = appState.turnover.filter(function(e){
+      if(ptTopoTo && mapaPTTo[normNome(e.nome)] !== ptTopoTo) return false;
       return pertenceArea(e.posto, areaFiltroTo) && (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
              (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
              (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo) &&
@@ -7434,7 +7510,7 @@
   ['to-search'].forEach(function(id){ document.getElementById(id).addEventListener('input', applyToFilters); });
   ['to-filter-mes','to-filter-posto','to-filter-supervisor','to-filter-tipo'].forEach(function(id){ document.getElementById(id).addEventListener('change', applyToFilters); });
   // O filtro de Contrato é global da aba: além da tabela, recalcula cards, gráficos, tendência e comparativo.
-  ['to-filter-contrato-top','to-filter-area'].forEach(function(id){
+  ['to-filter-contrato-top','to-filter-area','to-filter-postotrab-top'].forEach(function(id){
     document.getElementById(id).addEventListener('change', function(){
       renderToStatsCards();
       refreshTurnoverCharts();
