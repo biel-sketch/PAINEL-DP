@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-16-38</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-16-39</div>
     </div>
   </aside>
 
@@ -557,7 +557,7 @@
           <option value="EMPRESA" selected>Empresa</option>
           <option value="INSS">INSS</option>
         </select>
-        <label for="abs-filter-postotrab-top" style="font-size:11.5px;color:var(--text-dim);margin-left:10px;">Posto de trabalho:</label>
+        <label for="abs-filter-postotrab-top" style="font-size:11.5px;color:var(--text-dim);margin-left:10px;">Cliente:</label>
         <select id="abs-filter-postotrab-top" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:220px;"><option value="">Todos</option></select>
       </div>
 
@@ -636,7 +636,7 @@
           <div style="display:flex;align-items:center;gap:8px;">
             <label for="abs-trend-visao" style="font-size:11.5px;color:var(--text-dim);">Visão:</label>
             <select id="abs-trend-visao" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"><option value="">Empresa Toda</option></select>
-            <label for="abs-trend-postotrab" style="font-size:11.5px;color:var(--text-dim);margin-left:8px;">Posto de trabalho:</label>
+            <label for="abs-trend-postotrab" style="font-size:11.5px;color:var(--text-dim);margin-left:8px;">Cliente:</label>
             <select id="abs-trend-postotrab" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:240px;"><option value="">Todos</option></select>
           </div>
         </div>
@@ -740,7 +740,7 @@
           <option value="DETERMINADO">Determinado</option>
           <option value="INDETERMINADO" selected>Indeterminado</option>
         </select>
-        <label for="to-filter-postotrab-top" style="font-size:11.5px;color:var(--text-dim);margin-left:6px;">Posto de trabalho:</label>
+        <label for="to-filter-postotrab-top" style="font-size:11.5px;color:var(--text-dim);margin-left:6px;">Cliente:</label>
         <select id="to-filter-postotrab-top" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:220px;"><option value="">Todos</option></select>
         <label for="to-periodo-select" style="font-size:11.5px;color:var(--text-dim);margin-left:6px;">Período:</label>
         <select id="to-periodo-select" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"></select>
@@ -794,7 +794,7 @@
           <div style="display:flex;align-items:center;gap:8px;">
             <label for="to-trend-visao" style="font-size:11.5px;color:var(--text-dim);">Visão:</label>
             <select id="to-trend-visao" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;"><option value="">Empresa Toda</option></select>
-            <label for="to-trend-postotrab" style="font-size:11.5px;color:var(--text-dim);margin-left:8px;">Posto de trabalho:</label>
+            <label for="to-trend-postotrab" style="font-size:11.5px;color:var(--text-dim);margin-left:8px;">Cliente:</label>
             <select id="to-trend-postotrab" style="padding:8px 12px;background:#0D1526;border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12.5px;font-weight:500;max-width:240px;"><option value="">Todos</option></select>
           </div>
         </div>
@@ -2242,7 +2242,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-16-38 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-16-39 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -6076,7 +6076,7 @@
 
     appState.ativos.forEach(function(a){
       if(supervisorFiltro && (a.supervisor||'').trim() !== supervisorFiltro) return;
-      if(postoTrabFiltro && (a.postoTrabalho||'').trim() !== postoTrabFiltro) return;
+      if(postoTrabFiltro && (a.posto||'').trim() !== postoTrabFiltro) return;
       if(!pertenceArea(a.posto, areaFiltro)) return;
       var horasDia = horasPorJornada(a.jornada);
       if(horasDia === null) horasDia = 7.2; // fallback se a jornada não for reconhecida
@@ -6085,7 +6085,7 @@
 
     appState.inativos.forEach(function(i){
       if(supervisorFiltro && (i.supervisor||'').trim() !== supervisorFiltro) return;
-      if(postoTrabFiltro && (i.postoTrabalho||'').trim() !== postoTrabFiltro) return;
+      if(postoTrabFiltro && (i.posto||'').trim() !== postoTrabFiltro) return;
       if(!pertenceArea(i.posto, areaFiltro)) return;
       if(!i.desligamento) return;
       var dtDeslig = new Date(i.desligamento + 'T00:00:00');
@@ -6137,7 +6137,7 @@
   function headcountFiltrado(supervisor, postoTrab, area){
     return appState.ativos.filter(function(a){
       return (!supervisor || (a.supervisor||'').trim() === supervisor) &&
-             (!postoTrab || (a.postoTrabalho||'').trim() === postoTrab) &&
+             (!postoTrab || (a.posto||'').trim() === postoTrab) &&
              pertenceArea(a.posto, area);
     }).length;
   }
@@ -6145,9 +6145,9 @@
     var hc = headcountFiltrado(supervisor, postoTrab, '');
     var partes = [];
     if(supervisor) partes.push('equipe de ' + supervisor);
-    if(postoTrab) partes.push('posto de trabalho ' + postoTrab);
+    if(postoTrab) partes.push('cliente ' + postoTrab);
     return '⚠️ % calculado usando o headcount ATUAL de ' + partes.join(' / ') + ' (' + hc + ' colaborador' + (hc===1?'':'es') + ') aplicado a todos os meses — não temos o histórico de quantas pessoas havia em cada mês.' +
-      (postoTrab ? ' O posto de trabalho vem do cadastro do colaborador pelo nome: eventos de quem não tem posto de trabalho cadastrado (ex.: ex-colaboradores antigos) não entram neste filtro.' : '');
+      (postoTrab ? '' : '');
   }
 
   function computeHeadcountPorSupervisor(supervisor){
@@ -6162,19 +6162,17 @@
     var area = getAbsArea();
     var ptTopo = postoTrabTopo('abs');
     if(!valor && !area && !ptTopo) return appState.absenteismo;
-    var mapaPT = ptTopo ? mapaPostoTrabalhoPorNome() : null;
     return appState.absenteismo.filter(function(e){
       return (!valor || (e.inss ? 'INSS' : 'EMPRESA') === valor) && pertenceArea(e.posto, area) &&
-             (!ptTopo || mapaPT[normNome(e.nome)] === ptTopo);
+             (!ptTopo || (e.posto||'').trim() === ptTopo);
     });
   }
 
   function computeAbsMonthStats(mes, supervisorFiltro, postoTrabFiltro){
     postoTrabFiltro = postoTrabFiltro || postoTrabTopo('abs'); // o filtro do topo também vale para o denominador (headcount/horas)
-    var mapaPT = postoTrabFiltro ? mapaPostoTrabalhoPorNome() : null;
     var eventosMes = getAbsenteismoBase().filter(function(e){
       return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro) &&
-             (!postoTrabFiltro || mapaPT[normNome(e.nome)] === postoTrabFiltro);
+             (!postoTrabFiltro || (e.posto||'').trim() === postoTrabFiltro);
     });
     var horasTotais;
     var refHistorico = ABS_HORAS_TOTAIS_MENSAL.find(function(h){ return h.mes === mes; });
@@ -6201,7 +6199,7 @@
   }
 
   function populateTrendPostoTrabSelects(){
-    var postos = Array.from(new Set(appState.ativos.concat(appState.inativos).map(function(a){ return (a.postoTrabalho||'').trim(); }).filter(Boolean))).sort();
+    var postos = Array.from(new Set(appState.ativos.concat(appState.inativos, appState.absenteismo, appState.turnover).map(function(a){ return (a.posto||'').trim(); }).filter(Boolean))).sort();
     ['abs','to'].forEach(function(p){
       popularSelectFiltro(document.getElementById(p + '-filter-postotrab-top'), postos, 'Todos');
       var sel = document.getElementById(p + '-trend-postotrab');
@@ -6529,10 +6527,9 @@
     var inssFiltro = document.getElementById('abs-filter-inss-top').value;
     var areaFiltro = getAbsArea();
     var ptTopoAbs = postoTrabTopo('abs');
-    var mapaPTAbs = ptTopoAbs ? mapaPostoTrabalhoPorNome() : null;
     var filtered = appState.absenteismo.filter(function(e){
       var responsavel = e.inss ? 'INSS' : 'EMPRESA';
-      if(ptTopoAbs && mapaPTAbs[normNome(e.nome)] !== ptTopoAbs) return false;
+      if(ptTopoAbs && (e.posto||'').trim() !== ptTopoAbs) return false;
       return pertenceArea(e.posto, areaFiltro) && (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
              (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
              (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo) &&
@@ -7182,19 +7179,17 @@
     var area = areaSel ? areaSel.value : '';
     var ptTopo = postoTrabTopo('to');
     if(!contrato && !area && !ptTopo) return appState.turnover;
-    var mapaPT = ptTopo ? mapaPostoTrabalhoPorNome() : null;
     return appState.turnover.filter(function(e){
       return (!contrato || (e.contrato||'').trim().toUpperCase() === contrato) && pertenceArea(e.posto, area) &&
-             (!ptTopo || mapaPT[normNome(e.nome)] === ptTopo);
+             (!ptTopo || (e.posto||'').trim() === ptTopo);
     });
   }
 
   function computeTurnoverMonthStats(mes, supervisorFiltro, postoTrabFiltro){
     postoTrabFiltro = postoTrabFiltro || postoTrabTopo('to'); // o filtro do topo também vale para o denominador (headcount)
-    var mapaPT = postoTrabFiltro ? mapaPostoTrabalhoPorNome() : null;
     var eventosMes = getTurnoverBase().filter(function(e){
       return e.mes === mes && (!supervisorFiltro || (e.supervisor||'').trim() === supervisorFiltro) &&
-             (!postoTrabFiltro || mapaPT[normNome(e.nome)] === postoTrabFiltro);
+             (!postoTrabFiltro || (e.posto||'').trim() === postoTrabFiltro);
     });
     var admissoes = eventosMes.filter(function(e){ return e.tipo === 'Admissão'; }).length;
     var demissoes = eventosMes.filter(function(e){ return e.tipo === 'Demissão'; }).length;
@@ -7428,9 +7423,8 @@
     var contrato = document.getElementById('to-filter-contrato-top').value;
     var areaFiltroTo = document.getElementById('to-filter-area').value;
     var ptTopoTo = postoTrabTopo('to');
-    var mapaPTTo = ptTopoTo ? mapaPostoTrabalhoPorNome() : null;
     var filtered = appState.turnover.filter(function(e){
-      if(ptTopoTo && mapaPTTo[normNome(e.nome)] !== ptTopoTo) return false;
+      if(ptTopoTo && (e.posto||'').trim() !== ptTopoTo) return false;
       return pertenceArea(e.posto, areaFiltroTo) && (!search || e.nome.toLowerCase().indexOf(search) !== -1) &&
              (!mes || e.mes === mes) && (!posto || e.posto === posto) &&
              (!supervisor || (e.supervisor||'').trim() === supervisor) && (!tipo || e.tipo === tipo) &&
