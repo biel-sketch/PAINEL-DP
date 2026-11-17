@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-16-39</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-17-40</div>
     </div>
   </aside>
 
@@ -1293,6 +1293,17 @@
 
         <div class="panel" style="padding:22px;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+            <span class="panel-title" style="font-size:15px;">Completar dados pessoais</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;">Escolha as planilhas (Turnover, Absenteísmo, lista de Ativos). O painel preenche só os campos <b>vazios</b> de Ativos, Inativos e TurnOver (nascimento, sexo, empresa, salário, CPF, valores de rescisão). Nada que já está preenchido é alterado, e você confere o resumo antes de aplicar.</div>
+          <button class="btn" id="btn-completar-dados" style="background:var(--amber);color:#2b1c00;border:none;">
+            Escolher planilhas (.xlsx / .xlsm)
+          </button>
+        </div>
+
+        <div class="panel" style="padding:22px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
             <span class="panel-title" style="font-size:15px;">Entrevistas de Desligamento</span>
           </div>
@@ -2242,7 +2253,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-16-39 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-17-40 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -5327,27 +5338,101 @@
     });
   }
 
+  // Reúne, por nome, tudo o que o painel já sabe sobre cada pessoa (Ativos, Desligamento em
+  // andamento, Inativos, TurnOver e Absenteísmo). A ordem importa: a primeira fonte com o dado
+  // vence. Serve para os relatórios não saírem com campo vazio quando o dado existe em outra aba.
+  function montarPerfisPorNome(){
+    var P = {};
+    function put(nome, campos){
+      var k = normNome(nome); if(!k) return;
+      var p = P[k] || (P[k] = {});
+      Object.keys(campos).forEach(function(c){
+        var v = campos[c];
+        if(v === null || v === undefined || v === '') return;
+        if(c === 'salario' && !(Number(v) > 0)) return;
+        if(p[c] === undefined || p[c] === null || p[c] === '') p[c] = v;
+      });
+    }
+    var CAMPOS = ['cpf','dataNascimento','sexo','empresa','salario','jornada','turno','temFilhos','admissao','supervisor','cargo','posto','postoTrabalho'];
+    function so(o){ var r = {}; CAMPOS.forEach(function(c){ r[c] = o[c]; }); return r; }
+    appState.ativos.forEach(function(a){ put(a.nome, so(a)); });
+    appState.desligamentosAndamento.forEach(function(d){ if(d.ativoOriginal) put(d.nome, so(d.ativoOriginal)); put(d.nome, so(d)); });
+    appState.inativos.forEach(function(i){ put(i.nome, so(i)); });
+    appState.turnover.forEach(function(e){ put(e.nome, { sexo: e.sexo, admissao: e.admissao, supervisor: e.supervisor, cargo: e.cargo, posto: e.posto }); });
+    appState.absenteismo.forEach(function(e){ put(e.nome, { sexo: e.sexo, salario: e.salario, admissao: e.admissaoColaborador, supervisor: e.supervisor, cargo: e.cargo, posto: e.posto }); });
+    return P;
+  }
+  function diasEntreISO(ini, fim){
+    if(!ini || !fim) return '';
+    var d = Math.round((new Date(fim + 'T00:00:00') - new Date(ini + 'T00:00:00')) / 86400000);
+    return isNaN(d) || d < 0 ? '' : d;
+  }
+  function idadeNaData(nasc, ref){
+    if(!nasc) return '';
+    var n = new Date(nasc + 'T00:00:00'), r = ref ? new Date(ref + 'T00:00:00') : new Date();
+    if(isNaN(n) || isNaN(r)) return '';
+    var id = r.getFullYear() - n.getFullYear();
+    if(r.getMonth() < n.getMonth() || (r.getMonth() === n.getMonth() && r.getDate() < n.getDate())) id--;
+    return id >= 0 && id < 100 ? id : '';
+  }
+  // Lista, em texto, o que ainda não existe em NENHUMA aba nem planilha importada.
+  function dadosPendentes(l){
+    var f = [];
+    if(!l['CPF']) f.push('CPF');
+    if(!l['Data de Nascimento']) f.push('Nascimento');
+    if(!l['Sexo']) f.push('Sexo');
+    if(!l['Empresa']) f.push('Empresa');
+    if(!(Number(l['Salário']) > 0)) f.push('Salário');
+    return f.join(', ');
+  }
+
   function prepararExportTurnover(){
+    var P = montarPerfisPorNome();
+    var inativosPorNome = {};
+    appState.inativos.forEach(function(i){ (inativosPorNome[normNome(i.nome)] = inativosPorNome[normNome(i.nome)] || []).push(i); });
+    var motivoLabel = {COLABORADOR:'Pedido do Colaborador', EMPRESA:'Pedido da Empresa', ABANDONO:'Abandono'};
     return appState.turnover.map(function(e){
-      return {
+      var p = P[normNome(e.nome)] || {};
+      var dataEvento = e.tipo === 'Admissão' ? e.admissao : e.demissao;
+      var admissao = e.admissao || p.admissao || '';
+      // dados financeiros da rescisão: do próprio evento ou do cadastro do inativo (mesma pessoa e data)
+      var ina = (inativosPorNome[normNome(e.nome)] || []).filter(function(i){ return !e.demissao || i.desligamento === e.demissao; })[0] || {};
+      var linha = {
         'Nome': e.nome,
-        'Posto': e.posto,
-        'Cargo': e.cargo,
+        'CPF': p.cpf ? formatCPF(p.cpf) : '',
+        'Data de Nascimento': p.dataNascimento ? formatDateBR(p.dataNascimento) : '',
+        'Idade (na data do evento)': idadeNaData(p.dataNascimento, dataEvento),
+        'Sexo': e.sexo || p.sexo || '',
+        'Empresa': p.empresa || '',
+        'Cliente': e.posto || p.posto || '',
+        'Posto de Trabalho': p.postoTrabalho || '',
+        'Cargo': e.cargo || p.cargo || '',
+        'Área': e.area || '',
+        'Supervisor': e.supervisor || p.supervisor || '',
+        'Turno': p.turno || '',
+        'Jornada': p.jornada || '',
+        'Salário': Number(p.salario) > 0 ? Number(p.salario) : '',
         'Tipo': e.tipo,
-        'Data de Nascimento': (function(){ var dn = getDataNascimentoPorNome(e.nome); return dn ? formatDateBR(dn) : ''; })(),
-        'Data de Admissão': e.admissao ? formatDateBR(e.admissao) : '',
+        'Data de Admissão': admissao ? formatDateBR(admissao) : '',
         'Data de Demissão': e.demissao ? formatDateBR(e.demissao) : '',
-        'Motivo da Saída': e.motivoSaida || '',
+        'Tempo de Casa (dias)': e.demissao ? diasEntreISO(admissao, e.demissao) : '',
+        'Motivo da Saída': motivoLabel[e.motivoSaida] || e.motivoSaida || '',
         'Contrato': e.contrato || '',
+        'Desligado na Experiência': e.tipo === 'Demissão' ? (e.desligadoNaExperiencia ? 'Sim' : 'Não') : '',
         'Valor do Exame': e.valorExame || 0,
         'Valor do Uniforme': e.valorUniforme || 0,
         'Valor do Treinamento': e.valorTreinamento || 0,
         'Custo de Admissão': e.custoAdmissao || 0,
+        'Valor TRCT': e.valorTRCT || ina.valorTRCT || '',
+        'Valor FGTS': e.valorFGTS || ina.valorFGTS || '',
+        'Perda de Uniforme': e.valorPerdaUniforme || ina.valorUniforme || '',
         'Custo de Rescisão': e.custoRescisao || 0,
         'Custo Total': e.custoTotal || 0,
-        'Supervisor': e.supervisor,
+        'Data Prevista de Pagamento': e.dataPrevistaPagamento ? formatDateBR(e.dataPrevistaPagamento) : '',
         'Mês': e.mes
       };
+      linha['Dados Pendentes'] = dadosPendentes(linha);
+      return linha;
     });
   }
 
@@ -5424,28 +5509,48 @@
   }
 
   function prepararExportInativos(){
+    var P = montarPerfisPorNome();
     var motivoLabel = {COLABORADOR:'Pedido do Colaborador', EMPRESA:'Pedido da Empresa', ABANDONO:'Abandono'};
     var lista = appState.inativos.slice().sort(function(a, b){
       return String(b.desligamento || '').localeCompare(String(a.desligamento || ''));
     });
     return lista.map(function(i){
+      var p = P[normNome(i.nome)] || {};
       var contagem = contarFaltasEAdvertencias(i.nome);
-      return {
+      var admissao = i.admissao || p.admissao || '';
+      var resc = Array.isArray(i.rescisaoComplementar) ? i.rescisaoComplementar : [];
+      var linha = {
         'Nome': i.nome,
-        'CPF': (i.cpf || getCpfPorNome(i.nome)) ? formatCPF(i.cpf || getCpfPorNome(i.nome)) : '',
-        'Cargo': i.cargo || '',
-        'Cliente': i.posto || '',
-        'Empresa': i.empresa || '',
-        'Admissão': i.admissao ? formatDateBR(i.admissao) : '',
-        'Data de Desligamento': i.desligamento ? formatDateBR(i.desligamento) : '',
-        'Desligamento por': motivoLabel[i.motivoSaida] || i.motivoSaida || '',
+        'CPF': (i.cpf || p.cpf) ? formatCPF(i.cpf || p.cpf) : '',
+        'Data de Nascimento': (i.dataNascimento || p.dataNascimento) ? formatDateBR(i.dataNascimento || p.dataNascimento) : '',
+        'Idade (na saída)': idadeNaData(i.dataNascimento || p.dataNascimento, i.desligamento),
+        'Sexo': i.sexo || p.sexo || '',
+        'Tem Filhos': i.temFilhos || p.temFilhos || '',
+        'Empresa': i.empresa || p.empresa || '',
+        'Cliente': i.posto || p.posto || '',
+        'Posto de Trabalho': i.postoTrabalho || p.postoTrabalho || '',
+        'Cargo': i.cargo || p.cargo || '',
+        'Supervisor': i.supervisor || p.supervisor || '',
+        'Turno': i.turno || p.turno || '',
+        'Jornada': i.jornada || p.jornada || '',
         'Contrato': i.contrato || '',
-        'Supervisor': i.supervisor || '',
-        'Salário': getSalarioDesligado(i) || '',
+        'Admissão': admissao ? formatDateBR(admissao) : '',
+        'Data de Desligamento': i.desligamento ? formatDateBR(i.desligamento) : '',
+        'Tempo de Casa (dias)': diasEntreISO(admissao, i.desligamento),
+        'Desligamento por': motivoLabel[i.motivoSaida] || i.motivoSaida || '',
+        'Salário': getSalarioDesligado(i) || (Number(p.salario) > 0 ? Number(p.salario) : ''),
+        'Uniforme Devolvido': i.uniformeDevolvido || '',
+        'Valor TRCT': i.valorTRCT || '',
+        'Valor FGTS': i.valorFGTS || '',
+        'Valor do Uniforme': i.valorUniforme || '',
+        'Rescisão Complementar (R$)': resc.reduce(function(t, r){ return t + (Number(r.valor) || 0); }, 0) || '',
         'Faltas': contagem.faltas,
         'Advertências': contagem.advertencias,
-        'Entrevista Realizada': i.entrevistaRealizada || ''
+        'Entrevista Realizada': i.entrevistaRealizada || '',
+        'Observação': i.observacao || ''
       };
+      linha['Dados Pendentes'] = dadosPendentes(linha);
+      return linha;
     });
   }
 
@@ -5493,6 +5598,133 @@
   document.getElementById('btn-export-desl-andamento').addEventListener('click', function(){
     exportarExcel('desligamentos_em_andamento', 'Desligamentos em Andamento', prepararExportDesligamentosAndamento());
   });
+  // ---------- Completar dados pessoais a partir das planilhas ----------
+  function chaveCabecalho(v){ return benSemAcento(v).replace(/[^A-Z0-9]/g, ''); }
+  function normSexoPlanilha(v){
+    var t = benSemAcento(v);
+    if(t === 'F' || t.indexOf('FEM') === 0) return 'Feminino';
+    if(t === 'M' || t.indexOf('MASC') === 0) return 'Masculino';
+    return '';
+  }
+  function lerPlanilhasComplemento(arquivos, cb){
+    var pessoas = {}, eventos = {}, resumoLeitura = [], faltam = arquivos.length;
+    function fim(){ if(--faltam === 0) cb(pessoas, eventos, resumoLeitura); }
+    Array.prototype.forEach.call(arquivos, function(f){
+      var r = new FileReader();
+      r.onload = function(){
+        try {
+          var wb = XLSX.read(r.result, { type: 'array', cellDates: false });
+          wb.SheetNames.forEach(function(nome){
+            var mat = XLSX.utils.sheet_to_json(wb.Sheets[nome], { header: 1, defval: '', raw: true });
+            var h = -1, cols = null;
+            for(var i = 0; i < Math.min(12, mat.length) && h < 0; i++){
+              var m = {};
+              mat[i].forEach(function(c, j){ var k = chaveCabecalho(c); if(k && m[k] === undefined) m[k] = j; });
+              var nomeCol = m.COLABORADOR !== undefined ? m.COLABORADOR : m.NOME;
+              var uteis = ['DTNASC','DATANASCIMENTO','NASCIMENTO','SEXO','CPF','EMPRESA','SALARIO','VALORRESCISAO','VALORFGTS'].filter(function(k){ return m[k] !== undefined; }).length;
+              if(nomeCol !== undefined && uteis >= 1){ h = i; cols = m; cols._nome = nomeCol; }
+            }
+            if(h < 0) return;
+            var pega = function(row, chaves){ for(var q = 0; q < chaves.length; q++){ if(cols[chaves[q]] !== undefined){ var v = row[cols[chaves[q]]]; if(v !== '' && v !== null && v !== undefined) return v; } } return ''; };
+            var linhasUsadas = 0;
+            for(var li = h + 1; li < mat.length; li++){
+              var row = mat[li];
+              var nomeP = String(row[cols._nome] || '').trim();
+              if(!nomeP) continue;
+              var k = normNome(nomeP);
+              linhasUsadas++;
+              var p = pessoas[k] || (pessoas[k] = {});
+              var nasc = benDataPlanilha(pega(row, ['DTNASC','DATANASCIMENTO','NASCIMENTO']));
+              var sexo = normSexoPlanilha(pega(row, ['SEXO']));
+              var emp = String(pega(row, ['EMPRESA']) || '').trim();
+              var sal = benNum(pega(row, ['SALARIO']));
+              var cpf = benCpf(pega(row, ['CPF']));
+              var jor = String(pega(row, ['JORNADA']) || '').trim();
+              var tur = String(pega(row, ['TURNO']) || '').trim();
+              var fil = String(pega(row, ['TEMFILHOS']) || '').trim();
+              if(nasc && !p.dataNascimento) p.dataNascimento = nasc;
+              if(sexo && !p.sexo) p.sexo = sexo;
+              if(emp && !p.empresa && /LOGIN|SOLUTIONS/.test(benSemAcento(emp))) p.empresa = benSemAcento(emp);
+              if(sal > 0 && !p.salario) p.salario = sal;
+              if(cpf.length === 11 && !p.cpf) p.cpf = formatCPF(cpf);
+              if(jor && !p.jornada) p.jornada = jor;
+              if(tur && !p.turno) p.turno = tur;
+              if(fil && !p.temFilhos) p.temFilhos = fil;
+              // dados de cada evento de TurnOver (planilha Turnover, aba "Base de dados")
+              if(cols.ADMISSAOOUDEMISSAO !== undefined){
+                var tipo = /DEMISS/.test(benSemAcento(row[cols.ADMISSAOOUDEMISSAO])) ? 'Demissão' : 'Admissão';
+                var dEv = tipo === 'Demissão' ? benDataPlanilha(pega(row, ['DATADEMISSAO'])) : benDataPlanilha(pega(row, ['ADMISSAO']));
+                if(dEv){
+                  var ex = {};
+                  var trct = benNum(pega(row, ['VALORRESCISAO'])), fgts = benNum(pega(row, ['VALORFGTS'])), pu = benNum(pega(row, ['VALORPERDAUNIFORME']));
+                  var dpp = benDataPlanilha(pega(row, ['DATAPREVISTAPAGAMENTO']));
+                  if(trct > 0) ex.valorTRCT = trct;
+                  if(fgts > 0) ex.valorFGTS = fgts;
+                  if(pu > 0) ex.valorPerdaUniforme = pu;
+                  if(dpp) ex.dataPrevistaPagamento = dpp;
+                  if(Object.keys(ex).length) eventos[k + '|' + tipo + '|' + dEv] = ex;
+                }
+              }
+            }
+            resumoLeitura.push(f.name + ' › ' + nome + ' (' + linhasUsadas + ' linhas)');
+          });
+        } catch(e){ resumoLeitura.push(f.name + ': não foi possível ler (' + e.message + ')'); }
+        fim();
+      };
+      r.readAsArrayBuffer(f);
+    });
+  }
+  function vazioParaComplemento(campo, v){
+    return v === undefined || v === null || v === '' || (campo === 'salario' && !(Number(v) > 0));
+  }
+  function aplicarComplemento(pessoas, eventos, gravar){
+    var cont = { ativos: {}, inativos: {}, turnover: {}, absenteismo: {} };
+    function preencher(reg, dados, campos, c){
+      campos.forEach(function(cp){
+        var novo = dados[cp];
+        if(novo === undefined || novo === null || novo === '') return;
+        if(vazioParaComplemento(cp, reg[cp])){ if(gravar) reg[cp] = novo; c[cp] = (c[cp] || 0) + 1; }
+      });
+    }
+    var CP = ['cpf','dataNascimento','sexo','empresa','salario','jornada','turno','temFilhos'];
+    appState.ativos.forEach(function(a){ var d = pessoas[normNome(a.nome)]; if(d) preencher(a, d, CP, cont.ativos); });
+    appState.inativos.forEach(function(i){ var d = pessoas[normNome(i.nome)]; if(d) preencher(i, d, CP, cont.inativos); });
+    appState.turnover.forEach(function(e){
+      var k = normNome(e.nome), d = pessoas[k];
+      if(d) preencher(e, d, ['sexo'], cont.turnover);
+      var ex = eventos[k + '|' + e.tipo + '|' + (e.tipo === 'Admissão' ? e.admissao : e.demissao)];
+      if(ex) preencher(e, ex, ['valorTRCT','valorFGTS','valorPerdaUniforme','dataPrevistaPagamento'], cont.turnover);
+    });
+    appState.absenteismo.forEach(function(e){ var d = pessoas[normNome(e.nome)]; if(d) preencher(e, d, ['sexo'], cont.absenteismo); });
+    return cont;
+  }
+  var ROTULO_COMPLEMENTO = { cpf:'CPF', dataNascimento:'nascimento', sexo:'sexo', empresa:'empresa', salario:'salário', jornada:'jornada', turno:'turno', temFilhos:'tem filhos', valorTRCT:'TRCT', valorFGTS:'FGTS', valorPerdaUniforme:'perda de uniforme', dataPrevistaPagamento:'data prevista de pagamento' };
+  function textoContComplemento(cont){
+    var nomes = { ativos:'Ativos', inativos:'Inativos', turnover:'TurnOver', absenteismo:'Absenteísmo' }, linhas = [];
+    Object.keys(cont).forEach(function(c){
+      var itens = Object.keys(cont[c]).map(function(f){ return cont[c][f] + ' ' + (ROTULO_COMPLEMENTO[f] || f); });
+      if(itens.length) linhas.push('• ' + nomes[c] + ': ' + itens.join(', '));
+    });
+    return linhas.join('\n');
+  }
+  document.getElementById('btn-completar-dados').addEventListener('click', function(){
+    var inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.xlsm,.xls'; inp.multiple = true;
+    inp.onchange = function(){
+      if(!inp.files.length) return;
+      lerPlanilhasComplemento(inp.files, function(pessoas, eventos, leitura){
+        var cont = aplicarComplemento(pessoas, eventos, false);
+        var texto = textoContComplemento(cont);
+        if(!texto){ alert('Planilhas lidas:\n' + leitura.join('\n') + '\n\nNão há nenhum campo vazio que essas planilhas consigam preencher.'); return; }
+        if(!confirm('Planilhas lidas:\n' + leitura.join('\n') + '\n\nSerão preenchidos apenas campos VAZIOS (nada que já existe é alterado):\n' + texto + '\n\nAplicar agora?')) return;
+        aplicarComplemento(pessoas, eventos, true);
+        cloudPut(appState).catch(function(err){ console.error('Erro ao completar dados:', err); });
+        refreshAtivosView(); refreshInativosView(); refreshTurnoverView(); refreshAbsenteismoView(); refreshExportacoesView();
+        alert('Dados completados:\n' + texto);
+      });
+    };
+    inp.click();
+  });
+
   document.getElementById('btn-export-inativos').addEventListener('click', function(){
     exportarExcel('colaboradores_inativos', 'Inativos', prepararExportInativos());
   });
