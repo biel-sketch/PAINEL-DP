@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-17-40</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-18-42</div>
     </div>
   </aside>
 
@@ -2253,7 +2253,7 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-17-40 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-18-42 • banco: ' + firebaseConfig.projectId;
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -5274,13 +5274,15 @@
     appState.ativos.forEach(function(a){ vistos[normNome(a.nome)] = true; });
     (appState.desligamentosAndamento || []).forEach(function(d){
       if(vistos[normNome(d.nome)]) return;
+      if(d.avisoTrabalhado !== 'Sim') return; // só entra quem está cumprindo aviso trabalhado
       var o = d.ativoOriginal || {};
       var reg = Object.assign({}, o, {
         nome: d.nome, cargo: d.cargo || o.cargo, posto: d.posto || o.posto, admissao: d.admissao || o.admissao,
         cpf: d.cpf || o.cpf, empresa: d.empresa || o.empresa, sexo: d.sexo || o.sexo,
         salario: o.salario || d.salario || 0, supervisor: d.supervisor || o.supervisor
       });
-      lista.push({ reg: reg, situacao: 'Em desligamento (desl. ' + (d.desligamento ? formatDateBR(d.desligamento) : '—') + ')' });
+      var ai = d.avisoData || '', af = getAvisoFim(d) || '';
+      lista.push({ reg: reg, avisoInicio: ai, avisoFim: af, situacao: 'Em aviso (desl. ' + (d.desligamento ? formatDateBR(d.desligamento) : '—') + ')' });
     });
     return lista;
   }
@@ -5307,6 +5309,8 @@
         'Sexo': a.sexo || '',
         'Status': a.status || 'ATIVO',
         'Situação': item.situacao,
+        'Início do Aviso': item.avisoInicio ? formatDateBR(item.avisoInicio) : '',
+        'Fim do Aviso': item.avisoFim ? formatDateBR(item.avisoFim) : '',
         'Tipo de Contrato': tipoLabel[a.contratoTipo] || 'Indeterminado (Efetivo)',
         'Etapa da Experiência': info ? (info.etapa === 1 ? '1ª Experiência' : '2ª Experiência (Prorrogação)') : '',
         'Vencimento da Experiência': info ? formatDateBR(info.vencimento) : ''
@@ -5580,7 +5584,7 @@
     document.getElementById('export-desl-andamento-count').textContent = (appState.desligamentosAndamento || []).length + ' colaboradores';
     document.getElementById('export-entrevistas-count').textContent = getInativosComEntrevista().length + ' entrevistas';
     document.getElementById('export-inativos-count').textContent = appState.inativos.length + ' colaboradores';
-    document.getElementById('export-ativos-count').textContent = getAtivosParaRelatorio().length + ' colaboradores (' + appState.ativos.length + ' ativos + ' + (getAtivosParaRelatorio().length - appState.ativos.length) + ' em desligamento)';
+    document.getElementById('export-ativos-count').textContent = getAtivosParaRelatorio().length + ' colaboradores (' + appState.ativos.length + ' ativos + ' + (getAtivosParaRelatorio().length - appState.ativos.length) + ' em aviso)';
     document.getElementById('export-abs-count').textContent = appState.absenteismo.length + ' registros';
     document.getElementById('export-to-count').textContent = appState.turnover.length + ' registros';
     document.getElementById('export-ferias-count').textContent = getAtivosComStatusFerias().length + ' colaboradores (uma linha por período aquisitivo)';
