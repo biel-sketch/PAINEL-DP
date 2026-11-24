@@ -277,7 +277,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         <span class="nav-label">Sair</span>
       </button>
-      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-18-42</div>
+      <div style="text-align:center;font-size:9px;color:var(--text-faint);margin-top:8px;opacity:0.6;">build 2026-11-24-44</div>
     </div>
   </aside>
 
@@ -2253,7 +2253,32 @@
   firebase.initializeApp(firebaseConfig);
   (function(){
     var el = document.getElementById('login-build');
-    if(el) el.textContent = 'build 2026-11-18-42 • banco: ' + firebaseConfig.projectId;
+    if(el) el.textContent = 'build 2026-11-24-44 • banco: ' + firebaseConfig.projectId;
+  })();
+  // ---------- Aviso de nova versão ----------
+  // Compara o build carregado com o index.html publicado. Quando mudou, mostra faixa para
+  // atualizar; se a pessoa ficar 5 min sem mexer em nada, a página recarrega sozinha.
+  (function(){
+    var BUILD_CARREGADO = '2026-11-24-44', ultimaAcao = Date.now(), avisado = false;
+    ['click','keydown','input'].forEach(function(ev){ document.addEventListener(ev, function(){ ultimaAcao = Date.now(); }, true); });
+    function mostrarFaixa(){
+      if(avisado) return; avisado = true;
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#f5a524;color:#2b1c00;padding:10px 16px;font:600 13px sans-serif;display:flex;gap:12px;align-items:center;justify-content:center;';
+      d.innerHTML = '<span>Nova versão do painel disponível.</span><button style="background:#2b1c00;color:#fff;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;font-weight:600;">Atualizar agora</button>';
+      d.querySelector('button').onclick = function(){ location.reload(); };
+      document.body.appendChild(d);
+      setInterval(function(){ if(Date.now() - ultimaAcao > 5 * 60 * 1000) location.reload(); }, 30000);
+    }
+    function verificar(){
+      if(avisado || location.protocol === 'file:') return;
+      fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })
+        .then(function(r){ return r.ok ? r.text() : ''; })
+        .then(function(t){ var m = t.match(/var BUILD_CARREGADO = '([^']+)'/); if(m && m[1] !== BUILD_CARREGADO) mostrarFaixa(); })
+        .catch(function(){});
+    }
+    setInterval(verificar, 2 * 60 * 1000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) verificar(); });
   })();
   var firebaseAuth = firebase.auth();
   var dbRef = firebase.database().ref('painel-dp');
@@ -5275,6 +5300,9 @@
     (appState.desligamentosAndamento || []).forEach(function(d){
       if(vistos[normNome(d.nome)]) return;
       if(d.avisoTrabalhado !== 'Sim') return; // só entra quem está cumprindo aviso trabalhado
+      var fimAv = getAvisoFim(d);
+      var hojeISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      if(fimAv && fimAv < hojeISO) return; // aviso já terminou: sai do relatório
       var o = d.ativoOriginal || {};
       var reg = Object.assign({}, o, {
         nome: d.nome, cargo: d.cargo || o.cargo, posto: d.posto || o.posto, admissao: d.admissao || o.admissao,
@@ -7224,6 +7252,82 @@
     var k = normNome(nome);
     return getColaboradoresVigentes().find(function(a){ return normNome(a.nome) === k; }) || null;
   }
+
+  // ---------- Texto padronizado: MAIÚSCULO, sem acento e sem caractere especial ----------
+  // Vale para todo campo de texto e textarea (exceto e-mail/senha/número/data, que têm tipo próprio).
+  // Permitidos: letras A-Z, números, espaço e . , - / : (necessários p/ CPF, CID, horários etc.).
+  function padronizarTexto(v, multilinha){
+    v = String(v == null ? '' : v).replace(/[‐-―−]/g, '-').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+    return v.replace(multilinha ? /[^A-Z0-9 .,\-\/:\n]/g : /[^A-Z0-9 .,\-\/:]/g, '');
+  }
+  function campoPadronizavel(el){
+    if(!el || el.disabled || el.readOnly || el.hasAttribute('data-livre')) return false;
+    if(el.tagName === 'TEXTAREA') return true;
+    return el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'search' || el.type === 'tel');
+  }
+  function aplicarPadraoNoCampo(el){
+    var multi = el.tagName === 'TEXTAREA';
+    var antes = el.value, pos = el.selectionStart;
+    var novo = padronizarTexto(antes, multi);
+    if(novo === antes) return;
+    var novaPos = pos == null ? null : padronizarTexto(antes.slice(0, pos), multi).length;
+    el.value = novo;
+    if(novaPos != null){ try { el.setSelectionRange(novaPos, novaPos); } catch(e){} }
+  }
+  document.addEventListener('input', function(e){
+    if(e.isComposing || !campoPadronizavel(e.target)) return;
+    aplicarPadraoNoCampo(e.target);
+  }, true);
+  document.addEventListener('compositionend', function(e){
+    if(campoPadronizavel(e.target)) aplicarPadraoNoCampo(e.target);
+  }, true);
+
+  // ---------- Caixas de seleção: supervisores e CIDs já registrados ----------
+  function listaSupervisoresRegistrados(){
+    var mapa = {};
+    ['ativos','inativos','turnover','absenteismo','desligamentosAndamento','ocorrencias','advertencias'].forEach(function(c){
+      (appState[c] || []).forEach(function(r){
+        var v = padronizarTexto(r && r.supervisor).replace(/\s+/g, ' ').trim();
+        if(/[A-Z]/.test(v)) mapa[v] = true;
+        if(r && r.ativoOriginal){ var v2 = padronizarTexto(r.ativoOriginal.supervisor).replace(/\s+/g, ' ').trim(); if(/[A-Z]/.test(v2)) mapa[v2] = true; }
+      });
+    });
+    return Object.keys(mapa).sort();
+  }
+  function listaCidsRegistrados(){
+    var mapa = {};
+    (appState.absenteismo || []).forEach(function(r){
+      var v = padronizarTexto(r && r.motivo).replace(/\s+/g, ' ').trim();
+      if(/^[A-Z]\d{2}/.test(v)) mapa[v] = true;
+    });
+    return Object.keys(mapa).sort();
+  }
+  function atualizarListasRegistradas(){
+    var dlS = document.getElementById('supervisores-datalist'), dlC = document.getElementById('cids-registrados-datalist');
+    if(dlS) dlS.innerHTML = listaSupervisoresRegistrados().map(function(v){ return '<option value="' + v + '">'; }).join('');
+    if(dlC){
+      var reg = listaCidsRegistrados(), ja = {};
+      reg.forEach(function(v){ ja[v] = true; });
+      var extra = (typeof CID_COMUNS !== 'undefined' ? CID_COMUNS : []).map(function(x){ return padronizarTexto(x.c + ' - ' + x.d); }).filter(function(v){ return !ja[v]; });
+      dlC.innerHTML = reg.concat(extra).map(function(v){ return '<option value="' + v + '">'; }).join('');
+    }
+  }
+  (function(){
+    var dl1 = document.createElement('datalist'); dl1.id = 'supervisores-datalist';
+    var dl2 = document.createElement('datalist'); dl2.id = 'cids-registrados-datalist';
+    document.body.appendChild(dl1); document.body.appendChild(dl2);
+    document.querySelectorAll('input[id*="supervisor"]').forEach(function(el){
+      if(el.type === 'text'){ el.setAttribute('list', 'supervisores-datalist'); el.setAttribute('autocomplete', 'off'); }
+    });
+    ['abs-f-motivo','eabs-motivo'].forEach(function(id){
+      var el = document.getElementById(id); if(el){ el.setAttribute('list', 'cids-registrados-datalist'); el.setAttribute('autocomplete', 'off'); }
+    });
+    document.addEventListener('focusin', function(e){
+      var l = e.target && e.target.getAttribute && e.target.getAttribute('list');
+      if(l === 'supervisores-datalist' || l === 'cids-registrados-datalist') atualizarListasRegistradas();
+    });
+    atualizarListasRegistradas();
+  })();
 
   function populateAbsDatalists(){
     var nomeList = document.getElementById('abs-nome-datalist');
